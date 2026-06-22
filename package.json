@@ -1,0 +1,13 @@
+{
+  "name": "gigcute",
+  "version": "0.1.0",
+  "description": "GigCute — where the dream candidate meets their dream job",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve public -p 3000",
+    "build": "echo 'Static site, no build step needed'"
+  },
+  "devDependencies": {
+    "serve": "^14.0.0"
+  }
+}
