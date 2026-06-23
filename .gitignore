@@ -4,3 +4,6 @@ node_modules/
 .env
 .env.local
 .DS_Store
+
+# Runtime Supabase config (project URL + anon key) — copy from config.example.js
+public/config.js
