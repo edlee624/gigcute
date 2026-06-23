@@ -3314,6 +3314,10 @@
         <option>Other</option>
       </select>
     </div>
+    <div class="field">
+      <label for="em-company-linkedin">Company LinkedIn URL <span style="font-weight:400;opacity:0.5;">(optional)</span></label>
+      <input type="url" id="em-company-linkedin" placeholder="https://www.linkedin.com/company/your-company" autocomplete="url">
+    </div>
     <button class="ob-primary" id="em2Next" type="button">Continue</button>
   </div>
 </div>
@@ -3364,6 +3368,7 @@
     </div>
     <div class="ob-eyebrow">Company</div>
     <h1 class="ob-h1" id="dashCompanyName" style="margin-bottom:2px;">Render Studio</h1>
+    <a id="dashCompanyLinkedin" href="#" target="_blank" rel="noopener noreferrer nofollow" style="display:none;align-items:center;gap:6px;font-size:13px;color:var(--coral);text-decoration:none;margin-bottom:6px;"><svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px;"><path d="M19 0h-14c-2.76 0-5 2.24-5 5v14c0 2.76 2.24 5 5 5h14c2.76 0 5-2.24 5-5v-14c0-2.76-2.24-5-5-5zm-11 19h-3v-9h3v9zm-1.5-10.3c-1 0-1.7-.7-1.7-1.6s.7-1.6 1.7-1.6c1 0 1.7.7 1.7 1.6s-.7 1.6-1.7 1.6zm13.5 10.3h-3v-4.7c0-1.3-.5-2.2-1.7-2.2-.9 0-1.4.6-1.7 1.2-.1.2-.1.5-.1.8v4.9h-3v-9h3v1.3c.4-.6 1.2-1.5 2.8-1.5 2 0 3.7 1.3 3.7 4.2v5z"/></svg>Company LinkedIn</a>
     <p class="ob-sub">Manage your open roles. Candidates only see postings marked Active.</p>
     <button class="ob-primary inline" id="newPostingBtn" type="button" style="margin-bottom:24px;">+ New posting</button>
     <div id="postingsList"></div>
@@ -4872,6 +4877,7 @@
   function finishEmployerSetup(){
     const companyName = document.getElementById('em-company').value.trim() || 'Your company';
     companyState.name = companyName;
+    companyState.linkedinUrl = document.getElementById('em-company-linkedin').value.trim();
     const recruiterName = document.getElementById('em-name').value.trim();
     const firstName = recruiterName ? recruiterName.split(' ')[0] : 'Your team';
     showSuccess({
@@ -4892,7 +4898,7 @@
   document.getElementById('skipInvites').onclick = finishEmployerSetup;
 
   // ================= POSTINGS: data + dashboard + wizard =================
-  const companyState = { name: 'Render Studio' };
+  const companyState = { name: 'Render Studio', linkedinUrl: '' };
   const COMPANY_PLACEHOLDER_PHOTO = "https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=600&q=80";
 
   let editingId = null;
@@ -5104,6 +5110,15 @@
 
   function renderPostingsDashboard(){
     document.getElementById('dashCompanyName').textContent = companyState.name || 'Render Studio';
+    const dashLi = document.getElementById('dashCompanyLinkedin');
+    if(dashLi){
+      if(companyState.linkedinUrl){
+        dashLi.href = /^https?:\/\//i.test(companyState.linkedinUrl) ? companyState.linkedinUrl : 'https://'+companyState.linkedinUrl;
+        dashLi.style.display = 'inline-flex';
+      } else {
+        dashLi.style.display = 'none';
+      }
+    }
     const list = document.getElementById('postingsList');
     if(postings.length === 0){
       list.innerHTML = `
@@ -5352,6 +5367,7 @@
         </div>
         <div class="card-body">
           <div class="tagrow">${tags.map(t => `<span class="tag">${escapeHtml(String(t))}</span>`).join('')}</div>
+          ${companyState.linkedinUrl ? `<a href="${escapeHtml(/^https?:\/\//i.test(companyState.linkedinUrl) ? companyState.linkedinUrl : 'https://'+companyState.linkedinUrl)}" target="_blank" rel="noopener noreferrer nofollow" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--coral);text-decoration:none;margin-bottom:4px;"><svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;"><path d="M19 0h-14c-2.76 0-5 2.24-5 5v14c0 2.76 2.24 5 5 5h14c2.76 0 5-2.24 5-5v-14c0-2.76-2.24-5-5-5zm-11 19h-3v-9h3v9zm-1.5-10.3c-1 0-1.7-.7-1.7-1.6s.7-1.6 1.7-1.6c1 0 1.7.7 1.7 1.6s-.7 1.6-1.7 1.6zm13.5 10.3h-3v-4.7c0-1.3-.5-2.2-1.7-2.2-.9 0-1.4.6-1.7 1.2-.1.2-.1.5-.1.8v4.9h-3v-9h3v1.3c.4-.6 1.2-1.5 2.8-1.5 2 0 3.7 1.3 3.7 4.2v5z"/></svg>${escapeHtml(companyState.name||'Company')} on LinkedIn</a>` : ''}
           ${data.responsibilities.length ? `
             <div class="job-section">
               <div class="sec-label">Responsibilities</div>
