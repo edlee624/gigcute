@@ -487,7 +487,7 @@
     margin-bottom:7px;
     letter-spacing:0.01em;
   }
-  .field input[type=text], .field input[type=email], .field input[type=tel], .field select, .field textarea{
+  .field input[type=text], .field input[type=email], .field input[type=tel], .field input[type=password], .field input[type=url], .field select, .field textarea{
     width:100%;
     background:var(--ink-soft);
     border:1.5px solid var(--line-light);
@@ -3102,7 +3102,14 @@
     <p class="ob-sub">Just the basics — you'll build your real profile next.</p>
 
     <div class="field"><label for="sk-name">Full name</label><input type="text" id="sk-name" placeholder="Maya Okafor"></div>
-    <div class="field"><label for="sk-email">Email</label><input type="email" id="sk-email" placeholder="maya@email.com"></div>
+    <div class="field"><label for="sk-email">Email</label><input type="email" id="sk-email" placeholder="maya@email.com" autocomplete="email"></div>
+    <div class="field password-field">
+      <label for="sk-password">Create a password</label>
+      <input type="password" id="sk-password" placeholder="••••••••" autocomplete="new-password">
+      <button class="pw-toggle" type="button" data-target="sk-password" aria-label="Show password">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
     <div class="field"><label for="sk-role">Current or most recent title</label><input type="text" id="sk-role" placeholder="Senior Product Designer"></div>
     <label class="accept-row"><input type="checkbox" id="sk1Terms"><span>I agree to GigCute's <a onclick="openLegal('tos')">Terms of Service</a> and <a onclick="openLegal('privacy')">Privacy Policy</a>.</span></label>
     <button class="ob-primary" id="sk1Next" type="button">Continue</button>
@@ -8165,6 +8172,147 @@
   window.adminSetPostingTier = adminSetPostingTier;
   window.adminRemovePosting = adminRemovePosting;
   window.showScreen = showScreen;
+
+  // ================= BACKEND AUTH (Supabase) =================
+  // Activates only when public/config.js is present (GigCuteAPI.enabled).
+  // Otherwise the demo/simulated auth handlers above remain in effect.
+  function enterApp(mode){
+    showScreen('screen-app');
+    setMode(mode);
+    if(mode === 'candidate') renderDashboard();
+  }
+  function gcPendingSet(o){ try{ localStorage.setItem('gc_pending', JSON.stringify(o)); }catch(e){} }
+  function gcPendingGet(){ try{ return JSON.parse(localStorage.getItem('gc_pending')||'null'); }catch(e){ return null; } }
+  function gcPendingClear(){ try{ localStorage.removeItem('gc_pending'); }catch(e){} }
+  async function gcCompletePending(API){
+    const p = gcPendingGet(); if(!p) return;
+    try{
+      if(p.kind === 'seeker') await API.seeker.upsert(p.profile);
+      else if(p.kind === 'company') await API.companies.create(p.company);
+      gcPendingClear();
+    }catch(e){ console.warn('[gigcute] pending setup deferred:', e.message); }
+  }
+  function gcAuthError(id, msg){ const el = document.getElementById(id); if(el){ el.textContent = msg; el.classList.add('show'); } }
+
+  function wireBackendAuth(){
+    const API = window.GigCuteAPI;
+    if(!API || !API.enabled) return; // demo mode — keep simulated handlers
+
+    // Restore an existing session (returning user / OAuth redirect) and route in.
+    API.auth.currentUser().then(async (user) => {
+      if(!user) return;
+      await gcCompletePending(API);
+      let role = 'seeker';
+      try{ const me = await API.profiles.me(); if(me && me.role) role = me.role; }catch(e){}
+      if(sessionStorage.getItem('gc_oauth_role') === 'recruiter') role = 'recruiter';
+      enterApp(role === 'recruiter' ? 'recruiter' : 'candidate');
+    }).catch(()=>{});
+
+    // ---- Logins ----
+    document.getElementById('seekerLoginBtn').onclick = async () => {
+      const email = document.getElementById('seeker-login-email').value.trim();
+      const pw = document.getElementById('seeker-login-pw').value;
+      document.getElementById('seekerLoginError').classList.remove('show');
+      try{ await API.auth.signIn({ email, password: pw }); await gcCompletePending(API); enterApp('candidate'); }
+      catch(e){ gcAuthError('seekerLoginError', e.message || 'Login failed.'); }
+    };
+    document.getElementById('recruiterLoginBtn').onclick = async () => {
+      const email = document.getElementById('recruiter-login-email').value.trim();
+      const pw = document.getElementById('recruiter-login-pw').value;
+      document.getElementById('recruiterLoginError').classList.remove('show');
+      try{ await API.auth.signIn({ email, password: pw }); await gcCompletePending(API); enterApp('recruiter'); }
+      catch(e){ gcAuthError('recruiterLoginError', e.message || 'Login failed.'); }
+    };
+
+    // ---- Google OAuth ----
+    document.getElementById('seekerGoogleBtn').onclick = async () => {
+      sessionStorage.setItem('gc_oauth_role','candidate');
+      try{ await API.auth.signInWithGoogle(); }catch(e){ gcAuthError('seekerLoginError', e.message); }
+    };
+    document.getElementById('recruiterGoogleBtn').onclick = async () => {
+      sessionStorage.setItem('gc_oauth_role','recruiter');
+      try{ await API.auth.signInWithGoogle(); }catch(e){ gcAuthError('recruiterLoginError', e.message); }
+    };
+
+    // ---- Forgot password ----
+    document.getElementById('sendResetBtn').onclick = async () => {
+      const email = document.getElementById('forgot-email').value.trim();
+      if(!email || !email.includes('@')){ document.getElementById('forgot-email').style.borderColor = 'var(--coral)'; return; }
+      document.getElementById('forgot-email').style.borderColor = '';
+      try{ await API.auth.sendPasswordReset(email); }catch(e){}
+      document.getElementById('resetEmailSentTo').textContent = email;
+      document.getElementById('forgotFormWrap').style.display = 'none';
+      document.getElementById('resetSentWrap').style.display = 'block';
+    };
+
+    // ---- Sign out (nav avatar) ----
+    const avatar = document.getElementById('navAvatar');
+    if(avatar){
+      avatar.style.cursor = 'pointer';
+      avatar.title = 'Log out';
+      avatar.onclick = () => showConfirm('Log out?', 'You’ll be returned to the landing page.', '', 'Log out', '', async () => {
+        try{ await API.auth.signOut(); }catch(e){}
+        sessionStorage.removeItem('gc_oauth_role');
+        showScreen('screen-landing');
+      });
+    }
+
+    // ---- Seeker registration → create account on publish ----
+    document.getElementById('finishSeeker').onclick = async () => {
+      seekerProfile = {
+        name: document.getElementById('sk-name').value.trim() || seekerProfile.name,
+        title: (pendingWorkHistory[0] && pendingWorkHistory[0].title) || document.getElementById('sk-role').value.trim() || seekerProfile.title,
+        photo: currentPhotoUrl,
+        linkedinUrl: document.getElementById('seekerLinkedInUrl').value.trim() || seekerProfile.linkedinUrl,
+        workHistory: pendingWorkHistory,
+        favoritePrompts: pendingFavoritePrompts
+      };
+      const email = document.getElementById('sk-email').value.trim();
+      const pw = document.getElementById('sk-password').value;
+      // Photo is a local blob in the prototype; real uploads go to Storage later.
+      gcPendingSet({ kind:'seeker', profile:{ headline: seekerProfile.title, linkedin_url: seekerProfile.linkedinUrl || '' } });
+      try{
+        const res = await API.auth.signUp({ email, password: pw, role:'seeker', fullName: seekerProfile.name });
+        if(res.session){
+          await gcCompletePending(API);
+          showSuccess({ headline:"You're all set.", sub:"Your profile is live. Time to start swiping on open roles.", primaryText:"Enter the app", primaryAction:()=>enterApp('candidate') });
+        } else {
+          showSuccess({ headline:"Check your email.", sub:`We sent a verification link to ${email}. Confirm it, then log in to finish setting up your profile.`, primaryText:"Back to login", primaryAction:()=>showScreen('screen-login-seeker') });
+        }
+      }catch(e){ showToast(e.message || 'Could not create your account.'); }
+    };
+
+    // ---- Recruiter registration → create account on finish ----
+    async function gcFinishEmployer(){
+      const companyName = document.getElementById('em-company').value.trim() || 'Your company';
+      companyState.name = companyName;
+      companyState.linkedinUrl = document.getElementById('em-company-linkedin').value.trim();
+      const email = document.getElementById('em-work-email').value.trim();
+      const pw = document.getElementById('em-password').value;
+      const fullName = document.getElementById('em-name').value.trim();
+      const sizeChip = document.querySelector('.chip[data-size].selected');
+      gcPendingSet({ kind:'company', company:{
+        name: companyName,
+        linkedin_url: companyState.linkedinUrl || null,
+        industry: document.getElementById('em-industry').value,
+        size: sizeChip ? sizeChip.dataset.size : null,
+        domain: email.split('@')[1] || null
+      }});
+      try{
+        const res = await API.auth.signUp({ email, password: pw, role:'recruiter', fullName });
+        if(res.session){
+          await gcCompletePending(API);
+          showSuccess({ headline:`${companyName} is ready.`, sub:`Your company profile is live. Create your first posting so candidates can find you.`, primaryText:"Create your first posting", primaryAction:()=>{ editingId=null; resetPostingForm(); setWizardMode('create'); showScreen('screen-posting-1'); }, secondaryText:"Skip for now", secondaryAction:()=>enterApp('recruiter') });
+        } else {
+          showSuccess({ headline:"Check your email.", sub:`We sent a verification link to ${email}. Confirm it, then log in to finish setting up ${companyName}.`, primaryText:"Back to login", primaryAction:()=>showScreen('screen-login-recruiter') });
+        }
+      }catch(e){ showToast(e.message || 'Could not create your account.'); }
+    }
+    document.getElementById('finishEmployer').onclick = gcFinishEmployer;
+    document.getElementById('skipInvites').onclick = gcFinishEmployer;
+  }
+  if(window.GigCuteAPI) wireBackendAuth();
+  else window.addEventListener('gigcute-api-ready', wireBackendAuth);
 
   // ================= INIT =================
   postings.forEach(p => syncPostingIntoDeck(p));
