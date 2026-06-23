@@ -5419,38 +5419,16 @@
   document.getElementById('posting2Next').onclick = () => showScreen('screen-posting-3');
   document.getElementById('posting3Next').onclick = () => {
     const currentPosting = editingId ? postings.find(p => p.id === editingId) : null;
-    const postingTierKey = currentPosting ? (currentPosting.tier || 'free') : 'free';
-    const allowScreening = POSTING_TIERS[postingTierKey].screening;
-
-    if(!allowScreening){
-      renderSqChipBank();
-      activeScreeningQuestions = [];
-      renderSqList();
-      document.getElementById('sqAddToggle').style.display = 'none';
-      document.getElementById('sqChipBank').style.display = 'none';
-      const existing = document.getElementById('screeningGate');
-      if(!existing){
-        const gate = document.createElement('div');
-        gate.id = 'screeningGate';
-        gate.className = 'upgrade-gate';
-        gate.innerHTML = `
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-          <div class="ug-text">
-            <strong>Screening questions require a Boost or Featured posting</strong>
-            <span>Publish this posting first, then upgrade it to unlock screening questions and auto-filter candidates.</span>
-          </div>
-          <button class="ug-btn" id="screeningGateBtn">Learn more</button>`;
-        const sqSection = document.querySelector('.sq-add-section');
-        if(sqSection) sqSection.before(gate);
-        document.getElementById('screeningGateBtn').onclick = () => openPricingModal(editingId);
-      }
-      showScreen('screen-posting-screening');
-      return;
-    }
+    const postingTierKey = currentPosting ? (currentPosting.tier || 'free') : (pendingNewPostingTier || 'free');
+    // Regular screening questions are tier-limited (Basic 0, Boost 3, Featured 10).
+    // Voluntary self-identification (EEO / DE&I) questions are always available on every tier.
+    sqMaxScreening = POSTING_TIERS[postingTierKey].maxScreening || 0;
     const gate = document.getElementById('screeningGate');
     if(gate) gate.remove();
     document.getElementById('sqAddToggle').style.display = '';
+    document.getElementById('sqChipBank').style.display = sqChipBankOpen ? 'flex' : 'none';
     renderSqChipBank();
+    renderSqList();
     showScreen('screen-posting-screening');
   };
   document.getElementById('postingScreeningNext').onclick = () => showScreen('screen-posting-prompts');
@@ -5486,7 +5464,15 @@
   const PROFICIENCY_OPTIONS = ['Elementary','Limited working','Conversational','Professional working','Full professional','Native / Bilingual'];
 
   let activeScreeningQuestions = []; // [{templateId, fillValue, minYears, degreeLevel, proficiency, essential}]
+  let sqMaxScreening = 0; // regular (non-voluntary) screening questions allowed for the current posting's tier
   let rejectionEnabled = false;
+
+  function regularScreeningCount(){
+    return activeScreeningQuestions.filter(q => {
+      const t = SQ_TEMPLATES.find(x => x.id === q.templateId);
+      return !(t && t.voluntary);
+    }).length;
+  }
   let sqChipBankOpen = true;
 
   function sqDefaultForTemplate(tpl){
@@ -5568,9 +5554,8 @@
   function renderSqList(){
     const list = document.getElementById('sqList');
     list.innerHTML = activeScreeningQuestions.map((sq,i) => renderSqCard(sq,i)).join('');
-    // show/hide rejection panel when there are essential questions
-    const hasEssential = activeScreeningQuestions.some(q=>q.essential);
-    document.getElementById('rejectionPanel').style.display = activeScreeningQuestions.length > 0 ? 'block' : 'none';
+    // Rejection auto-filter only applies to regular screening questions; voluntary EEO questions never reject.
+    document.getElementById('rejectionPanel').style.display = regularScreeningCount() > 0 ? 'block' : 'none';
   }
 
   function renderSqChipBank(){
@@ -5578,15 +5563,30 @@
     const usedIds = new Set(activeScreeningQuestions.map(q=>q.templateId));
     const checkSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`;
     const plusSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`;
-    const chipHTML = tpl => {
+    const lockSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`;
+    const headStyle = 'flex-basis:100%;margin-top:4px;font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(251,247,240,0.4);';
+    const slotsLeft = sqMaxScreening - regularScreeningCount();
+    const screeningChip = tpl => {
       const isUsed = usedIds.has(tpl.id) && tpl.id !== 'custom'; // custom can be added multiple times
+      const locked = !isUsed && slotsLeft <= 0; // limit reached (or Basic with 0 allowance)
+      const disabled = isUsed || locked;
+      const icon = isUsed ? checkSVG : (locked ? lockSVG : plusSVG);
+      return `<button class="sq-chip${isUsed?' used':''}" data-add-sq="${tpl.id}" type="button" ${disabled?'disabled':''}${locked?' style="opacity:0.45;"':''}>${icon}${escapeHtml(tpl.label)}</button>`;
+    };
+    const voluntaryChip = tpl => {
+      const isUsed = usedIds.has(tpl.id);
       return `<button class="sq-chip${isUsed?' used':''}" data-add-sq="${tpl.id}" type="button" ${isUsed?'disabled':''}>${isUsed?checkSVG:plusSVG}${escapeHtml(tpl.label)}</button>`;
     };
     const screening = SQ_TEMPLATES.filter(t => !t.voluntary);
     const voluntary = SQ_TEMPLATES.filter(t => t.voluntary);
-    bank.innerHTML = screening.map(chipHTML).join('')
-      + `<div class="sq-voluntary-head" style="flex-basis:100%;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(251,247,240,0.4);">Voluntary self-identification (EEO / DE&amp;I) — optional, never used to screen</div>`
-      + voluntary.map(chipHTML).join('');
+    const screeningHead = sqMaxScreening === 0
+      ? `Screening questions — available on Boost &amp; Featured <a data-open-pricing="1" style="color:var(--coral);cursor:pointer;text-transform:none;letter-spacing:0;font-weight:600;">Upgrade →</a>`
+      : `Screening questions · ${regularScreeningCount()}/${sqMaxScreening} used`;
+    bank.innerHTML =
+      `<div class="sq-group-head" style="${headStyle}">${screeningHead}</div>`
+      + screening.map(screeningChip).join('')
+      + `<div class="sq-voluntary-head" style="${headStyle}margin-top:12px;">Voluntary self-identification (EEO / DE&amp;I) — optional, on every tier, never used to screen</div>`
+      + voluntary.map(voluntaryChip).join('');
   }
 
   // Delegated event handling on the screening screen
@@ -5640,10 +5640,18 @@
 
   // Chip bank: add question
   document.getElementById('sqChipBank').addEventListener('click', e => {
+    const upgrade = e.target.closest('[data-open-pricing]');
+    if(upgrade){ openPricingModal(editingId); return; }
     const chip = e.target.closest('[data-add-sq]');
     if(!chip || chip.disabled) return;
     const tpl = SQ_TEMPLATES.find(t => t.id === chip.dataset.addSq);
     if(!tpl) return;
+    if(!tpl.voluntary && regularScreeningCount() >= sqMaxScreening){
+      showToast(sqMaxScreening === 0
+        ? 'Screening questions require a Boost or Featured posting.'
+        : `This posting allows up to ${sqMaxScreening} screening question${sqMaxScreening===1?'':'s'}.`);
+      return;
+    }
     activeScreeningQuestions.push(sqDefaultForTemplate(tpl));
     renderSqList();
     renderSqChipBank();
@@ -7690,9 +7698,9 @@
 
   // ================= PER-POSTING TIER SYSTEM =================
   const POSTING_TIERS = {
-    free:{ name:'Basic',    label:'Basic',    duration:14, maxViews:50,       recommendations:false, screening:false, maxInvites:3,  superInvite:false, promptsVisible:1, promptsCanRequest:0, firstFullView:10, extendedView:10, extensionCost:10, maxExtensions:1 },
-    pro: { name:'Boost',   label:'Boost',    duration:30, maxViews:Infinity, recommendations:true,  screening:true,  maxInvites:10, superInvite:false, promptsVisible:3, promptsCanRequest:3, firstFullView:Infinity },
-    max: { name:'Featured',label:'Featured', duration:Infinity, maxViews:Infinity, recommendations:true, screening:true, maxInvites:Infinity, superInvite:true, maxSuperInvites:3, promptsVisible:Infinity, promptsCanRequest:5, firstFullView:Infinity },
+    free:{ name:'Basic',    label:'Basic',    duration:14, maxViews:50,       recommendations:false, screening:false, maxScreening:0,  maxInvites:3,  superInvite:false, promptsVisible:1, promptsCanRequest:0, firstFullView:10, extendedView:10, extensionCost:10, maxExtensions:1 },
+    pro: { name:'Boost',   label:'Boost',    duration:30, maxViews:Infinity, recommendations:true,  screening:true,  maxScreening:3,  maxInvites:10, superInvite:false, promptsVisible:3, promptsCanRequest:3, firstFullView:Infinity },
+    max: { name:'Featured',label:'Featured', duration:Infinity, maxViews:Infinity, recommendations:true, screening:true, maxScreening:10, maxInvites:Infinity, superInvite:true, maxSuperInvites:3, promptsVisible:Infinity, promptsCanRequest:5, firstFullView:Infinity },
   };
 
   let upgradingPostingId = null; // which posting the pricing modal is open for
