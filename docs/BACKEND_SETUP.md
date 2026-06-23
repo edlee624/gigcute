@@ -26,6 +26,8 @@ The schema lives in `supabase/migrations/`. Two ways to apply it:
 1. In the Supabase dashboard → **SQL Editor** → **New query**.
 2. Paste the full contents of `supabase/migrations/0001_init.sql`, run it.
 3. New query → paste `supabase/migrations/0002_reference_data.sql`, run it.
+4. New query → paste `supabase/migrations/0003_storage.sql`, run it (creates the
+   public `media` bucket for avatars + company logos and its access policies).
 
 **Option B — Supabase CLI (repeatable, recommended once you're iterating):**
 ```bash
@@ -36,8 +38,8 @@ supabase db push        # applies everything in supabase/migrations
 ```
 
 Verify: **Table Editor** should show `profiles`, `seeker_profiles`, `companies`,
-`postings`, `screening_questions`, `eeo_responses`, etc., and `screening_templates`
-should have 22 rows.
+`postings`, `screening_questions`, `eeo_responses`, etc.; `screening_templates`
+should have 22 rows; and **Storage** should list a `media` bucket.
 
 ## 3. Wire the frontend to your project
 
@@ -110,10 +112,16 @@ invites, EEO, reference data, and reports. The app's existing inline script stil
 uses **in-memory mock data**; migrating each flow to call `GigCuteAPI` is the
 remaining work, sequenced so you can open registration first:
 
-1. **Auth** — wire the seeker/recruiter register + login + Google + forgot-password
-   buttons to `GigCuteAPI.auth.*`; gate the dashboards on a real session.
-2. **Profiles & companies** — persist seeker onboarding and company registration
-   (`seeker.upsert`, `companies.create`).
+1. **Auth** — DONE. Seeker/recruiter register + login + Google + forgot-password
+   wired to `GigCuteAPI.auth.*`; session restore routes returning users in; nav
+   avatar signs out.
+2. **Profiles & companies** — DONE. Seeker registration persists the full profile
+   (headline, LinkedIn, work history, prompt answers) via `seeker.saveFull` and
+   uploads the photo to Storage; company registration persists name/industry/size/
+   LinkedIn/domain via `companies.create` and uploads the logo. A `gc_pending`
+   localStorage record finishes the write once a session exists (handles email
+   confirmation). Photo/logo upload needs a live session, so when confirmation is
+   on they're added later from profile edit (text data still persists).
 3. **Postings** — publish/edit write to `postings` + `screening_questions`; the
    recruiter dashboard and candidate job list read from the DB.
 4. **Interest, invites, matches** — replace the mock arrays with

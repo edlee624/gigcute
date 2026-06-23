@@ -91,6 +91,16 @@ const profiles = {
   },
 };
 
+// ---- Storage --------------------------------------------------------------
+// Public 'media' bucket (see migration 0003). Returns a public URL.
+async function uploadPublic(path, file) {
+  const c = requireClient();
+  const { error } = await c.storage.from('media').upload(path, file, { upsert: true, cacheControl: '3600' });
+  if (error) throw error;
+  return c.storage.from('media').getPublicUrl(path).data.publicUrl;
+}
+function safeName(name) { return (name || 'file').replace(/[^a-zA-Z0-9._-]/g, '_'); }
+
 // ---- Seeker profile -------------------------------------------------------
 const seeker = {
   async upsert(profile) {
@@ -101,6 +111,54 @@ const seeker = {
     if (error) throw error;
     return data;
   },
+
+  // Upload a profile photo for the current user; returns the public URL.
+  async uploadPhoto(file) {
+    const c = requireClient();
+    const { data: u } = await c.auth.getUser();
+    return uploadPublic(`avatars/${u.user.id}/${Date.now()}_${safeName(file.name)}`, file);
+  },
+
+  // Persist the full seeker profile: the main row plus work history, education,
+  // and prompt answers. Child collections are replaced wholesale (fine for the
+  // small sizes here). Pass already-uploaded photo_url in `profile`.
+  async saveFull({ profile = {}, workHistory = [], education = [], promptAnswers = [] }) {
+    const c = requireClient();
+    const { data: u } = await c.auth.getUser();
+    const uid = u.user.id;
+
+    let { error } = await c.from('seeker_profiles').upsert({ ...profile, profile_id: uid });
+    if (error) throw error;
+
+    await c.from('work_history').delete().eq('seeker_id', uid);
+    if (workHistory.length) {
+      ({ error } = await c.from('work_history').insert(workHistory.map((w, i) => ({
+        seeker_id: uid, title: w.title || null, company: w.company || null,
+        start_label: w.start || null, end_label: w.end || null,
+        description: w.description || null, sort_order: i,
+      }))));
+      if (error) throw error;
+    }
+
+    await c.from('education').delete().eq('seeker_id', uid);
+    if (education.length) {
+      ({ error } = await c.from('education').insert(education.map((e, i) => ({
+        seeker_id: uid, degree: e.degree || null, school: e.school || null, year: e.year || null, sort_order: i,
+      }))));
+      if (error) throw error;
+    }
+
+    await c.from('seeker_prompt_answers').delete().eq('seeker_id', uid);
+    if (promptAnswers.length) {
+      ({ error } = await c.from('seeker_prompt_answers').insert(promptAnswers.map((p, i) => ({
+        seeker_id: uid, prompt_label: p.label, answer: p.answer || null,
+        is_favorite: !!p.isFavorite, sort_order: i,
+      }))));
+      if (error) throw error;
+    }
+    return true;
+  },
+
   async get(seekerId) {
     const { data, error } = await requireClient()
       .from('seeker_profiles')
@@ -135,6 +193,13 @@ const companies = {
     const { data, error } = await c.from('companies').select('*').eq('owner_id', u.user.id);
     if (error) throw error;
     return data;
+  },
+  // Upload a company logo; returns the public URL. Call before create/update and
+  // pass the result as logo_url.
+  async uploadLogo(file) {
+    const c = requireClient();
+    const { data: u } = await c.auth.getUser();
+    return uploadPublic(`logos/${u.user.id}/${Date.now()}_${safeName(file.name)}`, file);
   },
 };
 

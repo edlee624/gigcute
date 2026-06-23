@@ -4402,6 +4402,7 @@
 
   // ---- profile photo ----
   let currentPhotoUrl = null;
+  let currentPhotoFile = null;   // actual File for upload to Storage (backend mode)
   let manualPhotoSet = false;
 
   function setProfilePhoto(url){
@@ -4421,6 +4422,7 @@
     const f = document.getElementById('profilePhotoFile').files[0];
     if(f){
       manualPhotoSet = true;
+      currentPhotoFile = f;
       setProfilePhoto(URL.createObjectURL(f));
     }
   });
@@ -4760,9 +4762,11 @@
 
   const logoDrop = document.getElementById('logoDrop');
   const logoFile = document.getElementById('logoFile');
+  let currentLogoFile = null;   // actual File for upload to Storage (backend mode)
   logoDrop.onclick = () => logoFile.click();
   logoFile.addEventListener('change', () => {
     if(logoFile.files.length){
+      currentLogoFile = logoFile.files[0];
       document.getElementById('logoDropText').textContent = logoFile.files[0].name;
       logoDrop.classList.add('has-file');
     }
@@ -8187,7 +8191,7 @@
   async function gcCompletePending(API){
     const p = gcPendingGet(); if(!p) return;
     try{
-      if(p.kind === 'seeker') await API.seeker.upsert(p.profile);
+      if(p.kind === 'seeker') await API.seeker.saveFull(p.payload);
       else if(p.kind === 'company') await API.companies.create(p.company);
       gcPendingClear();
     }catch(e){ console.warn('[gigcute] pending setup deferred:', e.message); }
@@ -8269,14 +8273,23 @@
       };
       const email = document.getElementById('sk-email').value.trim();
       const pw = document.getElementById('sk-password').value;
-      // Photo is a local blob in the prototype; real uploads go to Storage later.
-      gcPendingSet({ kind:'seeker', profile:{ headline: seekerProfile.title, linkedin_url: seekerProfile.linkedinUrl || '' } });
+      const payload = {
+        profile: { headline: seekerProfile.title, linkedin_url: seekerProfile.linkedinUrl || '' },
+        workHistory: seekerProfile.workHistory || [],
+        education: [],
+        promptAnswers: (seekerProfile.favoritePrompts || []).map(fp => ({ label: fp.label, answer: fp.answer, isFavorite: true })),
+      };
       try{
         const res = await API.auth.signUp({ email, password: pw, role:'seeker', fullName: seekerProfile.name });
         if(res.session){
+          // session available: upload the photo File now, then persist everything.
+          if(currentPhotoFile){ try{ payload.profile.photo_url = await API.seeker.uploadPhoto(currentPhotoFile); }catch(e){ console.warn('photo upload failed', e.message); } }
+          gcPendingSet({ kind:'seeker', payload });
           await gcCompletePending(API);
           showSuccess({ headline:"You're all set.", sub:"Your profile is live. Time to start swiping on open roles.", primaryText:"Enter the app", primaryAction:()=>enterApp('candidate') });
         } else {
+          // email confirmation pending: stash text data; photo can be added later from profile edit.
+          gcPendingSet({ kind:'seeker', payload });
           showSuccess({ headline:"Check your email.", sub:`We sent a verification link to ${email}. Confirm it, then log in to finish setting up your profile.`, primaryText:"Back to login", primaryAction:()=>showScreen('screen-login-seeker') });
         }
       }catch(e){ showToast(e.message || 'Could not create your account.'); }
@@ -8291,19 +8304,22 @@
       const pw = document.getElementById('em-password').value;
       const fullName = document.getElementById('em-name').value.trim();
       const sizeChip = document.querySelector('.chip[data-size].selected');
-      gcPendingSet({ kind:'company', company:{
+      const company = {
         name: companyName,
         linkedin_url: companyState.linkedinUrl || null,
         industry: document.getElementById('em-industry').value,
         size: sizeChip ? sizeChip.dataset.size : null,
         domain: email.split('@')[1] || null
-      }});
+      };
       try{
         const res = await API.auth.signUp({ email, password: pw, role:'recruiter', fullName });
         if(res.session){
+          if(currentLogoFile){ try{ company.logo_url = await API.companies.uploadLogo(currentLogoFile); }catch(e){ console.warn('logo upload failed', e.message); } }
+          gcPendingSet({ kind:'company', company });
           await gcCompletePending(API);
           showSuccess({ headline:`${companyName} is ready.`, sub:`Your company profile is live. Create your first posting so candidates can find you.`, primaryText:"Create your first posting", primaryAction:()=>{ editingId=null; resetPostingForm(); setWizardMode('create'); showScreen('screen-posting-1'); }, secondaryText:"Skip for now", secondaryAction:()=>enterApp('recruiter') });
         } else {
+          gcPendingSet({ kind:'company', company });
           showSuccess({ headline:"Check your email.", sub:`We sent a verification link to ${email}. Confirm it, then log in to finish setting up ${companyName}.`, primaryText:"Back to login", primaryAction:()=>showScreen('screen-login-recruiter') });
         }
       }catch(e){ showToast(e.message || 'Could not create your account.'); }
