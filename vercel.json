@@ -8,10 +8,8 @@
     }
   ],
   "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/public/$1"
-    }
+    { "src": "/(.+\\.[a-zA-Z0-9]+)", "dest": "/public/$1" },
+    { "src": "/(.*)", "dest": "/public/index.html" }
   ],
   "headers": [
     {

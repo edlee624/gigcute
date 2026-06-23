@@ -1125,6 +1125,42 @@
   .ds-nav-btn.primary{ background:var(--coral); border-color:var(--coral); color:var(--paper); }
   .ds-nav-btn.primary:hover{ background:var(--coral-dim); }
 
+  /* ---- Account dropdown ---- */
+  .nav-account{ position:relative; }
+  .nav-dropdown{
+    position:absolute; right:0; top:calc(100% + 10px);
+    width:270px; background:var(--ink-soft);
+    border:1px solid var(--line-light); border-radius:14px;
+    box-shadow:0 24px 50px -16px rgba(0,0,0,0.7);
+    padding:8px; z-index:1200;
+  }
+  .nav-dropdown[hidden]{ display:none; }
+  .nd-head{ display:flex; gap:12px; align-items:center; padding:10px 10px 12px; }
+  .nd-avatar{
+    width:44px;height:44px;border-radius:50%;background:var(--coral);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    font-family:'Fraunces',serif;font-size:17px;font-weight:600;color:var(--paper);
+    background-size:cover;background-position:center;
+  }
+  .nd-id{ min-width:0; }
+  .nd-name{ font-weight:700; font-size:14px; color:var(--paper); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .nd-sub{ font-size:12px; color:rgba(251,247,240,0.5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .nd-view{
+    width:100%; margin:0 0 6px; padding:8px; border-radius:999px;
+    background:none; border:1.5px solid var(--coral); color:var(--coral);
+    font-weight:700; font-size:13px; cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  .nd-view:hover{ background:rgba(255,107,74,0.08); }
+  .nd-sep{ height:1px; background:var(--line-light); margin:6px 4px; }
+  .nd-label{ font-size:10px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; color:rgba(251,247,240,0.35); padding:6px 10px 4px; }
+  .nd-item{
+    display:block; width:100%; text-align:left; background:none; border:none;
+    color:rgba(251,247,240,0.78); font-size:13.5px; font-family:'Inter',sans-serif;
+    padding:9px 10px; border-radius:8px; cursor:pointer;
+  }
+  .nd-item:hover{ background:rgba(251,247,240,0.06); color:var(--paper); }
+  .nd-signout{ color:var(--coral); font-weight:600; }
+
   /* ---- Seek pane: candidate dashboard ---- */
   .seek-pane{ display:none; min-height:calc(100vh - 60px); }
   .seek-pane.active{ display:flex; }
@@ -3578,7 +3614,28 @@
 
       <button class="ds-nav-btn" id="navViewProfileBtn" type="button" style="display:none;">View Profile</button>
       <button class="ds-nav-btn" id="navProfileBtn" type="button">Edit Profile</button>
-      <div class="ds-nav-avatar" id="navAvatar">M</div>
+      <div class="nav-account">
+        <div class="ds-nav-avatar" id="navAvatar">M</div>
+        <div class="nav-dropdown" id="navDropdown" hidden>
+          <div class="nd-head">
+            <div class="nd-avatar" id="ndAvatar">M</div>
+            <div class="nd-id">
+              <div class="nd-name" id="ndName">Maya Okafor</div>
+              <div class="nd-sub" id="ndSub">Senior Product Designer</div>
+            </div>
+          </div>
+          <button class="nd-view" id="ndViewProfile" type="button">View profile</button>
+          <div class="nd-sep"></div>
+          <div class="nd-label">Account</div>
+          <button class="nd-item" id="ndEditProfile" type="button">Edit profile</button>
+          <button class="nd-item" id="ndPostings" type="button">My postings</button>
+          <button class="nd-item" id="ndNewPosting" type="button">New posting</button>
+          <button class="nd-item" id="ndSettings" type="button">Settings &amp; privacy</button>
+          <button class="nd-item" id="ndHelp" type="button">Help</button>
+          <div class="nd-sep"></div>
+          <button class="nd-item nd-signout" id="ndSignOut" type="button">Sign out</button>
+        </div>
+      </div>
     </div>
   </nav>
 
@@ -4206,12 +4263,32 @@
     eventCounts[event]=(eventCounts[event]||0)+1;
   }
 
-  // ================= SCREEN ROUTER =================
+  // ================= SCREEN ROUTER + URL =================
+  // Maps the user-facing "pages" to clean URLs so the browser back/forward
+  // buttons work and pages are linkable. The app screen (#screen-app) maps to
+  // /search or /postings depending on mode (handled in setMode).
+  let __applyingRoute = false;
+  const PATH_BY_SCREEN = {
+    'screen-landing':'/',
+    'screen-login-seeker':'/login',
+    'screen-seeker-1':'/signup',
+    'screen-login-recruiter':'/recruiter/login',
+    'screen-employer-1':'/recruiter/signup',
+    'screen-posting-1':'/new-posting',
+    'screen-admin-login':'/admin',
+  };
+  const SCREEN_BY_PATH = Object.fromEntries(Object.entries(PATH_BY_SCREEN).map(([s,p]) => [p,s]));
+
   function showScreen(id){
     track('screen_view', {screen:id});
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     window.scrollTo(0,0);
+    // sync URL for mapped top-level pages (the app screen is handled by setMode)
+    if(!__applyingRoute && id !== 'screen-app'){
+      const p = PATH_BY_SCREEN[id];
+      if(p && location.pathname !== p) window.history.pushState({}, '',p);
+    }
   }
   document.querySelectorAll('[data-back]').forEach(btn => {
     btn.addEventListener('click', () => showScreen(btn.dataset.back));
@@ -7590,6 +7667,14 @@
       showHireView('postings');
       renderRecruiterPostingsGrid();
     }
+    // sync URL when on the app screen: /search (candidate) or /postings (recruiter)
+    if(!__applyingRoute){
+      const active = document.querySelector('.screen.active');
+      if(active && active.id === 'screen-app'){
+        const p = (m === 'recruiter') ? '/postings' : '/search';
+        if(location.pathname !== p) window.history.pushState({}, '',p);
+      }
+    }
   }
 
   document.querySelectorAll('.ds-mode-btn').forEach(btn => {
@@ -8249,17 +8334,8 @@
       document.getElementById('resetSentWrap').style.display = 'block';
     };
 
-    // ---- Sign out (nav avatar) ----
-    const avatar = document.getElementById('navAvatar');
-    if(avatar){
-      avatar.style.cursor = 'pointer';
-      avatar.title = 'Log out';
-      avatar.onclick = () => showConfirm('Log out?', 'You’ll be returned to the landing page.', '', 'Log out', '', async () => {
-        try{ await API.auth.signOut(); }catch(e){}
-        sessionStorage.removeItem('gc_oauth_role');
-        showScreen('screen-landing');
-      });
-    }
+    // Sign out is handled by the account dropdown (signOutApp), which calls
+    // API.auth.signOut when the backend is enabled.
 
     // ---- Seeker registration → create account on publish ----
     document.getElementById('finishSeeker').onclick = async () => {
@@ -8330,11 +8406,93 @@
   if(window.GigCuteAPI) wireBackendAuth();
   else window.addEventListener('gigcute-api-ready', wireBackendAuth);
 
+  // ================= URL ROUTING (apply + history) =================
+  function applyRoute(path){
+    __applyingRoute = true;
+    try{
+      if(path === '/search'){ showScreen('screen-app'); setMode('candidate'); }
+      else if(path === '/postings'){ showScreen('screen-app'); setMode('recruiter'); }
+      else if(path === '/new-posting'){
+        showScreen('screen-app'); setMode('recruiter');
+        editingId = null; resetPostingForm(); setWizardMode('create'); showScreen('screen-posting-1');
+      }
+      else if(SCREEN_BY_PATH[path]){ showScreen(SCREEN_BY_PATH[path]); }
+      else { showScreen('screen-landing'); }
+    } finally { __applyingRoute = false; }
+  }
+  // Programmatic navigation: apply + push a history entry.
+  function navigate(path){
+    if(location.pathname === path){ applyRoute(path); return; }
+    window.history.pushState({}, '',path);
+    applyRoute(path);
+  }
+  window.GigCuteNavigate = navigate; // handy for links/console
+  window.addEventListener('popstate', () => applyRoute(location.pathname));
+
+  // ================= ACCOUNT DROPDOWN =================
+  (function(){
+    const avatar = document.getElementById('navAvatar');
+    const dd = document.getElementById('navDropdown');
+    if(!avatar || !dd) return;
+    function initials(name){ return (name||'?').trim().split(/\s+/).map(x=>x[0]).join('').toUpperCase().slice(0,2); }
+    function onDocClick(e){ if(!e.target.closest('.nav-account')) close(); }
+    function onKey(e){ if(e.key === 'Escape') close(); }
+    function open(){
+      const isRec = (mode === 'recruiter');
+      const name = isRec ? (companyState.name || 'Your company') : (seekerProfile.name || 'Your name');
+      const sub  = isRec ? 'Recruiter account' : (seekerProfile.title || 'Job seeker');
+      document.getElementById('ndName').textContent = name;
+      document.getElementById('ndSub').textContent = sub;
+      const ndAv = document.getElementById('ndAvatar');
+      if(!isRec && seekerProfile.photo){ ndAv.style.backgroundImage = `url('${seekerProfile.photo}')`; ndAv.textContent=''; }
+      else { ndAv.style.backgroundImage=''; ndAv.textContent = initials(name); }
+      // context-specific items
+      document.getElementById('ndViewProfile').style.display = isRec ? 'none' : '';
+      document.getElementById('ndEditProfile').style.display = isRec ? 'none' : '';
+      document.getElementById('ndPostings').style.display   = isRec ? '' : 'none';
+      document.getElementById('ndNewPosting').style.display = isRec ? '' : 'none';
+      dd.hidden = false;
+      document.addEventListener('click', onDocClick, true);
+      document.addEventListener('keydown', onKey);
+    }
+    function close(){
+      dd.hidden = true;
+      document.removeEventListener('click', onDocClick, true);
+      document.removeEventListener('keydown', onKey);
+    }
+    avatar.onclick = (e) => { e.stopPropagation(); dd.hidden ? open() : close(); };
+
+    document.getElementById('ndViewProfile').onclick = () => { close(); if(typeof openProfileView === 'function') openProfileView(); };
+    document.getElementById('ndEditProfile').onclick = () => { close(); document.getElementById('navProfileBtn').click(); };
+    document.getElementById('ndPostings').onclick    = () => { close(); navigate('/postings'); };
+    document.getElementById('ndNewPosting').onclick  = () => { close(); document.getElementById('navNewPostingBtn').click(); };
+    document.getElementById('ndSettings').onclick    = () => { close(); showToast('Settings & privacy — coming soon.'); };
+    document.getElementById('ndHelp').onclick        = () => { close(); showToast('Help center — coming soon.'); };
+    document.getElementById('ndSignOut').onclick     = async () => {
+      close();
+      const API = window.GigCuteAPI;
+      if(API && API.enabled){ try{ await API.auth.signOut(); }catch(e){} sessionStorage.removeItem('gc_oauth_role'); }
+      navigate('/');
+    };
+  })();
+
   // ================= INIT =================
   postings.forEach(p => syncPostingIntoDeck(p));
   renderPostingsDashboard();
   setMode('candidate');
   renderDashboard();
+
+  // Apply the initial URL so deep links (/search, /postings, /login, …) work.
+  // Leave '/' on the landing screen (already active). Skip app pages in backend
+  // mode — the auth session-restore decides whether to route in.
+  (function(){
+    const path = location.pathname;
+    if(path && path !== '/'){
+      const isAppPage = (path === '/search' || path === '/postings' || path === '/new-posting');
+      if(isAppPage && window.GigCuteAPI && window.GigCuteAPI.enabled) return;
+      applyRoute(path);
+    }
+  })();
 })();
 
 </script>
