@@ -201,7 +201,43 @@ const companies = {
     const { data: u } = await c.auth.getUser();
     return uploadPublic(`logos/${u.user.id}/${Date.now()}_${safeName(file.name)}`, file);
   },
+  // Verification status of the current recruiter's company.
+  async myStatus() {
+    const c = requireClient();
+    const { data: u } = await c.auth.getUser();
+    if (!u?.user) return null;
+    const { data, error } = await c.from('companies')
+      .select('id, name, verified, email_domain').eq('owner_id', u.user.id).limit(1);
+    if (error) throw error;
+    return data && data[0] ? data[0] : null;
+  },
 };
+
+// ---- Admin ----------------------------------------------------------------
+const admin = {
+  // Manually verify/unverify a company (server checks the caller is an admin).
+  async setCompanyVerified(companyId, verified) {
+    const { error } = await requireClient().rpc('admin_set_company_verified', {
+      p_company: companyId, p_verified: verified,
+    });
+    if (error) throw error;
+  },
+};
+
+// Free / disposable email providers — client-side hint only (the database is the
+// real enforcement). Keep roughly in sync with blocked_email_domains.
+const FREE_EMAIL_DOMAINS = new Set([
+  'gmail.com','googlemail.com','yahoo.com','ymail.com','outlook.com','hotmail.com','live.com','msn.com',
+  'icloud.com','me.com','mac.com','aol.com','gmx.com','gmx.net','mail.com','proton.me','protonmail.com',
+  'pm.me','yandex.com','yandex.ru','zoho.com','fastmail.com','hey.com','tutanota.com','hotmail.co.uk',
+  'yahoo.co.uk','comcast.net','verizon.net','mailinator.com','tempmail.com','temp-mail.org','guerrillamail.com',
+  '10minutemail.com','throwaway.email','trashmail.com','getnada.com','dispostable.com','yopmail.com',
+  'sharklasers.com','tempmail.io','maildrop.cc','mintemail.com','fakeinbox.com','emailondeck.com',
+]);
+function isFreeEmailDomain(email) {
+  const d = String(email || '').toLowerCase().split('@')[1];
+  return !!d && FREE_EMAIL_DOMAINS.has(d);
+}
 
 // ---- Postings -------------------------------------------------------------
 const postings = {
@@ -325,7 +361,8 @@ const reports = {
 window.GigCuteAPI = {
   enabled,
   supabase,
-  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports,
+  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin,
+  isFreeEmailDomain,
 };
 
 // Let the inline app know the API is ready (it may load after this module).

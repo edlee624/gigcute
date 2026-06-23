@@ -3298,7 +3298,9 @@
     <p class="ob-sub">We'll use your work email to look up your company — so have it handy.</p>
 
     <div class="field"><label for="em-name">Your full name</label><input type="text" id="em-name" placeholder="Jordan Lee" autocomplete="name"></div>
-    <div class="field"><label for="em-work-email">Work email</label><input type="email" id="em-work-email" placeholder="jordan@company.com" autocomplete="email"></div>
+    <div class="field"><label for="em-work-email">Work email</label><input type="email" id="em-work-email" placeholder="jordan@company.com" autocomplete="email">
+      <div id="recruiterEmailHint" style="display:none;margin-top:7px;font-size:12px;line-height:1.45;color:#e0b760;">Use your <strong>company email</strong> to get verified instantly. Personal/disposable addresses can sign up but stay pending manual review and can't view candidates until approved.</div>
+    </div>
     <div class="field"><label for="em-title">Your title</label><input type="text" id="em-title" placeholder="Head of Talent"></div>
     <div class="field password-field">
       <label for="em-password">Create a password</label>
@@ -3874,6 +3876,11 @@
 
   <!-- ===== HIRE PANE (recruiter browsing candidates) ===== -->
   <div class="hire-pane" id="hirePane">
+
+    <!-- Verification banner (backend mode, shown until the company is verified) -->
+    <div id="recruiterVerifyBanner" style="display:none;margin:0 0 18px;padding:14px 18px;border:1px solid rgba(224,183,96,0.4);background:rgba(224,183,96,0.08);border-radius:12px;color:#e7c879;font-size:13.5px;line-height:1.5;">
+      <strong>Account pending verification.</strong> Candidate names, profiles, and contact details stay hidden until your company is verified. Sign up with your company email to verify instantly, or contact support to review a personal-email account.
+    </div>
 
     <!-- ===== VIEW 1: POSTINGS LANDING (default) ===== -->
     <div class="hire-view active" id="hireViewPostings">
@@ -4950,6 +4957,14 @@
       // Pre-populate silently so the field is ready when they reach step 2
       document.getElementById('em-company').value = data.name;
     }
+  });
+  // Verification hint: nudge recruiters toward a company email.
+  document.getElementById('em-work-email').addEventListener('input', () => {
+    const email = document.getElementById('em-work-email').value.trim();
+    const hint = document.getElementById('recruiterEmailHint');
+    const isFree = email.includes('@') && window.GigCuteAPI && window.GigCuteAPI.isFreeEmailDomain
+      ? window.GigCuteAPI.isFreeEmailDomain(email) : false;
+    hint.style.display = isFree ? 'block' : 'none';
   });
 
   document.getElementById('addAnotherInvite').onclick = () => {
@@ -7666,6 +7681,7 @@
       document.getElementById('navViewProfileBtn').style.display = 'none';
       showHireView('postings');
       renderRecruiterPostingsGrid();
+      refreshRecruiterVerifyBanner();
     }
     // sync URL when on the app screen: /search (candidate) or /postings (recruiter)
     if(!__applyingRoute){
@@ -8428,6 +8444,19 @@
   }
   window.GigCuteNavigate = navigate; // handy for links/console
   window.addEventListener('popstate', () => applyRoute(location.pathname));
+
+  // Show the "pending verification" banner when a backend recruiter's company
+  // is not yet verified. No-op in demo mode.
+  async function refreshRecruiterVerifyBanner(){
+    const banner = document.getElementById('recruiterVerifyBanner');
+    if(!banner) return;
+    const API = window.GigCuteAPI;
+    if(!API || !API.enabled){ banner.style.display = 'none'; return; }
+    try{
+      const status = await API.companies.myStatus();
+      banner.style.display = (status && status.verified === false) ? 'block' : 'none';
+    }catch(e){ banner.style.display = 'none'; }
+  }
 
   // ================= ACCOUNT DROPDOWN =================
   (function(){

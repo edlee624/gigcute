@@ -28,6 +28,9 @@ The schema lives in `supabase/migrations/`. Two ways to apply it:
 3. New query → paste `supabase/migrations/0002_reference_data.sql`, run it.
 4. New query → paste `supabase/migrations/0003_storage.sql`, run it (creates the
    public `media` bucket for avatars + company logos and its access policies).
+5. New query → paste `supabase/migrations/0004_recruiter_verification.sql`, run it
+   (free/disposable email blocklist, company `verified` flag + trigger, and RLS
+   that hides candidate data from unverified recruiters).
 
 **Option B — Supabase CLI (repeatable, recommended once you're iterating):**
 ```bash
@@ -91,6 +94,32 @@ real security boundary — every table has it enabled with explicit policies
   read **active** postings.
 - Screening-question **tier limits are enforced in the database** (Basic 0,
   Boost 3, Featured 10) by a trigger — not just in the UI.
+
+### Recruiter verification (anti-fake-account)
+
+Fake recruiter accounts are blocked from reaching candidate data by two layers:
+
+- **Auto-verification by email domain.** When a company is created, a trigger
+  derives the owner's email domain. Real business domains → `verified = true`
+  instantly; free/personal or disposable domains (gmail, outlook, mailinator, …
+  in `blocked_email_domains`) → `verified = false`, pending review. Clients can
+  never set `verified` themselves — the trigger enforces it; only an admin (via
+  `admin_set_company_verified()`) can override (for legit recruiters on personal
+  email).
+- **Capability gating.** RLS only lets a recruiter read seeker profiles, work
+  history, education, prompt answers, and who's-interested lists when they belong
+  to a **verified** company (`is_verified_recruiter()`). An unverified or fake
+  account can sign up but sees **no candidate data**. The signup form nudges
+  recruiters toward a company email, and a "pending verification" banner explains
+  the gate.
+
+To manually verify a recruiter (e.g. a solo recruiter on Gmail who's legit):
+call `GigCuteAPI.admin.setCompanyVerified(companyId, true)` as an admin, or run
+`select admin_set_company_verified('<company-id>', true);` in the SQL editor.
+
+Email confirmation (Supabase) sits on top of this — keep it on so addresses are
+provably reachable. Consider also enabling **Cloudflare Turnstile** CAPTCHA in
+Authentication settings to blunt automated signups.
 
 ### EEO / DE&I data is firewalled (important, legally)
 
