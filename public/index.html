@@ -1198,7 +1198,12 @@
     font-size:12.5px;
     line-height:1.4;
     color:rgba(251,247,240,0.75);
+    cursor:pointer;
+    transition:border-color .15s ease;
   }
+  .cs-insight:hover{ border-color:var(--coral); color:var(--paper); }
+  .cs-stat{ text-align:center; cursor:pointer; border-radius:8px; padding:4px 8px; transition:background .15s; }
+  .cs-stat:hover{ background:rgba(255,90,60,0.1); }
   .cs-insight svg{ width:16px;height:16px; flex-shrink:0; color:var(--coral); }
   .cs-insight .n{ font-weight:700; color:var(--paper); }
   .cs-progress-bar{ background:var(--ink-soft); border-radius:6px; height:6px; margin:6px 0 3px; }
@@ -1219,18 +1224,14 @@
     border:1.5px solid var(--line-light);
     border-radius:12px;
     padding:0 16px;
-    margin-bottom:32px;
     transition:border-color .2s;
   }
   .cd-search-wrap:focus-within{ border-color:var(--coral); }
   .cd-search-wrap svg{ width:18px;height:18px;color:rgba(251,247,240,0.35);flex-shrink:0; }
   .cd-search-wrap input{
     background:none; border:none; outline:none;
-    color:var(--paper);
-    font-family:'Inter',sans-serif;
-    font-size:15px;
-    padding:14px 0;
-    width:100%;
+    color:var(--paper); font-family:'Inter',sans-serif;
+    font-size:15px; padding:14px 0; width:100%;
   }
   .cd-search-wrap input::placeholder{ color:rgba(251,247,240,0.32); }
   .cd-search-btn{
@@ -1238,6 +1239,125 @@
     color:var(--paper); font-family:'Inter',sans-serif;
     font-size:13px; font-weight:700;
     padding:8px 18px; cursor:pointer; white-space:nowrap; flex-shrink:0;
+  }
+
+  /* filter toggle row */
+  .search-filter-row{
+    display:flex; align-items:center; gap:8px;
+    margin-top:10px; flex-wrap:wrap;
+  }
+  .filter-toggle-btn{
+    display:flex; align-items:center; gap:6px;
+    background:var(--ink-soft); border:1.5px solid var(--line-light);
+    border-radius:9px; padding:7px 14px;
+    font-family:'Inter',sans-serif; font-size:13px; font-weight:700;
+    color:rgba(251,247,240,0.65); cursor:pointer;
+    transition:border-color .15s, color .15s;
+  }
+  .filter-toggle-btn:hover{ border-color:rgba(251,247,240,0.4); color:var(--paper); }
+  .filter-toggle-btn.has-filters{ border-color:var(--coral); color:var(--coral); background:rgba(255,90,60,0.07); }
+  .filter-toggle-btn svg{ width:14px;height:14px; }
+  .filter-count-badge{
+    background:var(--coral); color:var(--paper);
+    border-radius:20px; font-size:10px; font-weight:700;
+    padding:1px 6px; min-width:16px; text-align:center;
+  }
+
+  /* quick chips */
+  .quick-chip{
+    background:var(--ink-soft); border:1.5px solid var(--line-light);
+    border-radius:20px; padding:6px 13px;
+    font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600;
+    color:rgba(251,247,240,0.55); cursor:pointer;
+    transition:border-color .15s, color .15s, background .15s;
+    white-space:nowrap;
+  }
+  .quick-chip:hover{ border-color:rgba(251,247,240,0.4); color:var(--paper); }
+  .quick-chip.active{ background:var(--coral); border-color:var(--coral); color:var(--paper); }
+
+  /* advanced filter panel */
+  .adv-filter-panel{
+    background:var(--ink-soft);
+    border:1.5px solid var(--line-light);
+    border-radius:14px;
+    padding:20px 22px;
+    margin-top:10px;
+    display:none;
+  }
+  .adv-filter-panel.open{ display:block; }
+  .adv-filter-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+    gap:18px 24px;
+  }
+  .adv-filter-group label{
+    display:block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px; font-weight:700;
+    text-transform:uppercase; letter-spacing:0.05em;
+    color:rgba(251,247,240,0.35);
+    margin-bottom:8px;
+  }
+  .adv-filter-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .adv-chip{
+    background:var(--ink); border:1.5px solid var(--line-light);
+    border-radius:8px; padding:6px 12px;
+    font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600;
+    color:rgba(251,247,240,0.6); cursor:pointer;
+    transition:border-color .15s, color .15s, background .15s;
+  }
+  .adv-chip:hover{ border-color:rgba(251,247,240,0.4); color:var(--paper); }
+  .adv-chip.active{ background:rgba(255,90,60,0.12); border-color:var(--coral); color:var(--coral); }
+
+  /* salary range row */
+  .salary-range-row{ display:flex; align-items:center; gap:10px; }
+  .salary-range-row input[type=range]{
+    flex:1; accent-color:var(--coral);
+    cursor:pointer; height:4px;
+  }
+  .salary-range-row .sal-val{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11.5px; font-weight:700;
+    color:rgba(251,247,240,0.65); white-space:nowrap; min-width:52px; text-align:right;
+  }
+
+  /* active filter tags */
+  .active-filters-row{
+    display:flex; align-items:center; flex-wrap:wrap; gap:7px;
+    margin-top:10px;
+  }
+  .active-filter-tag{
+    display:flex; align-items:center; gap:6px;
+    background:rgba(255,90,60,0.12); border:1px solid rgba(255,90,60,0.35);
+    border-radius:20px; padding:4px 10px 4px 12px;
+    font-size:12px; font-weight:600; color:var(--coral);
+  }
+  .active-filter-tag button{
+    background:none; border:none; cursor:pointer;
+    color:var(--coral); padding:0; line-height:0; font-size:14px;
+    opacity:0.7;
+  }
+  .active-filter-tag button:hover{ opacity:1; }
+  .clear-all-btn{
+    background:none; border:none; cursor:pointer;
+    font-family:'Inter',sans-serif; font-size:12px; font-weight:700;
+    color:rgba(251,247,240,0.4); padding:4px 8px;
+  }
+  .clear-all-btn:hover{ color:var(--coral); }
+
+  /* results summary row */
+  .results-summary{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .results-summary h2{ font-family:'Fraunces',serif; font-size:20px; margin:0; }
+  .results-summary h2 em{ color:var(--coral); font-style:italic; }
+  .results-meta{ font-size:12.5px; color:rgba(251,247,240,0.4); }
+  .sort-select{
+    background:var(--ink-soft); border:1px solid var(--line-light);
+    border-radius:8px; color:rgba(251,247,240,0.65);
+    font-family:'Inter',sans-serif; font-size:12.5px;
+    padding:6px 10px; cursor:pointer; outline:none;
   }
 
   /* section headers */
@@ -2554,6 +2674,44 @@
   .analytics-row .ar-bar-fill{ height:100%; border-radius:4px; background:var(--coral); }
   .analytics-row .ar-val{ font-family:'JetBrains Mono',monospace; font-size:11.5px; color:rgba(251,247,240,0.6); font-weight:700; }
   .analytics-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-top:14px; }
+
+  /* ===== INVITE SYSTEM ===== */
+  .invite-btn{ background:var(--sage); border:none; border-radius:8px; color:var(--paper); font-family:'Inter',sans-serif; font-size:12px; font-weight:700; padding:7px 13px; cursor:pointer; transition:opacity .15s; }
+  .invite-btn:hover{ opacity:0.85; }
+  .invite-btn.invited{ background:rgba(61,90,76,0.2); color:#9fc2ad; border:1.5px solid var(--sage); }
+  .super-invite-btn{ background:linear-gradient(135deg,#d4a017,#e8c848); border:none; border-radius:8px; color:var(--ink); font-family:'Inter',sans-serif; font-size:12px; font-weight:800; padding:7px 13px; cursor:pointer; white-space:nowrap; }
+  .super-invite-btn:hover{ opacity:0.85; }
+  .super-invite-btn.super-invited{ background:rgba(224,187,85,0.15); color:#e0bb55; border:1.5px solid rgba(224,187,85,0.4); }
+  .invite-count-bar{ display:flex; align-items:center; gap:8px; font-size:12px; color:rgba(251,247,240,0.5); padding:10px 0 4px; border-top:1px solid var(--line-light); margin-top:4px; }
+  .invite-count-bar .n{ font-weight:700; color:var(--paper); }
+  .rescind-link{ background:none; border:none; cursor:pointer; color:rgba(255,90,60,0.6); font-family:'Inter',sans-serif; font-size:11.5px; font-weight:700; padding:0; text-decoration:underline; }
+  .rescind-link:hover{ color:var(--coral); }
+
+  /* ===== BASIC TIER GATES ===== */
+  .blurred-cand-card{ background:var(--ink-soft); border:1.5px dashed rgba(251,247,240,0.12); border-radius:14px; padding:16px 18px; display:grid; grid-template-columns:48px 1fr auto; gap:0 14px; align-items:center; opacity:0.75; }
+  .blurred-cand-card .blurred-text{ filter:blur(5px); user-select:none; pointer-events:none; font-family:'Fraunces',serif; font-size:15px; }
+  .basic-locked-section{ background:rgba(255,90,60,0.04); border:1.5px dashed rgba(255,90,60,0.25); border-radius:14px; padding:18px 20px; margin-top:16px; }
+  .basic-locked-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .basic-locked-head h4{ font-family:'Fraunces',serif; font-size:15px; margin:0; color:rgba(251,247,240,0.7); }
+  .basic-extend-btn{ background:var(--coral); border:none; border-radius:8px; color:var(--paper); font-family:'Inter',sans-serif; font-size:12.5px; font-weight:700; padding:8px 16px; cursor:pointer; }
+  .duration-badge{ display:inline-flex; align-items:center; gap:5px; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; background:rgba(251,247,240,0.06); border:1px solid rgba(251,247,240,0.15); border-radius:7px; padding:3px 9px; color:rgba(251,247,240,0.5); }
+  .duration-badge.expiring{ background:rgba(255,90,60,0.1); border-color:rgba(255,90,60,0.35); color:var(--coral); }
+
+  /* ===== TRENDING (Featured) ===== */
+  .trending-city{ background:rgba(61,90,76,0.25); color:#9fc2ad; border:1px solid rgba(87,116,99,0.5); border-radius:20px; font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; padding:3px 9px; }
+  .trending-national{ background:rgba(224,187,85,0.18); color:#e0bb55; border:1px solid rgba(224,187,85,0.35); border-radius:20px; font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; padding:3px 9px; }
+
+  /* ===== CONFIRM MODAL ===== */
+  .confirm-overlay{ display:none; position:fixed; inset:0; background:rgba(10,10,12,0.8); z-index:650; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
+  .confirm-overlay.open{ display:flex; }
+  .confirm-modal{ background:var(--ink-soft); border:1px solid var(--line-light); border-radius:18px; padding:28px 30px; width:min(460px,90vw); box-shadow:0 30px 60px -20px rgba(0,0,0,0.7); }
+  .confirm-modal h3{ font-family:'Fraunces',serif; font-size:20px; margin:0 0 10px; }
+  .confirm-modal p{ font-size:13.5px; color:rgba(251,247,240,0.65); line-height:1.6; margin:0 0 10px; }
+  .confirm-modal .note{ font-size:12px; color:rgba(251,247,240,0.45); background:rgba(255,90,60,0.06); border:1px solid rgba(255,90,60,0.2); border-radius:9px; padding:10px 13px; margin-bottom:18px; line-height:1.5; }
+  .confirm-actions{ display:flex; gap:10px; justify-content:flex-end; }
+  .confirm-cancel{ background:none; border:1px solid var(--line-light); border-radius:9px; color:rgba(251,247,240,0.55); font-family:'Inter',sans-serif; font-weight:700; font-size:13px; padding:10px 18px; cursor:pointer; }
+  .confirm-ok{ background:var(--coral); border:none; border-radius:9px; color:var(--paper); font-family:'Inter',sans-serif; font-weight:700; font-size:13px; padding:10px 22px; cursor:pointer; }
+  .confirm-ok.gold{ background:linear-gradient(135deg,#d4a017,#e8c848); color:var(--ink); }
 </style>
 </head>
 <body>
@@ -3173,6 +3331,14 @@
 
     <div id="postingPreviewWrap"></div>
 
+    <div style="background:var(--ink-soft);border:1.5px solid var(--line-light);border-radius:14px;padding:16px 18px;margin-bottom:18px;" id="reviewTierWrap">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:13px;color:rgba(251,247,240,0.55);">Posting tier</span>
+        <span class="tier-badge free">Basic — Free</span>
+      </div>
+      <button class="ob-secondary" style="margin-top:0;padding:10px 0;font-size:13px;" onclick="openPricingModal(null)">Change tier</button>
+    </div>
+
     <button class="ob-primary" id="publishPosting" type="button">Publish posting</button>
   </div>
 </div>
@@ -3185,8 +3351,8 @@
   <nav class="ds-nav">
     <div class="wordmark">GigCute<span>.</span></div>
     <div class="ds-mode-toggle">
-      <button class="ds-mode-btn active" data-mode="candidate" type="button">I'm looking</button>
-      <button class="ds-mode-btn hiring" data-mode="recruiter" type="button">I'm hiring</button>
+      <button class="ds-mode-btn active" data-mode="candidate" type="button" id="lookingModeBtn">I'm looking</button>
+      <button class="ds-mode-btn hiring" data-mode="recruiter" type="button" id="hiringModeBtn" style="display:none;">I'm hiring</button>
     </div>
     <div class="ds-nav-right">
       <button class="ds-nav-btn" id="navPostingsBtn" type="button" style="display:none;">My Postings</button>
@@ -3207,9 +3373,9 @@
         <div class="cs-name" id="sidebarName">Maya O.</div>
         <div class="cs-title" id="sidebarTitle">Senior Product Designer</div>
         <div class="cs-stat-row">
-          <div class="cs-stat"><div class="n" id="statMatches">2</div><div class="l">Matches</div></div>
-          <div class="cs-stat"><div class="n" id="statViews">8</div><div class="l">Views</div></div>
-          <div class="cs-stat"><div class="n" id="statSaved">0</div><div class="l">Saved</div></div>
+          <div class="cs-stat" id="statMatchesBtn"><div class="n" id="statMatches">2</div><div class="l">Matches</div></div>
+          <div class="cs-stat" id="statViewsBtn"><div class="n" id="statViews">8</div><div class="l">Views</div></div>
+          <div class="cs-stat" id="statSavedBtn"><div class="n" id="statSaved">0</div><div class="l">Saved</div></div>
         </div>
       </div>
 
@@ -3220,9 +3386,9 @@
       </div>
 
       <div class="cs-section-label">Insights</div>
-      <div class="cs-insight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span><span class="n" id="insightViews">3</span> companies viewed your profile this week</span></div>
-      <div class="cs-insight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg><span><span class="n" id="insightReplies">1</span> recruiter wants to connect</span></div>
-      <div class="cs-insight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>Your top skills match <span class="n">12</span> open roles right now</span></div>
+      <div class="cs-insight" id="insightViewsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span><span class="n" id="insightViews">3</span> companies viewed your profile this week</span></div>
+      <div class="cs-insight" id="insightRepliesBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg><span><span class="n" id="insightReplies">1</span> recruiter wants to connect</span></div>
+      <div class="cs-insight" id="insightSkillsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>Your top skills match <span class="n">12</span> open roles right now</span></div>
 
       <div class="cs-section-label">Work setup</div>
       <div class="cs-insight" style="cursor:default;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg><span id="sidebarSetup">Remote or Hybrid</span></div>
@@ -3233,11 +3399,101 @@
 
       <!-- dashboard view -->
       <div id="dashView">
-        <!-- search bar -->
-        <div class="cd-search-wrap">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
-          <input type="text" id="jobSearch" placeholder="Search job titles, companies, skills…">
-          <button class="cd-search-btn" id="jobSearchBtn">Search</button>
+        <!-- search + filters -->
+        <div style="margin-bottom:24px;">
+          <div class="cd-search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input type="text" id="jobSearch" placeholder="Search job titles, companies, skills, departments…">
+            <button class="cd-search-btn" id="jobSearchBtn">Search</button>
+          </div>
+
+          <div class="search-filter-row">
+            <button class="filter-toggle-btn" id="advFilterToggle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+              Filters <span class="filter-count-badge" id="filterCountBadge" style="display:none;">0</span>
+            </button>
+            <div style="width:1px;height:20px;background:var(--line-light);flex-shrink:0;"></div>
+            <button class="quick-chip" data-quick="Remote">Remote</button>
+            <button class="quick-chip" data-quick="Hybrid">Hybrid</button>
+            <button class="quick-chip" data-quick="Full-time">Full-time</button>
+            <button class="quick-chip" data-quick="$100K+">$100K+</button>
+            <button class="quick-chip" data-quick="Equity">Equity</button>
+            <button class="quick-chip" data-quick="Visa sponsorship">Visa</button>
+          </div>
+
+          <!-- advanced filter panel -->
+          <div class="adv-filter-panel" id="advFilterPanel">
+            <div class="adv-filter-grid">
+
+              <div class="adv-filter-group">
+                <label>Work setup</label>
+                <div class="adv-filter-chips">
+                  <button class="adv-chip" data-filter="setup" data-value="Remote">Remote</button>
+                  <button class="adv-chip" data-filter="setup" data-value="Hybrid">Hybrid</button>
+                  <button class="adv-chip" data-filter="setup" data-value="In-office">In-office</button>
+                </div>
+              </div>
+
+              <div class="adv-filter-group">
+                <label>Job type</label>
+                <div class="adv-filter-chips">
+                  <button class="adv-chip" data-filter="empType" data-value="Full-time">Full-time</button>
+                  <button class="adv-chip" data-filter="empType" data-value="Contract">Contract</button>
+                  <button class="adv-chip" data-filter="empType" data-value="Part-time">Part-time</button>
+                </div>
+              </div>
+
+              <div class="adv-filter-group">
+                <label>Experience level</label>
+                <div class="adv-filter-chips">
+                  <button class="adv-chip" data-filter="seniority" data-value="Entry-level">Entry-level</button>
+                  <button class="adv-chip" data-filter="seniority" data-value="Mid-level">Mid-level</button>
+                  <button class="adv-chip" data-filter="seniority" data-value="Senior">Senior</button>
+                  <button class="adv-chip" data-filter="seniority" data-value="Staff / Principal">Staff</button>
+                  <button class="adv-chip" data-filter="seniority" data-value="Manager">Manager</button>
+                  <button class="adv-chip" data-filter="seniority" data-value="Director+">Director+</button>
+                </div>
+              </div>
+
+              <div class="adv-filter-group">
+                <label>Department</label>
+                <div class="adv-filter-chips">
+                  <button class="adv-chip" data-filter="dept" data-value="Engineering">Engineering</button>
+                  <button class="adv-chip" data-filter="dept" data-value="Product">Product</button>
+                  <button class="adv-chip" data-filter="dept" data-value="Design">Design</button>
+                  <button class="adv-chip" data-filter="dept" data-value="Data">Data</button>
+                  <button class="adv-chip" data-filter="dept" data-value="Marketing">Marketing</button>
+                  <button class="adv-chip" data-filter="dept" data-value="Finance">Finance</button>
+                  <button class="adv-chip" data-filter="dept" data-value="Legal">Legal</button>
+                  <button class="adv-chip" data-filter="dept" data-value="People">People</button>
+                </div>
+              </div>
+
+              <div class="adv-filter-group">
+                <label>Min salary</label>
+                <div class="salary-range-row">
+                  <input type="range" id="salarySlider" min="0" max="250" step="10" value="0">
+                  <span class="sal-val" id="salaryDisplay">Any</span>
+                </div>
+              </div>
+
+              <div class="adv-filter-group">
+                <label>Perks</label>
+                <div class="adv-filter-chips">
+                  <button class="adv-chip" data-filter="equity" data-value="true">Equity offered</button>
+                  <button class="adv-chip" data-filter="visa" data-value="true">Visa sponsorship</button>
+                </div>
+              </div>
+
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;margin-top:16px;padding-top:14px;border-top:1px solid var(--line-light);">
+              <button class="clear-all-btn" id="clearAllFilters">Clear all filters</button>
+            </div>
+          </div>
+
+          <!-- active filter tags -->
+          <div class="active-filters-row" id="activeFiltersRow" style="display:none;"></div>
         </div>
 
         <!-- top matches -->
@@ -3250,9 +3506,17 @@
         <div class="cd-divider"></div>
 
         <!-- all open roles / search results -->
-        <div class="cd-section-head">
+        <div class="results-summary" id="rolesResultsHead">
           <h2 id="allRolesHeading">All open <em>roles</em></h2>
-          <span class="cd-section-link" id="roleCount" style="cursor:default;"></span>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span class="results-meta" id="roleCount"></span>
+            <select class="sort-select" id="jobSortSelect">
+              <option value="match">Best match</option>
+              <option value="salary">Highest salary</option>
+              <option value="newest">Newest</option>
+              <option value="alpha">A → Z</option>
+            </select>
+          </div>
         </div>
         <div class="job-list" id="jobList"></div>
 
@@ -4200,48 +4464,170 @@
   let wizardMode = 'create';
   const selectedPrompts = new Set();
 
-  // ======================== POSTINGS: 20 seeded listings ========================
-  let nextPostingId = 21;
-  const POSTING_COMPANIES = ['Render Studio','Northbeam','Fieldnote','Hollow & Co','Cascade Systems','Luminary AI','Meridian Health','Orbit Commerce','Apex Fintech','Springboard Labs','Vantage Security','Nova Media','Ironclad Legal','Prism Analytics','Stellar Retail'];
-  const POSTING_TIERS_LIST = ['free','free','free','free','free','free','free','free','free','free','pro','pro','pro','pro','pro','pro','max','max','max','max'];
-  const POSTING_STATUSES = ['active','active','active','active','active','active','active','active','active','active','active','active','active','active','active','active','active','paused','paused','closed'];
-  const POSTING_DEFS = [
-    {title:"Senior Product Designer", dept:"Product", sen:"Senior", loc:"Remote", city:"", emp:"Full-time", min:"150",max:"180",eq:true,vis:false,resp:["Own onboarding design end to end","Partner with PM and eng leads","Run weekly user research"],qual:["6+ yrs product design","Shipped portfolio with measurable outcomes","Design systems experience"],rp:["My superpower at work","Looking for a team that"]},
-    {title:"Backend Engineer, Platform", dept:"Engineering", sen:"Senior", loc:"Hybrid", city:"San Francisco, CA", emp:"Full-time", min:"155",max:"185",eq:true,vis:false,resp:["Rebuild event queue handling 40K+ events/sec","Own on-call rotation design","Set platform technical direction"],qual:["Production Go or Rust experience","Comfortable owning systems end to end","Strong distributed systems fundamentals"],rp:["A mistake that taught me the most","I work best when"]},
-    {title:"Lifecycle Marketing Manager", dept:"Marketing", sen:"Mid-level", loc:"Hybrid", city:"Austin, TX", emp:"Full-time", min:"95",max:"120",eq:false,vis:false,resp:["Own lifecycle and retention campaigns","Run weekly channel experiments","Partner with design and data on builds"],qual:["3-5 yrs lifecycle or growth marketing","Comfortable with SQL","Strong clear writing"],rp:["What gets me out of bed in the morning"]},
-    {title:"VP of Engineering", dept:"Engineering", sen:"Director+", loc:"Hybrid", city:"San Francisco, CA", emp:"Full-time", min:"220",max:"280",eq:true,vis:true,resp:["Lead 30-person eng org across three squads","Own technical roadmap and partner with CEO","Drive recruiting and engineering culture"],qual:["10+ yrs engineering, 4+ in leadership","Track record scaling teams","Hands-on enough to earn IC respect"],rp:["My superpower at work","I'm proudest of","Looking for a team that"]},
-    {title:"Data Scientist, ML Infrastructure", dept:"Data", sen:"Senior", loc:"Remote", city:"", emp:"Full-time", min:"145",max:"170",eq:true,vis:false,resp:["Build and maintain feature store","Reduce model serving latency","Define ML infrastructure standards"],qual:["Production ML experience","Python and Spark proficiency","MLOps and feature engineering background"],rp:["I geek out about","The hardest thing I've shipped"]},
-    {title:"Engineering Manager", dept:"Engineering", sen:"Manager", loc:"Hybrid", city:"New York, NY", emp:"Full-time", min:"180",max:"210",eq:true,vis:false,resp:["Grow team from 6 to 12 engineers","Drive deploy cycle improvements","Introduce engineering leveling frameworks"],qual:["4+ yrs engineering management","Strong IC technical background","Experience hiring senior engineers"],rp:["My ideal manager","My superpower at work"]},
-    {title:"Head of Growth", dept:"Growth", sen:"Manager", loc:"Remote", city:"", emp:"Full-time", min:"160",max:"195",eq:true,vis:false,resp:["Own $30K/mo budget from day one","Find one channel that works, kill two that don't","Write everything down so meetings are optional"],qual:["Track record hitting growth numbers","Comfortable with ambiguity and no playbook","Strong clear writing"],rp:["What gets me out of bed in the morning","My proudest campaign"]},
-    {title:"Full-Stack Engineer", dept:"Engineering", sen:"Mid-level", loc:"Remote", city:"", emp:"Full-time", min:"120",max:"145",eq:false,vis:false,resp:["Ship production features across web and mobile","Own the public API","Reduce bundle size and improve performance"],qual:["React and Node.js proficiency","Comfortable end-to-end ownership","Strong written communication"],rp:["My superpower at work","Currently learning"]},
-    {title:"Product Manager, Core Product", dept:"Product", sen:"Mid-level", loc:"Hybrid", city:"Seattle, WA", emp:"Full-time", min:"130",max:"155",eq:true,vis:false,resp:["Define roadmap for our core workflows","Run discovery, not just execution","Partner with design and eng on shipping"],qual:["3+ yrs product management","Shipped features with measurable impact","Comfortable saying no to good ideas"],rp:["Looking for a team that","The kind of problems I want to solve next"]},
-    {title:"Staff Security Engineer", dept:"Security", sen:"Staff / Principal", loc:"Remote", city:"", emp:"Full-time", min:"190",max:"230",eq:true,vis:false,resp:["Lead security architecture across all products","Run threat modeling and penetration testing","Mentor junior security engineers"],qual:["8+ yrs security engineering","Experience in AppSec and cloud security","Strong communication with non-security teams"],rp:["A risk that paid off","My non-negotiable"]},
-    {title:"Content Strategist", dept:"Marketing", sen:"Mid-level", loc:"Remote", city:"", emp:"Full-time", min:"80",max:"100",eq:false,vis:false,resp:["Own editorial calendar across all channels","Write and edit long-form and short-form content","Develop brand voice guidelines"],qual:["3+ yrs content strategy or editorial","Portfolio of published work","Comfortable with SEO basics"],rp:["I geek out about","My favorite part of the day"]},
-    {title:"DevOps Engineer", dept:"Engineering", sen:"Senior", loc:"Remote", city:"", emp:"Full-time", min:"140",max:"165",eq:false,vis:false,resp:["Own CI/CD infrastructure for 20+ services","Manage Kubernetes clusters on AWS","Define observability standards"],qual:["Production Kubernetes and AWS experience","Strong scripting (Python or Go)","Incident management experience"],rp:["The tool I can't live without","On a typical Tuesday, I"]},
-    {title:"Customer Success Manager", dept:"Customer Success", sen:"Mid-level", loc:"Hybrid", city:"Chicago, IL", emp:"Full-time", min:"75",max:"95",eq:false,vis:false,resp:["Own a book of 40 mid-market accounts","Drive expansion revenue","Partner with product on customer feedback"],qual:["3+ yrs B2B customer success","Track record of net revenue retention","Strong relationship skills"],rp:["My ideal manager","Looking for a team that"]},
-    {title:"Finance Manager", dept:"Finance", sen:"Manager", loc:"Hybrid", city:"New York, NY", emp:"Full-time", min:"120",max:"150",eq:false,vis:false,resp:["Own FP&A for two business units","Build out financial models for board reporting","Partner with department heads on budgets"],qual:["CPA or MBA preferred","5+ yrs FP&A experience","Advanced Excel and SQL"],rp:["What success looks like to me","My work style in three words"]},
-    {title:"Senior Recruiter, Technical", dept:"People", sen:"Senior", loc:"Remote", city:"", emp:"Full-time", min:"90",max:"115",eq:false,vis:false,resp:["Own full-cycle recruiting for eng roles","Build sourcing pipelines for hard-to-fill roles","Improve time-to-hire and candidate experience"],qual:["4+ yrs technical recruiting","Strong sourcing skills","Data-driven approach to hiring"],rp:["I'm the person people come to for","Outside of work, I"]},
-    {title:"UX Researcher", dept:"Design", sen:"Mid-level", loc:"Remote", city:"", emp:"Full-time", min:"100",max:"125",eq:false,vis:false,resp:["Run generative and evaluative research","Synthesize findings into actionable insights","Champion the user in cross-functional decisions"],qual:["3+ yrs UX research","Mixed methods proficiency","Strong storytelling and presentation skills"],rp:["My superpower at work","A project I'd love to talk about"]},
-    {title:"iOS Engineer", dept:"Engineering", sen:"Senior", loc:"Remote", city:"", emp:"Full-time", min:"145",max:"175",eq:true,vis:false,resp:["Own our iOS app used by 500K+ users","Define iOS architecture patterns","Mentor two mid-level mobile engineers"],qual:["5+ yrs iOS development","Swift and SwiftUI proficiency","Published apps in the App Store"],rp:["The hardest thing I've shipped","The skill I'm still building"]},
-    {title:"Brand Designer", dept:"Design", sen:"Mid-level", loc:"Remote", city:"", emp:"Full-time", min:"85",max:"105",eq:false,vis:false,resp:["Define and evolve our visual identity","Own all brand touchpoints","Create templates for marketing and product teams"],qual:["4+ yrs brand or graphic design","Strong typography and layout skills","Figma and Adobe CC proficiency"],rp:["My favorite part of the day","I geek out about"]},
-    {title:"Head of Data", dept:"Data", sen:"Director+", loc:"Hybrid", city:"San Francisco, CA", emp:"Full-time", min:"200",max:"240",eq:true,vis:false,resp:["Build and lead a 6-person data team","Own data infrastructure and analytics stack","Partner with every team on data-driven decisions"],qual:["8+ yrs in data roles, 3+ in leadership","Strong SQL and Python","Experience with modern data stack (dbt, Snowflake, etc.)"],rp:["My superpower at work","What success looks like to me"]},
-    {title:"Legal Counsel", dept:"Legal", sen:"Mid-level", loc:"Hybrid", city:"New York, NY", emp:"Full-time", min:"150",max:"180",eq:true,vis:false,resp:["Own commercial contracts and vendor agreements","Advise product on privacy and compliance","Support fundraising and board governance"],qual:["JD and 4+ yrs experience","SaaS or tech company background","Clear communicator with non-lawyers"],rp:["My non-negotiable","A belief I've changed my mind on"]}
+  // ======================== POSTINGS: 6 demo listings, 2 per tier ========================
+  let nextPostingId = 7;
+
+  let postings = [
+    {
+      id:1, invites:[], superInvites:[], hasExtended:false, extensionUnlocked:false, title:"Senior Product Designer", department:"Product", seniority:"Senior",
+      locationType:"Remote", city:"", employmentType:"Full-time",
+      salaryMin:"140", salaryMax:"175", equity:true, visa:false,
+      responsibilities:[
+        "Own the end-to-end design of our onboarding and core product workflows",
+        "Partner with PM and engineering leads to define the roadmap",
+        "Run and synthesize user research to ground design decisions in evidence",
+        "Build and maintain our design system used across 6 product areas",
+        "Mentor two mid-level designers and set the quality bar for the team"
+      ],
+      qualifications:[
+        "6+ years of product design experience, ideally in B2B SaaS",
+        "A portfolio with shipped work and measurable outcomes",
+        "Deep Figma proficiency and experience owning a design system",
+        "Comfortable leading research end to end, not just running sessions",
+        "Strong written communication — you write clearly about design decisions"
+      ],
+      requestedPrompts:["My superpower at work","Looking for a team that"],
+      screeningQuestions:[], rejectionEnabled:false,
+      status:"active", tier:"free", views:31, matches:4
+    },
+    {
+      id:2, invites:[], superInvites:[], hasExtended:false, extensionUnlocked:false, title:"Full-Stack Engineer", department:"Engineering", seniority:"Mid-level",
+      locationType:"Hybrid", city:"Austin, TX", employmentType:"Full-time",
+      salaryMin:"120", salaryMax:"145", equity:false, visa:false,
+      responsibilities:[
+        "Ship production features across our web app and internal tooling",
+        "Own the public API — design, build, document, and support it",
+        "Reduce frontend bundle size and improve perceived performance",
+        "Review code thoughtfully and help raise the team's technical bar",
+        "Work closely with design to bring polished UI to life"
+      ],
+      qualifications:[
+        "3-5 years of full-stack experience in a production environment",
+        "Strong React and TypeScript — you reach for the right abstraction",
+        "Comfortable with Node.js or a similar backend runtime",
+        "You write tests because you care about what you ship, not because you have to",
+        "Good written communication — async-first team"
+      ],
+      requestedPrompts:["The hardest thing I've shipped","Currently learning"],
+      screeningQuestions:[], rejectionEnabled:false,
+      status:"active", tier:"free", views:18, matches:2
+    },
+    {
+      id:3, invites:[], superInvites:[], hasExtended:false, extensionUnlocked:false, title:"Head of Growth", department:"Growth", seniority:"Manager",
+      locationType:"Remote", city:"", employmentType:"Full-time",
+      salaryMin:"160", salaryMax:"200", equity:true, visa:false,
+      responsibilities:[
+        "Own $40K/mo growth budget from day one with full P&L responsibility",
+        "Identify the one acquisition channel that actually works — and double it",
+        "Build a growth model that makes our pipeline predictable at the board level",
+        "Hire and develop the first growth team (2-3 people in year one)",
+        "Partner with product on growth loops, not just top-of-funnel"
+      ],
+      qualifications:[
+        "Track record of hitting growth targets, not just running experiments",
+        "Comfortable in a zero-to-one environment with no established playbook",
+        "Data-fluent — you can pull your own numbers and tell a story with them",
+        "Strong, clear writing — you can explain the strategy to the CEO in one paragraph",
+        "Previous experience building and managing a small team"
+      ],
+      requestedPrompts:["What gets me out of bed in the morning","My proudest campaign","I'm the person people come to for"],
+      screeningQuestions:[
+        {templateId:"job-function-exp",fillValue:"Growth or marketing leadership",minYears:"3",degreeLevel:"Bachelor's degree",proficiency:"Conversational",essential:true},
+        {templateId:"work-auth",fillValue:"",minYears:"1",degreeLevel:"Bachelor's degree",proficiency:"Conversational",essential:true}
+      ],
+      rejectionEnabled:true,
+      status:"active", tier:"pro", views:74, matches:8
+    },
+    {
+      id:4, invites:[], superInvites:[], hasExtended:false, extensionUnlocked:false, title:"Lifecycle Marketing Manager", department:"Marketing", seniority:"Mid-level",
+      locationType:"Hybrid", city:"New York, NY", employmentType:"Full-time",
+      salaryMin:"90", salaryMax:"115", equity:false, visa:false,
+      responsibilities:[
+        "Own email, push, and in-app lifecycle campaigns end to end",
+        "Run weekly A/B experiments and report findings to the marketing team",
+        "Improve trial-to-paid conversion and reduce early churn",
+        "Build automated onboarding flows in collaboration with product",
+        "Report on funnel metrics weekly and make your own recommendations"
+      ],
+      qualifications:[
+        "3-5 years in lifecycle, retention, or growth marketing",
+        "Hands-on experience with a major CRM or ESP (Braze, Iterable, Klaviyo, etc.)",
+        "Comfortable with SQL — you pull your own data and trust your own analysis",
+        "Strong, clean writing — the copy you write converts",
+        "Detail-oriented: you QA your own campaigns before they go out"
+      ],
+      requestedPrompts:["My favorite part of the day","Outside of work, I"],
+      screeningQuestions:[
+        {templateId:"skill-exp",fillValue:"Email marketing or lifecycle campaigns",minYears:"3",degreeLevel:"Bachelor's degree",proficiency:"Conversational",essential:false},
+        {templateId:"work-auth",fillValue:"",minYears:"1",degreeLevel:"Bachelor's degree",proficiency:"Conversational",essential:true}
+      ],
+      rejectionEnabled:false,
+      status:"active", tier:"pro", views:55, matches:6
+    },
+    {
+      id:5, invites:[], superInvites:[], hasExtended:false, extensionUnlocked:false, title:"VP of Engineering", department:"Engineering", seniority:"Director+",
+      locationType:"Hybrid", city:"San Francisco, CA", employmentType:"Full-time",
+      salaryMin:"230", salaryMax:"290", equity:true, visa:true,
+      responsibilities:[
+        "Lead and grow a 28-person engineering org across four product squads",
+        "Own the technical roadmap in partnership with the CEO and CPO",
+        "Drive engineering culture: hiring, leveling, performance, and retention",
+        "Set the bar for architecture, reliability, and engineering process",
+        "Be the final decision-maker on build vs. buy vs. partner",
+        "Represent engineering at the board level — you can tell the story with data"
+      ],
+      qualifications:[
+        "10+ years in software engineering with 4+ years in a VP or Director-level role",
+        "Proven track record of scaling engineering teams through a growth stage (Series B+)",
+        "Hands-on enough to earn the deep respect of senior ICs — you can review a PR",
+        "Strong written communication — you document decisions, not just make them",
+        "Experience hiring and developing principal-level engineers",
+        "Ideally some background in distributed systems or infrastructure"
+      ],
+      requestedPrompts:["My superpower at work","I'm proudest of","Looking for a team that","A mistake that taught me the most"],
+      screeningQuestions:[
+        {templateId:"job-function-exp",fillValue:"Engineering leadership",minYears:"4",degreeLevel:"Bachelor's degree",proficiency:"Conversational",essential:true},
+        {templateId:"work-auth",fillValue:"",minYears:"1",degreeLevel:"Bachelor's degree",proficiency:"Conversational",essential:true},
+        {templateId:"background-check",fillValue:"",minYears:"1",degreeLevel:"Bachelor's degree",proficiency:"Conversational",essential:false}
+      ],
+      rejectionEnabled:true,
+      status:"active", tier:"max", views:203, matches:17
+    },
+    {
+      id:6, invites:[], superInvites:[], hasExtended:false, extensionUnlocked:false, title:"Staff Data Scientist, ML Platform", department:"Data", seniority:"Staff / Principal",
+      locationType:"Remote", city:"", employmentType:"Full-time",
+      salaryMin:"195", salaryMax:"240", equity:true, visa:false,
+      responsibilities:[
+        "Architect and own our feature store serving 50+ production models",
+        "Drive model quality and reduce ML debt across the platform",
+        "Define standards for experimentation, training, and deployment",
+        "Partner with product and engineering on ML-powered features",
+        "Mentor three senior data scientists — you raise the team's ceiling",
+        "Represent ML in technical design reviews across the org"
+      ],
+      qualifications:[
+        "8+ years in data science or ML engineering with production ML experience",
+        "Deep Python and experience with PyTorch or TensorFlow",
+        "Strong distributed systems fundamentals — you've debugged a feature store",
+        "Experience with modern MLOps tooling (MLflow, Kubeflow, Vertex AI, etc.)",
+        "Comfortable with SQL and dbt — you own your own data pipeline",
+        "Clear communicator: you can explain model drift to a non-technical stakeholder"
+      ],
+      requestedPrompts:["I geek out about","The hardest thing I've shipped","The skill I'm still building"],
+      screeningQuestions:[
+        {templateId:"job-function-exp",fillValue:"Machine learning or data science",minYears:"6",degreeLevel:"Master's degree",proficiency:"Conversational",essential:true},
+        {templateId:"skill-exp",fillValue:"Python and ML frameworks",minYears:"5",degreeLevel:"Bachelor's degree",proficiency:"Conversational",essential:true}
+      ],
+      rejectionEnabled:true,
+      status:"active", tier:"max", views:187, matches:14
+    }
   ];
 
-  let postings = POSTING_DEFS.map((d, i) => ({
-    id: i+1,
-    title: d.title, department: d.dept, seniority: d.sen,
-    locationType: d.loc, city: d.city, employmentType: d.emp,
-    salaryMin: d.min, salaryMax: d.max, equity: d.eq, visa: d.vis,
-    responsibilities: d.resp, qualifications: d.qual, requestedPrompts: d.rp,
-    screeningQuestions: [], rejectionEnabled: false,
-    status: POSTING_STATUSES[i],
-    tier: POSTING_TIERS_LIST[i],
-    views: [31,74,18,203,115,87,142,64,98,176,22,55,41,89,33,67,188,9,45,0][i] || 0,
-    matches: [6,9,2,18,14,8,12,7,9,15,2,5,4,8,3,6,16,0,4,0][i] || 0,
-  }));
-
-
+  function lastInitial(name){
+    const parts=(name||'').trim().split(/\s+/);
+    if(parts.length<2) return name;
+    return parts.slice(0,-1).join(' ')+' '+parts[parts.length-1][0]+'.';
+  }
   function escapeHtml(s){
     return (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   }
@@ -4450,6 +4836,8 @@
     document.getElementById('rejectionBox').parentElement.classList.remove('checked');
     document.getElementById('rejectionPreviewWrap').classList.remove('show');
     renderSqList();
+    pendingNewPostingTier = 'free';
+    updateReviewTierBadge();
   }
 
   function loadPostingIntoForm(p){
@@ -4811,6 +5199,10 @@
     const data = readPostingForm();
     document.getElementById('postingReviewMeta').textContent = `${data.department || 'No department set'} · ${data.seniority} · ${data.employmentType}`;
     document.getElementById('postingPreviewWrap').innerHTML = buildPreviewCardHTML(data);
+    // Restore tier badge from existing posting (edit) or pending (new)
+    const editingPosting = editingId ? postings.find(p => p.id === editingId) : null;
+    if(editingPosting) pendingNewPostingTier = editingPosting.tier || 'free';
+    updateReviewTierBadge();
     showScreen('screen-posting-review');
   };
 
@@ -4824,7 +5216,7 @@
       syncPostingIntoDeck(p);
     } else {
       const newPosting = Object.assign(
-        { id: nextPostingId++, status: 'active', views: 0, matches: 0, justPublished: true },
+        { id: nextPostingId++, status: 'active', views: 0, matches: 0, justPublished: true, tier: pendingNewPostingTier },
         data
       );
       postings.push(newPosting);
@@ -4875,39 +5267,96 @@
     "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=400&q=80",
   ];
   const CAND_FIRST = ["Maya","Devon","Priya","Tomás","Sofia","Kai","Jordan","Riley","Quinn","Morgan","Alex","Sam","Jamie","Casey","Drew","Avery","Blake","Cameron","Charlie","Dana","Eli","Frankie","Harper","Indira","Jesse","Kim","Lena","Marco","Nia","Owen","Paige","Rafael","Simone","Tyler","Uma","Vera","Will","Xena","Yara","Zach","Aaron","Bianca","Cole","Dani","Elena","Felix","Gina","Hugo","Iris","Jake","Kira","Luis","Mia","Noah","Olivia","Pedro","Rosa","Sean","Tara","Ursula","Vince","Wendy","Xander","Yasmin","Zoe","Aiden","Beatriz","Cyrus","Diana","Emilio","Fiona","Grant","Hana","Ivan","Jade","Kenji","Lola","Marcus","Nadia","Omar","Pita","Quincy","Rami","Stella","Theo","Una","Victor","Willa","Xiu","Yuki","Zara","Andre","Bea","Cesar","Dasha","Erin","Femi"];
-  const CAND_LAST = ["Okafor","Marsh","Chandrasekaran","Reyes","Eriksson","Nakamura","Lee","Kim","Patel","Chen","Wang","Nguyen","Martinez","Brown","Garcia","Wilson","Anderson","Taylor","Thomas","Jackson","White","Harris","Martin","Thompson","Moore","Davis","Lewis","Robinson","Walker","Hall","Young","Allen","Wright","Scott","Torres","Flores","Rivera","Gomez","Diaz","Cruz","Yamamoto","Suzuki","Sato","Tanaka","Watanabe","Singh","Kumar","Sharma","Mehta","Ali","Hassan","Ahmed","Malik","Rahman","Costa","Silva","Santos","Oliveira","Ferreira","Kowalski","Nowak","Wisnewski","Johansson","Lindqvist","Bergstrom","Nielsen","Hansen","Larsen","Petersen","Muller","Becker","Hoffmann","Weber","Koch","Bauer","Fischer","Schneider","Meyer","Wagner","Schulz","Richter","Klein","Wolf","Schroder","Neumann","Zimmermann","Braun","Hofmann","Keller","Werner","Schwarz","Kruger","Baran","Nowicki","Wojciechowski"];
+  const CAND_LAST = ["Okafor","Marsh","Chandrasekaran","Reyes","Eriksson","Nakamura","Lee","Kim","Patel","Chen","Wang","Nguyen","Martinez","Brown","Garcia","Wilson","Anderson","Taylor","Thomas","Jackson","White","Harris","Martin","Thompson","Moore","Davis","Lewis","Robinson","Walker","Hall","Young","Allen","Wright","Scott","Torres","Flores","Rivera","Gomez","Diaz","Cruz","Yamamoto","Suzuki","Sato","Tanaka","Watanabe","Singh","Kumar","Sharma","Mehta","Ali","Hassan","Ahmed","Malik","Rahman","Costa","Silva","Santos","Oliveira","Ferreira","Kowalski","Nowak","Johansson","Lindqvist","Bergstrom","Nielsen","Hansen","Larsen","Petersen","Muller","Becker","Hoffmann","Weber","Koch","Bauer","Fischer","Schneider","Meyer","Wagner","Schulz","Richter","Klein","Wolf","Schroder","Neumann","Zimmermann","Braun","Hofmann","Keller","Werner","Schwarz","Kruger","Baran","Nowicki","Wojciechowski","Nakagawa","Ishikawa","Yamazaki"];
   const CAND_TITLES = [
-    {title:"Senior Product Designer",    skills:["Figma","Design systems","User research","Prototyping","Product strategy"],            setup:"Remote",   expRange:[5,9]},
-    {title:"Backend Engineer",           skills:["Go","Rust","Postgres","Kafka","Kubernetes","Systems design"],                          setup:"Hybrid",   expRange:[3,8]},
-    {title:"Growth Marketing Lead",      skills:["Growth strategy","Lifecycle marketing","SQL","A/B testing","Paid acquisition"],         setup:"Remote",   expRange:[5,10]},
-    {title:"Data Scientist",             skills:["Python","PyTorch","Spark","Feature engineering","MLOps","SQL"],                         setup:"Remote",   expRange:[3,7]},
-    {title:"Engineering Manager",        skills:["Engineering leadership","Roadmap planning","TypeScript","Go","Distributed systems"],    setup:"Hybrid",   expRange:[7,12]},
-    {title:"Full-Stack Engineer",        skills:["React","TypeScript","Node.js","PostgreSQL","Redis","GraphQL"],                          setup:"Open to all",expRange:[2,5]},
-    {title:"Product Manager",            skills:["Product strategy","Roadmap planning","SQL","User research","Stakeholder mgmt"],         setup:"Hybrid",   expRange:[3,8]},
-    {title:"DevOps / Platform Engineer", skills:["Kubernetes","Terraform","AWS","CI/CD","Python","Observability"],                        setup:"Remote",   expRange:[4,8]},
-    {title:"UX Researcher",              skills:["Mixed methods research","Usability testing","Survey design","Figma","Presentation"],    setup:"Remote",   expRange:[3,7]},
-    {title:"Brand & Visual Designer",    skills:["Figma","Illustrator","Typography","Motion design","Brand systems"],                     setup:"Remote",   expRange:[3,8]},
-    {title:"Staff Security Engineer",    skills:["AppSec","Cloud security","Threat modeling","Python","AWS"],                             setup:"Remote",   expRange:[8,14]},
-    {title:"iOS / Mobile Engineer",      skills:["Swift","SwiftUI","Objective-C","Xcode","REST APIs","TDD"],                              setup:"Hybrid",   expRange:[4,9]},
-    {title:"Finance Manager",            skills:["FP&A","Excel","SQL","Financial modeling","Variance analysis"],                          setup:"In-office",expRange:[5,10]},
-    {title:"Customer Success Manager",   skills:["Account management","HubSpot","SQL","Churn reduction","Onboarding"],                    setup:"Hybrid",   expRange:[3,7]},
-    {title:"Content Strategist",         skills:["Content strategy","SEO","Copywriting","Editorial planning","Analytics"],                setup:"Remote",   expRange:[3,8]},
+    {title:"Senior Product Designer",     skills:["Figma","Design systems","User research","Prototyping","Product strategy","Accessibility","Motion design"],       setup:"Remote",    expRange:[2,14]},
+    {title:"Backend Engineer",            skills:["Go","Rust","PostgreSQL","Kafka","Kubernetes","Redis","Systems design","gRPC"],                                    setup:"Hybrid",    expRange:[1,12]},
+    {title:"Growth Marketing Lead",       skills:["Growth strategy","Lifecycle marketing","SQL","A/B testing","Paid acquisition","Attribution modeling","Braze"],    setup:"Remote",    expRange:[3,12]},
+    {title:"Data Scientist",              skills:["Python","PyTorch","Spark","Feature engineering","MLOps","SQL","dbt","Vertex AI"],                                 setup:"Remote",    expRange:[2,11]},
+    {title:"Engineering Manager",         skills:["Engineering leadership","Roadmap planning","TypeScript","Go","Distributed systems","Hiring","Performance mgmt"],   setup:"Hybrid",    expRange:[6,15]},
+    {title:"Full-Stack Engineer",         skills:["React","TypeScript","Node.js","PostgreSQL","Redis","GraphQL","Docker","AWS"],                                      setup:"Open to all",expRange:[1,9]},
+    {title:"Product Manager",             skills:["Product strategy","Roadmap planning","SQL","User research","Stakeholder mgmt","Jira","PRD writing"],              setup:"Hybrid",    expRange:[2,12]},
+    {title:"DevOps / Platform Engineer",  skills:["Kubernetes","Terraform","AWS","CI/CD","Python","Observability","ArgoCD","Datadog"],                               setup:"Remote",    expRange:[2,10]},
+    {title:"UX Researcher",               skills:["Mixed methods research","Usability testing","Survey design","Figma","Presentation","UserZoom","Dovetail"],         setup:"Remote",    expRange:[2,10]},
+    {title:"Brand & Visual Designer",     skills:["Figma","Illustrator","Typography","Motion design","Brand systems","After Effects","Lottie"],                       setup:"Remote",    expRange:[2,12]},
+    {title:"Staff Security Engineer",     skills:["AppSec","Cloud security","Threat modeling","Python","AWS","Burp Suite","SAST/DAST"],                              setup:"Remote",    expRange:[7,15]},
+    {title:"iOS / Mobile Engineer",       skills:["Swift","SwiftUI","Objective-C","Xcode","REST APIs","TDD","Core Data","Push notifications"],                       setup:"Hybrid",    expRange:[3,11]},
+    {title:"Finance Manager",             skills:["FP&A","Excel","SQL","Financial modeling","Variance analysis","Anaplan","Board reporting"],                         setup:"In-office", expRange:[4,12]},
+    {title:"Customer Success Manager",    skills:["Account management","HubSpot","SQL","Churn reduction","Onboarding","QBRs","Gainsight"],                           setup:"Hybrid",    expRange:[2,10]},
+    {title:"Content Strategist",          skills:["Content strategy","SEO","Copywriting","Editorial planning","Analytics","Semrush","Contentful"],                    setup:"Remote",    expRange:[2,10]},
   ];
-  const CAND_COMPANIES = ["Render Studio","Bramble Co","Northbeam","Fieldnote","Cascade Systems","Luminary AI","Meridian Health","Orbit Commerce","Apex Fintech","Springboard Labs","Vantage","Nova Media","Ironclad","Prism Analytics","Acme Corp","Nexus Tech","Aurora Labs","Vertex Systems","Summit Digital","Pinnacle Co","Echo Ventures","Stride Health","Bolt Commerce","Flux Engineering","Anchor Media","Beacon Analytics","Crest Finance","Dawn Robotics","Edge Security","Forge Data"];
-  const CAND_SCHOOLS = ["MIT","Stanford","Carnegie Mellon","Georgia Tech","UC Berkeley","University of Michigan","NYU","Columbia","Northwestern","Purdue","RISD","Parsons","Pratt","Maryland Institute","SCAD","University of Washington","UT Austin","UCLA","Ohio State","Penn State"];
-  const CAND_DEGREES = ["B.S. Computer Science","B.A. Design","M.S. Computer Science","B.S. Statistics","B.B.A. Marketing","M.S. Data Science","B.S. Electrical Engineering","B.A. Psychology","M.B.A.","B.S. Mathematics","B.A. Communications","M.S. Human-Computer Interaction","B.S. Information Systems","B.A. Economics","M.S. Machine Learning"];
-  const CAND_PROMPT_SEEDS = [
-    ["Turning ambiguous briefs into something everyone can rally around.","Shipping the redesign that took checkout from 61% to 84%.","Moves fast without losing sight of why the work matters."],
-    ["Getting our p99 latency under 40ms without throwing more hardware at it.","Most 'microservices' migrations just outsource a monolith's problems to the network.","It mentions an actual on-call rotation budget, not just 'fast-paced culture.'"],
-    ["Took a B2B SaaS from $0 to $2M ARR using exactly $4K of paid spend.","Run another growth hack that confuses a vanity metric with a business outcome.","Tells me the goal and lets me pick the path."],
-    ["A whiteboard. Second most used: whatever keeps our feature store from drifting.","The boring plumbing that makes 'real-time ML' actually real-time.","'We're not sure what success looks like yet, just build something.'"],
-    ["Turning ambiguity into quarterly plans the team actually believes in.","Helping three ICs reach senior in 18 months through deliberate pairing, not luck.","Real technical problems worth solving and the autonomy to solve them right."],
-    ["Shipping end to end without needing a spec, PM sign-off, and a ticket assigned.","Distributed systems fundamentals — reading DDIA, building toy databases.","Real ownership on day one, not a year in."],
-    ["Finding the one decision that unblocks 10 other decisions downstream.","Convincing leadership to kill a feature we'd worked on for 6 months.","Has strong opinions loosely held and a bias toward shipping."],
-    ["Kubernetes. And a well-organized Terraform module I can reuse forever.","The oncall runbook nobody updates until the next incident. Writing it now.","Infrastructure that's boring at 3am."],
-    ["Making people feel heard in a 45-minute session and synthesizing it into one insight that changes everything.","The research that killed a feature that would have shipped to 2M users.","Researchers are partners in decisions, not order-takers."],
-    ["Helvetica and why every brand thinks they're the exception.","The one client who gave me complete creative freedom — and the terrifying result.","Moves fast but still cares whether it's beautiful."],
-  ];
+  const CAND_COMPANIES = ["Render Studio","Bramble Co","Northbeam","Fieldnote","Cascade Systems","Luminary AI","Meridian Health","Orbit Commerce","Apex Fintech","Springboard Labs","Vantage","Nova Media","Ironclad","Prism Analytics","Acme Corp","Nexus Tech","Aurora Labs","Vertex Systems","Summit Digital","Pinnacle Co","Echo Ventures","Stride Health","Bolt Commerce","Flux Engineering","Anchor Media","Beacon Analytics","Crest Finance","Dawn Robotics","Edge Security","Forge Data","Zenith Platforms","Helix Software","Quasar Labs","Solace Health","Trellis Commerce","Uplift Media","Wavelet AI","Xeno Finance","Yield Analytics","Zeal Networks"];
+  const CAND_SCHOOLS = ["MIT","Stanford","Carnegie Mellon","Georgia Tech","UC Berkeley","University of Michigan","NYU","Columbia","Northwestern","Purdue","RISD","Parsons","Pratt","Maryland Institute","SCAD","University of Washington","UT Austin","UCLA","Ohio State","Penn State","Duke","Cornell","Brown","Dartmouth","University of Toronto","University of British Columbia","London School of Economics","ETH Zurich","TU Berlin","Delft University"];
+  const CAND_DEGREES = ["B.S. Computer Science","B.A. Design","M.S. Computer Science","B.S. Statistics","B.B.A. Marketing","M.S. Data Science","B.S. Electrical Engineering","B.A. Psychology","M.B.A.","B.S. Mathematics","B.A. Communications","M.S. Human-Computer Interaction","B.S. Information Systems","B.A. Economics","M.S. Machine Learning","B.A. Sociology","M.Eng. Software Engineering","B.S. Industrial Engineering","B.A. Cognitive Science","Ph.D. Computer Science"];
+
+  const CAND_ROLE_PROGRESSION = {
+    "Senior Product Designer":    ["Product Designer","Associate Product Designer","Junior Designer","Design Intern"],
+    "Backend Engineer":           ["Software Engineer","Junior Software Engineer","Engineering Intern","Associate Engineer"],
+    "Growth Marketing Lead":      ["Growth Marketing Manager","Marketing Manager","Marketing Coordinator","Marketing Analyst"],
+    "Data Scientist":             ["Data Scientist","Junior Data Scientist","Data Analyst","Analytics Intern"],
+    "Engineering Manager":        ["Engineering Manager","Senior Software Engineer","Software Engineer","Junior Engineer"],
+    "Full-Stack Engineer":        ["Full-Stack Engineer","Frontend Engineer","Junior Developer","Coding Bootcamp Graduate"],
+    "Product Manager":            ["Product Manager","Associate PM","Product Analyst","Business Analyst"],
+    "DevOps / Platform Engineer": ["DevOps Engineer","Site Reliability Engineer","Systems Engineer","IT Operations Engineer"],
+    "UX Researcher":              ["UX Researcher","Research Coordinator","UX Analyst","Research Assistant"],
+    "Brand & Visual Designer":    ["Brand Designer","Graphic Designer","Junior Graphic Designer","Design Assistant"],
+    "Staff Security Engineer":    ["Security Engineer","Senior Security Engineer","Security Analyst","IT Security Specialist"],
+    "iOS / Mobile Engineer":      ["iOS Engineer","Mobile Developer","Junior iOS Developer","iOS Intern"],
+    "Finance Manager":            ["Finance Manager","Senior Financial Analyst","Financial Analyst","Financial Analyst Intern"],
+    "Customer Success Manager":   ["Customer Success Manager","Account Manager","Customer Support Lead","Customer Support Rep"],
+    "Content Strategist":         ["Content Strategist","Content Manager","Content Writer","Copywriting Intern"],
+  };
+
+  // Rich bullet templates per role
+  const BULLETS = {
+    "Senior Product Designer": [
+      ["Redesigned checkout flow, improving conversion rate from 61% to 84% over 8 weeks","Built and shipped design system adopted by 6 product teams, cutting design-to-code time by 40%","Led mobile-first redesign of the core dashboard used by 200K+ daily active users"],
+      ["Defined the end-to-end IA for a 0-to-1 product launch in 3 months","Ran 40+ user research sessions that killed 2 roadmap items saving 6 months of eng time","Prototyped and validated 3 monetization concepts before a single line of code was written"],
+      ["Created and maintained Figma component library with 300+ components","Collaborated with accessibility team to achieve WCAG 2.1 AA compliance across core flows","Mentored 2 junior designers and established weekly design critique ritual"],
+      ["Owned design for mobile app with 500K+ downloads","Reduced support tickets by 30% through targeted UX improvements to onboarding","Ran quarterly design sprints that became the team's core innovation ritual"],
+    ],
+    "Backend Engineer": [
+      ["Rebuilt event processing pipeline handling 40K+ events/sec with 99.99% uptime","Reduced API p99 latency from 800ms to 42ms through query optimization and caching","Led migration from monolith to 12 microservices over 18 months with zero downtime"],
+      ["Designed and implemented GraphQL API used by 3 client teams","Reduced AWS spend by $180K/yr through right-sizing and architectural changes","Built internal tooling that cut deployment time from 45 min to under 4 min"],
+      ["Owned auth infrastructure handling 2M+ logins/day","Introduced observability standards (traces, metrics, logs) across 8 services","Wrote ADRs and documentation that onboarded 4 new engineers in 2 weeks"],
+      ["Built real-time data sync between 3 external systems with zero data loss","Led technical design for multi-tenancy architecture supporting 800+ enterprise customers","Mentored 3 junior engineers through regular pairing and code review"],
+    ],
+    "Growth Marketing Lead": [
+      ["Grew organic traffic from 80K to 420K monthly visits over 18 months","Launched referral program that drove 22% of new signups within 6 months","Managed $2.8M annual paid budget across Google, LinkedIn, and Meta"],
+      ["Increased trial-to-paid conversion from 18% to 31% through lifecycle experiment program","Built attribution model that reallocated $600K in budget to highest-performing channels","Hired and developed a team of 4 growth marketers"],
+      ["Drove $4.2M in pipeline from content and SEO in FY23","Launched co-marketing program with 3 technology partners, generating 1,200 qualified leads","Reduced CAC by 34% over 12 months through channel optimization"],
+      ["Built and scaled a growth experiment framework still in use 2 years later","Launched ABM program targeting 200 enterprise accounts, achieving 38% engagement rate","Created quarterly OKR framework for growth that became the company template"],
+    ],
+    "Data Scientist": [
+      ["Built recommendation engine that increased user engagement by 28%","Reduced model inference latency from 340ms to 12ms through distillation and caching","Designed feature store serving 50+ models in production"],
+      ["Developed churn prediction model with 87% AUC, enabling proactive intervention","Built real-time fraud detection system processing 500K transactions/day","Led migration from batch ML to real-time inference across 8 product surfaces"],
+      ["Ran 120+ A/B experiments that generated $3.2M in incremental annual revenue","Built self-serve analytics platform used daily by 80 non-technical stakeholders","Designed company's ML experimentation standards still followed by the org"],
+      ["Reduced ML training costs by 60% through distributed training optimization","Mentored 3 junior data scientists, two of whom were promoted to senior in 18 months","Presented quarterly ML roadmap to the board and senior leadership"],
+    ],
+    "Engineering Manager": [
+      ["Grew team from 4 to 14 engineers while maintaining 90%+ retention over 3 years","Shipped 3 major product launches on time and under budget","Reduced deploy frequency from weekly to 8x/day through process and tooling changes"],
+      ["Introduced engineering leveling framework that resolved 90% of comp band disputes","Improved team velocity 40% by redesigning sprint process and eliminating waste","Hired 8 engineers including 2 principal-level ICs in a tight hiring market"],
+      ["Led incident response improvements that cut MTTR from 4hr to 22min","Built engineering onboarding program that reduced ramp time from 6 weeks to 2","Represented engineering on leadership team and set quarterly technical strategy"],
+      ["Rebuilt underperforming team of 6 — 3 promotions within 12 months","Established code review culture with <24hr turnaround and measurable quality gains","Delivered platform rewrite under strict 9-month deadline with zero production incidents"],
+    ],
+    "Full-Stack Engineer": [
+      ["Shipped 40+ production features across web and iOS used by 300K users","Reduced page load time by 62% through bundle optimization and CDN changes","Owned our public REST API — designed, documented, and maintained for 2 years"],
+      ["Built internal tooling that saves ops team 20 hours/week","Led migration from REST to GraphQL across 12 endpoints","Introduced component library adopted by entire frontend team"],
+      ["Reduced monthly cloud spend by $45K through architecture changes","Mentored 2 junior engineers and established pair programming culture","Achieved 98% test coverage on core business logic"],
+      ["Rebuilt real-time collaboration features used by 50K+ teams","Shipped accessibility improvements achieving WCAG 2.0 AA compliance","Wrote and maintained API documentation used by 200+ external developers"],
+    ],
+    "Product Manager": [
+      ["Launched core feature used by 80% of active users within 3 months of GA","Drove 35% increase in WAU through a series of retention-focused improvements","Led cross-functional squad of 8 from discovery to delivery on a 6-month roadmap"],
+      ["Reduced time-to-value from 14 days to 3 days through onboarding overhaul","Built and maintained product analytics stack used by whole product team","Defined pricing strategy that increased ARPU by 22%"],
+      ["Shipped mobile app v2.0 in 10 weeks with cross-functional team of 12","Established product discovery process adopted org-wide across 4 squads","Ran 60+ customer interviews that generated 3 core product themes"],
+      ["Owned enterprise tier roadmap contributing $8M ARR","Built roadmap communication ritual that eliminated 70% of stakeholder sync meetings","Launched partner API program onboarding 12 third-party integrations"],
+    ],
+  };
+
+  function getBullets(title, jobIndex) {
+    const pool = BULLETS[title] || [["Led key initiatives delivering measurable business impact","Partnered cross-functionally on strategy and execution","Drove process improvements that raised team quality bar"]];
+    return pool[jobIndex % pool.length];
+  }
 
   function seedCandidates(n){
     const result = [];
@@ -4915,49 +5364,81 @@
       const fn = CAND_FIRST[i % CAND_FIRST.length];
       const ln = CAND_LAST[Math.floor(i * 7 + 13) % CAND_LAST.length];
       const cat = CAND_TITLES[i % CAND_TITLES.length];
-      const exp = cat.expRange[0] + (i % (cat.expRange[1] - cat.expRange[0] + 1));
       const photo = CAND_PHOTOS[i % CAND_PHOTOS.length];
-      const comp1 = CAND_COMPANIES[i % CAND_COMPANIES.length];
-      const comp2 = CAND_COMPANIES[(i + 5) % CAND_COMPANIES.length];
       const school = CAND_SCHOOLS[i % CAND_SCHOOLS.length];
       const degree = CAND_DEGREES[i % CAND_DEGREES.length];
-      const promptSeed = CAND_PROMPT_SEEDS[i % CAND_PROMPT_SEEDS.length];
-      const promptLabels = SEEKER_PROMPT_BANK.slice(i%28, i%28+3).map(p=>p.label);
-      const salMin = 80 + (exp * 6) + (i % 40);
-      const salMax = salMin + 20 + (i % 30);
-      const senMap = [[0,2,'Entry-level'],[3,5,'Mid-level'],[6,9,'Senior'],[10,99,'Staff / Principal']];
-      const sen = senMap.find(([lo,hi])=>exp>=lo&&exp<=hi)?.[2]||'Senior';
+
+      // Varied experience: 1–15 years based on index
+      const [minExp, maxExp] = cat.expRange;
+      const expBand = maxExp - minExp;
+      const exp = minExp + (i % (expBand + 1));
+
+      const salMin = 75 + (exp * 7) + (i % 35);
+      const salMax = salMin + 18 + (i % 28);
+      const setup = cat.setup === 'Open to all' ? ['Remote','Hybrid','In-office'][i%3] : cat.setup;
+
+      // Number of jobs: scales with experience, 1–10
+      const numJobs = Math.min(10, Math.max(1, Math.floor(exp * 0.75)));
+
+      // Build work history
+      const progression = CAND_ROLE_PROGRESSION[cat.title] || [cat.title];
+      const allCompanies = [...new Set([...Array(numJobs)].map((_,ji) => CAND_COMPANIES[(i + ji * 7) % CAND_COMPANIES.length]))];
       const yearStart = 2024 - exp;
-      const mid = yearStart + Math.floor(exp * 0.5);
+      const avgTenure = exp / numJobs;
+
+      const workHistory = [];
+      let curYear = 2024;
+      for(let j = 0; j < numJobs; j++){
+        const roleTitle = j === 0 ? cat.title : (progression[Math.min(j, progression.length-1)] || cat.title);
+        const co = allCompanies[j] || CAND_COMPANIES[(i + j) % CAND_COMPANIES.length];
+        const tenure = Math.max(1, Math.round(avgTenure + (j % 2 === 0 ? 0.5 : -0.3)));
+        const endYear = j === 0 ? 'Present' : String(curYear);
+        const startYear = curYear - tenure;
+        const yearStr = `${startYear}–${endYear}`;
+        curYear = startYear;
+        workHistory.push({
+          title: roleTitle,
+          company: co,
+          years: yearStr,
+          bullets: getBullets(cat.title, j),
+        });
+      }
+
+      // 2-3 prompt answers
+      const promptLabels = SEEKER_PROMPT_BANK.slice((i*3)%28, (i*3)%28+3).map(p=>p.label);
+      const promptAnswers = [
+        ["Turning messy, ambiguous problems into something teams can actually ship.","The redesign that moved our core metric 23 points in 6 weeks.","Gives me real ownership and doesn't confuse process for progress."],
+        ["Finding the one lever that moves the number no one else is watching.","The quarter I missed target, figured out exactly why, and exceeded it the next.","Moves fast but is honest about what it doesn't know yet."],
+        ["The edge cases everyone else ignores — that's where the real work is.","Shipping the system that made three other systems obsolete.","Has context. Tells me why, not just what."],
+        ["Connecting dots across domains that most people keep siloed.","The project that shipped 3 months late but became the product's backbone.","Trusts me and then actually lets me run with it."],
+        ["Making the complex feel simple on the other side of a hard problem.","Convincing my skip-level that the right answer was to do less.","Still debates ideas even when the decision's been made — in the best way."],
+      ];
+      const pa = promptAnswers[i % promptAnswers.length];
+
       result.push({
         name: `${fn} ${ln}`,
         initials: `${fn[0]}.${ln[0]}.`,
         title: cat.title,
         photo,
-        tags: [`$${salMin}–${salMax}K`, cat.setup, `${exp} yrs exp`],
-        setup: cat.setup,
+        tags: [`$${salMin}–${salMax}K`, setup, `${exp} yr${exp!==1?'s':''} exp`],
+        setup,
         expYears: exp,
-        workHistory: [
-          {title: cat.title, company: comp1, years: `${mid}–Present`,
-           bullets: [`Led key initiatives delivering measurable impact`, `Partnered cross-functionally on roadmap`, `Mentored junior teammates`]},
-          {title: cat.title.replace(/Senior |Staff |Lead |Head of /,''), company: comp2, years: `${yearStart}–${mid}`,
-           bullets: [`Shipped core features used by thousands of customers`, `Drove process improvements that reduced cycle time`]},
-        ],
+        workHistory,
         education: [{degree, school, year: String(yearStart)}],
         skills: cat.skills,
         prompts: [
-          {label: promptLabels[0]||"My superpower at work", answer: promptSeed[0]},
-          {label: promptLabels[1]||"I'm proudest of",       answer: promptSeed[1]},
-          {label: promptLabels[2]||"Looking for a team that",answer: promptSeed[2]},
+          {label: promptLabels[0]||"My superpower at work",  answer: pa[0]},
+          {label: promptLabels[1]||"I'm proudest of",        answer: pa[1]},
+          {label: promptLabels[2]||"Looking for a team that",answer: pa[2]},
         ],
         status: "new",
         profileViews: 20 + ((i * 17 + 43) % 200),
-        recruiterLikes: 3 + ((i * 7 + 11) % 30),
+        recruiterLikes: 2 + ((i * 7 + 11) % 32),
       });
     }
     return result;
   }
-  const candidates = seedCandidates(100);
+  const candidates = seedCandidates(200);
 
 
 
@@ -5064,21 +5545,155 @@
     }).join('');
   }
 
+  // ---- Advanced job search filters ----
+  const jobFilters = {
+    query: '',
+    setup: [],       // 'Remote','Hybrid','In-office'
+    empType: [],     // 'Full-time','Part-time','Contract'
+    seniority: [],   // 'Entry-level','Mid-level','Senior',...
+    dept: [],        // 'Engineering','Product',...
+    minSalary: 0,    // in $K
+    equity: false,
+    visa: false,
+  };
+  let jobSortMode = 'match';
+  // Keep jobSearchQuery alias so existing code (e.g. highlightJobSearch) still works
   let jobSearchQuery = '';
+
+  function activeFilterCount(){
+    return jobFilters.setup.length + jobFilters.empType.length +
+           jobFilters.seniority.length + jobFilters.dept.length +
+           (jobFilters.minSalary > 0 ? 1 : 0) +
+           (jobFilters.equity ? 1 : 0) + (jobFilters.visa ? 1 : 0);
+  }
+
+  function jobPassesFilters(j){
+    const q = jobFilters.query.toLowerCase();
+    if(q){
+      const haystack = [j.title||j.name||j.role||'', j.name, j.department||'', ...(j.tags||[]), ...(j.responsibilities||[]), ...(j.qualifications||[])].join(' ').toLowerCase();
+      if(!haystack.includes(q)) return false;
+    }
+    if(jobFilters.setup.length && !jobFilters.setup.includes(j.locationType)) return false;
+    if(jobFilters.empType.length && !jobFilters.empType.includes(j.employmentType)) return false;
+    if(jobFilters.seniority.length && !jobFilters.seniority.includes(j.seniority)) return false;
+    if(jobFilters.dept.length && !jobFilters.dept.includes(j.department)) return false;
+    if(jobFilters.minSalary > 0){
+      const sal = parseInt(j.salaryMax || j.salaryMin || 0);
+      if(sal < jobFilters.minSalary) return false;
+    }
+    if(jobFilters.equity && !j.equity) return false;
+    if(jobFilters.visa && !j.visa) return false;
+    return true;
+  }
+
+  function sortedJobs(list){
+    const copy = [...list];
+    if(jobSortMode === 'salary') return copy.sort((a,b)=>(parseInt(b.salaryMax||0))-(parseInt(a.salaryMax||0)));
+    if(jobSortMode === 'alpha')  return copy.sort((a,b)=>(a.title||a.name||'').localeCompare(b.title||b.name||''));
+    if(jobSortMode === 'newest') return copy.sort((a,b)=>b.id - a.id);
+    return copy; // 'match' — default order
+  }
+
+  function renderActiveFilterTags(){
+    const row = document.getElementById('activeFiltersRow');
+    const badge = document.getElementById('filterCountBadge');
+    const btn = document.getElementById('advFilterToggle');
+    const count = activeFilterCount();
+
+    if(count === 0){
+      row.style.display = 'none';
+      badge.style.display = 'none';
+      btn.classList.remove('has-filters');
+      return;
+    }
+    badge.textContent = count;
+    badge.style.display = '';
+    btn.classList.add('has-filters');
+    row.style.display = 'flex';
+
+    const tags = [];
+    jobFilters.setup.forEach(v => tags.push({label:v, remove:()=>{ jobFilters.setup=jobFilters.setup.filter(x=>x!==v); applyFilters(); }}));
+    jobFilters.empType.forEach(v => tags.push({label:v, remove:()=>{ jobFilters.empType=jobFilters.empType.filter(x=>x!==v); applyFilters(); }}));
+    jobFilters.seniority.forEach(v => tags.push({label:v, remove:()=>{ jobFilters.seniority=jobFilters.seniority.filter(x=>x!==v); applyFilters(); }}));
+    jobFilters.dept.forEach(v => tags.push({label:v, remove:()=>{ jobFilters.dept=jobFilters.dept.filter(x=>x!==v); applyFilters(); }}));
+    if(jobFilters.minSalary > 0) tags.push({label:`$${jobFilters.minSalary}K+`, remove:()=>{ jobFilters.minSalary=0; document.getElementById('salarySlider').value=0; document.getElementById('salaryDisplay').textContent='Any'; applyFilters(); }});
+    if(jobFilters.equity) tags.push({label:'Equity', remove:()=>{ jobFilters.equity=false; applyFilters(); }});
+    if(jobFilters.visa)   tags.push({label:'Visa sponsorship', remove:()=>{ jobFilters.visa=false; applyFilters(); }});
+
+    row.innerHTML = tags.map((t,i) =>
+      `<span class="active-filter-tag" data-tag-idx="${i}">${escapeHtml(t.label)}<button title="Remove">×</button></span>`
+    ).join('') + `<button class="clear-all-btn" id="clearAllFiltersRow">Clear all</button>`;
+
+    tags.forEach((t,i) => {
+      row.querySelector(`[data-tag-idx="${i}"] button`).onclick = t.remove;
+    });
+    row.querySelector('#clearAllFiltersRow').onclick = clearAllFilters;
+  }
+
+  function syncAdvChips(){
+    document.querySelectorAll('.adv-chip').forEach(chip => {
+      const f = chip.dataset.filter;
+      const v = chip.dataset.value;
+      let active = false;
+      if(f==='setup') active = jobFilters.setup.includes(v);
+      if(f==='empType') active = jobFilters.empType.includes(v);
+      if(f==='seniority') active = jobFilters.seniority.includes(v);
+      if(f==='dept') active = jobFilters.dept.includes(v);
+      if(f==='equity') active = jobFilters.equity;
+      if(f==='visa') active = jobFilters.visa;
+      chip.classList.toggle('active', active);
+    });
+    document.querySelectorAll('.quick-chip').forEach(chip => {
+      const v = chip.dataset.quick;
+      let active = false;
+      if(v==='Remote') active = jobFilters.setup.includes('Remote');
+      if(v==='Hybrid') active = jobFilters.setup.includes('Hybrid');
+      if(v==='Full-time') active = jobFilters.empType.includes('Full-time');
+      if(v==='$100K+') active = jobFilters.minSalary >= 100;
+      if(v==='Equity') active = jobFilters.equity;
+      if(v==='Visa sponsorship') active = jobFilters.visa;
+      chip.classList.toggle('active', active);
+    });
+  }
+
+  function applyFilters(){
+    jobSearchQuery = jobFilters.query; // keep alias in sync
+    syncAdvChips();
+    renderActiveFilterTags();
+    renderJobList();
+  }
+
+  function clearAllFilters(){
+    jobFilters.query=''; jobFilters.setup=[]; jobFilters.empType=[];
+    jobFilters.seniority=[]; jobFilters.dept=[]; jobFilters.minSalary=0;
+    jobFilters.equity=false; jobFilters.visa=false;
+    document.getElementById('jobSearch').value='';
+    document.getElementById('salarySlider').value=0;
+    document.getElementById('salaryDisplay').textContent='Any';
+    applyFilters();
+  }
 
   function renderJobList(){
     const list = document.getElementById('jobList');
-    const q = jobSearchQuery.toLowerCase();
-    const filtered = q
-      ? jobs.filter(j => [j.name, j.role||'', ...(j.tags||[]), ...(j.responsibilities||[]), ...(j.qualifications||[])].join(' ').toLowerCase().includes(q))
-      : jobs;
-    document.getElementById('roleCount').textContent = `${filtered.length} role${filtered.length!==1?'s':''}`;
-    if(filtered.length === 0){
-      list.innerHTML = `<div class="tracker-empty">No roles match "${escapeHtml(q)}"</div>`;
+    const heading = document.getElementById('allRolesHeading');
+    const allFiltered = jobs.filter(jobPassesFilters);
+    const sorted = sortedJobs(allFiltered);
+    const hasActiveSearch = jobFilters.query || activeFilterCount() > 0;
+
+    heading.innerHTML = hasActiveSearch ? 'Search <em>results</em>' : 'All open <em>roles</em>';
+    document.getElementById('roleCount').textContent = `${sorted.length} role${sorted.length!==1?'s':''}`;
+
+    if(sorted.length === 0){
+      list.innerHTML = `
+        <div style="text-align:center;padding:40px 20px;color:rgba(251,247,240,0.35);">
+          <div style="font-family:'Fraunces',serif;font-size:18px;font-style:italic;margin-bottom:8px;">No matches found</div>
+          <div style="font-size:13px;">Try adjusting your filters or <button class="cd-section-link" onclick="clearAllFilters()" style="font-size:13px;">clear all filters</button></div>
+        </div>`;
       return;
     }
-    list.innerHTML = filtered.map(j => {
-      const answered = seekerProfile.answeredPrompts || {};
+
+    const answered = seekerProfile.answeredPrompts || {};
+    list.innerHTML = sorted.map(j => {
       const promptsHTML = (j.requestedPrompts||[]).map(label => {
         const ans = answered[label];
         if(ans) return `
@@ -5094,13 +5709,14 @@
           </div>`;
       }).join('');
       const tracked = jobTracker.find(t=>t.job===j);
+      const tierLabel = j.tier === 'max' ? '<span style="font-family:JetBrains Mono,monospace;font-size:9.5px;font-weight:700;background:rgba(224,187,85,0.15);color:#e0bb55;border:1px solid rgba(224,187,85,0.35);border-radius:5px;padding:2px 7px;margin-left:6px;">Featured</span>' : j.tier === 'pro' ? '<span style="font-family:JetBrains Mono,monospace;font-size:9.5px;font-weight:700;background:rgba(61,90,76,0.25);color:#9fc2ad;border:1px solid rgba(87,116,99,0.5);border-radius:5px;padding:2px 7px;margin-left:6px;">Boost</span>' : '';
       return `
         <div class="job-list-item" data-job-name="${escapeHtml(j.name)}">
-          <div class="job-logo" style="background-image:url('${j.photo}')"></div>
+          <div class="job-logo" style="background-image:url('${j.photo||''}')"></div>
           <div>
-            <div class="jli-company">${escapeHtml(j.name)}</div>
-            <div class="jli-role">${escapeHtml(j.role||j.name)}</div>
-            <div class="jli-tags">${j.tags.map(t=>`<span class="jli-tag">${escapeHtml(t)}</span>`).join('')}</div>
+            <div class="jli-company">${escapeHtml(j.name)} ${tierLabel}</div>
+            <div class="jli-role">${escapeHtml(j.title||j.role||j.name)}</div>
+            <div class="jli-tags">${(j.tags||[]).map(t=>`<span class="jli-tag">${escapeHtml(t)}</span>`).join('')}</div>
             ${promptsHTML}
           </div>
           <div class="jli-actions">
@@ -5111,6 +5727,86 @@
           </div>
         </div>`;
     }).join('');
+  }
+
+  // ---- Search & filter event wiring ----
+  document.getElementById('jobSearch').addEventListener('input', e => {
+    jobFilters.query = e.target.value;
+    applyFilters();
+  });
+  document.getElementById('jobSearch').addEventListener('keydown', e => {
+    if(e.key === 'Enter') applyFilters();
+  });
+  document.getElementById('jobSearchBtn').onclick = () => {
+    jobFilters.query = document.getElementById('jobSearch').value;
+    applyFilters();
+    document.getElementById('rolesResultsHead').scrollIntoView({behavior:'smooth', block:'start'});
+  };
+
+  // Filter panel toggle
+  document.getElementById('advFilterToggle').onclick = () => {
+    document.getElementById('advFilterPanel').classList.toggle('open');
+  };
+
+  // Quick chips
+  document.querySelectorAll('.quick-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const v = chip.dataset.quick;
+      if(v==='Remote'){ if(jobFilters.setup.includes('Remote')) jobFilters.setup=jobFilters.setup.filter(x=>x!=='Remote'); else jobFilters.setup.push('Remote'); }
+      else if(v==='Hybrid'){ if(jobFilters.setup.includes('Hybrid')) jobFilters.setup=jobFilters.setup.filter(x=>x!=='Hybrid'); else jobFilters.setup.push('Hybrid'); }
+      else if(v==='Full-time'){ if(jobFilters.empType.includes('Full-time')) jobFilters.empType=jobFilters.empType.filter(x=>x!=='Full-time'); else jobFilters.empType.push('Full-time'); }
+      else if(v==='$100K+'){ jobFilters.minSalary = jobFilters.minSalary>=100 ? 0 : 100; document.getElementById('salarySlider').value=jobFilters.minSalary; document.getElementById('salaryDisplay').textContent=jobFilters.minSalary>0?`$${jobFilters.minSalary}K+`:'Any'; }
+      else if(v==='Equity'){ jobFilters.equity = !jobFilters.equity; }
+      else if(v==='Visa sponsorship'){ jobFilters.visa = !jobFilters.visa; }
+      applyFilters();
+    });
+  });
+
+  // Advanced chips
+  document.querySelectorAll('.adv-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const f = chip.dataset.filter;
+      const v = chip.dataset.value;
+      if(f==='setup'){ if(jobFilters.setup.includes(v)) jobFilters.setup=jobFilters.setup.filter(x=>x!==v); else jobFilters.setup.push(v); }
+      else if(f==='empType'){ if(jobFilters.empType.includes(v)) jobFilters.empType=jobFilters.empType.filter(x=>x!==v); else jobFilters.empType.push(v); }
+      else if(f==='seniority'){ if(jobFilters.seniority.includes(v)) jobFilters.seniority=jobFilters.seniority.filter(x=>x!==v); else jobFilters.seniority.push(v); }
+      else if(f==='dept'){ if(jobFilters.dept.includes(v)) jobFilters.dept=jobFilters.dept.filter(x=>x!==v); else jobFilters.dept.push(v); }
+      else if(f==='equity'){ jobFilters.equity=!jobFilters.equity; }
+      else if(f==='visa'){ jobFilters.visa=!jobFilters.visa; }
+      applyFilters();
+    });
+  });
+
+  // Salary slider
+  document.getElementById('salarySlider').addEventListener('input', e => {
+    const val = parseInt(e.target.value);
+    jobFilters.minSalary = val;
+    document.getElementById('salaryDisplay').textContent = val > 0 ? `$${val}K+` : 'Any';
+    applyFilters();
+  });
+
+  // Sort
+  document.getElementById('jobSortSelect').addEventListener('change', e => {
+    jobSortMode = e.target.value;
+    renderJobList();
+  });
+
+  // Clear all
+  document.getElementById('clearAllFilters').onclick = clearAllFilters;
+
+  // Expose clearAllFilters globally for inline onclick in empty state
+  window.clearAllFilters = clearAllFilters;
+
+  // Update highlightJobSearch to use new filter system
+  function highlightJobSearch(query){
+    showDashboard();
+    clearAllFilters();
+    jobFilters.query = query;
+    document.getElementById('jobSearch').value = query;
+    applyFilters();
+    setTimeout(() => {
+      document.getElementById('rolesResultsHead').scrollIntoView({behavior:'smooth', block:'start'});
+    }, 60);
   }
 
   function renderTracker(){
@@ -5149,6 +5845,68 @@
 
   document.getElementById('browseAllBtn').onclick = showSwipeView;
   document.getElementById('backToDashBtn').onclick = () => { showDashboard(); renderDashboard(); };
+
+  // ---- Insight bubble + stat navigation ----
+  function scrollToSection(id){
+    showDashboard();
+    renderDashboard();
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+    }, 60);
+  }
+
+  function highlightJobSearch(query){
+    showDashboard();
+    renderDashboard();
+    setTimeout(() => {
+      const input = document.getElementById('jobSearch');
+      if(!input) return;
+      input.value = query;
+      jobSearchQuery = query;
+      renderJobList();
+      document.getElementById('allRolesHeading').scrollIntoView({behavior:'smooth', block:'start'});
+      input.focus();
+    }, 60);
+  }
+
+  function scrollToTrackerFiltered(status){
+    showDashboard();
+    renderDashboard();
+    setTimeout(() => {
+      const tbody = document.getElementById('trackerBody');
+      // Highlight rows matching the status
+      if(tbody) tbody.querySelectorAll('tr').forEach(row => {
+        const badge = row.querySelector('.tracker-badge');
+        if(badge){
+          const matches = badge.classList.contains(status);
+          row.style.background = matches ? 'rgba(255,90,60,0.08)' : '';
+          setTimeout(() => row.style.background = '', 2000);
+        }
+      });
+      const trackerSection = tbody?.closest('div');
+      if(trackerSection) trackerSection.scrollIntoView({behavior:'smooth', block:'start'});
+    }, 60);
+  }
+
+  // "X companies viewed your profile" → scroll to job list (the companies browsing you)
+  document.getElementById('insightViewsBtn').onclick = () => scrollToSection('jobList');
+  document.getElementById('statViewsBtn').onclick    = () => scrollToSection('jobList');
+
+  // "X recruiter wants to connect" → scroll to job tracker, highlight matched/interested rows
+  document.getElementById('insightRepliesBtn').onclick = () => scrollToTrackerFiltered('matched');
+
+  // "Your top skills match X open roles" → search for top skill and show results
+  document.getElementById('insightSkillsBtn').onclick = () => {
+    const topSkill = (seekerProfile.workHistory?.[0]?.title || '').split(' ').slice(-1)[0] || 'design';
+    highlightJobSearch(topSkill);
+  };
+
+  // "X Matches" stat → scroll to tracker filtered to matched
+  document.getElementById('statMatchesBtn').onclick = () => scrollToTrackerFiltered('matched');
+
+  // "X Saved" stat → scroll to tracker section
+  document.getElementById('statSavedBtn').onclick = () => scrollToSection('trackerBody');
 
   // ---- Job detail drawer (candidate side) ----
   let openJob = null;
@@ -5271,13 +6029,6 @@
   };
 
   // ---- Search ----
-  document.getElementById('jobSearch').addEventListener('keydown', e => {
-    if(e.key === 'Enter'){ jobSearchQuery = e.target.value; renderJobList(); }
-  });
-  document.getElementById('jobSearchBtn').onclick = () => {
-    jobSearchQuery = document.getElementById('jobSearch').value;
-    renderJobList();
-  };
 
   // ---- SEEK PANE swipe (swipe view) ----
   function currentDeck(){ return swipeDeck; }
@@ -5412,26 +6163,12 @@
   // ---- Mock likes per posting (candidateIdx → postingId) ----
   // Seed: which candidates have "liked" each posting
   const postingLikes = {
-    1: [0,2,4,9,14],
-    2: [1,3,5,11],
-    3: [1,3,5,6],
-    4: [0,1,2,4,7,9,12],
-    5: [3,7,13],
-    6: [4,5,8],
-    7: [2,6,10],
-    8: [1,5,8,15],
-    9: [0,3,6,9],
-    10:[2,4,7],
-    11:[8,12,16],
-    12:[0,5,10,14],
-    13:[3,9,15],
-    14:[1,6,11],
-    15:[4,7,13],
-    16:[0,2,5,8,11,14,17],
-    17:[3,6,9],
-    18:[1,4,7,10],
-    19:[0,2,3],
-    20:[5,8,12],
+    1: [6,7,8,22,23,26,28,35,55,57,59,62,70,108,129,139,151,173,188,189],
+    2: [1,6,39,40,50,56,71,87,107,108,114,139,143,150,166,178,179,183,194],
+    3: [11,23,24,26,31,67,86,88,91,96,97,117,137,154,186,195],
+    4: [11,17,20,49,58,74,75,92,141,147,158,160,169,180,197],
+    5: [18,25,41,53,68,71,90,93,94,97,116,162,165,171,174,179],
+    6: [14,41,43,56,58,62,69,83,97,118,136,142,162,163,175,176,186,196,198],
   };
 
   function getCandidatesWhoLiked(postingId){
@@ -5497,7 +6234,7 @@
       const newCount = Math.floor(likeCount * 0.6);
       const tier = p.tier || 'free';
       const tierInfo = POSTING_TIERS[tier];
-      const tierLabels = {free:'Standard', pro:'Boost', max:'Featured'};
+      const tierLabels = {free:'Basic', pro:'Boost', max:'Featured'};
       return `
         <div class="posting-tile ${p.status}" data-posting-id="${p.id}">
           <div class="pt-top">
@@ -5586,7 +6323,371 @@
     const titleRow = document.getElementById('pdTitle').parentElement;
     // Remove previous tier elements
     titleRow.querySelectorAll('.pd-tier-badge, .pd-upgrade-btn').forEach(el => el.remove());
-    const tierLabels = {free:'Standard', pro:'Boost', max:'Featured'};
+    const tierLabels = {free:'Basic', pro:'Boost', max:'Featured'};
+    const tierBadgeEl = document.createElement('span');
+    tierBadgeEl.className = `tier-badge ${tier} pd-tier-badge`;
+    tierBadgeEl.textContent = tierLabels[tier];
+    tierBadgeEl.style.cursor = 'pointer';
+    tierBadgeEl.onclick = () => openPricingModal(posting.id);
+    titleRow.insertBefore(tierBadgeEl, document.getElementById('pdEditBtn'));
+
+    if(tier !== 'max'){
+      const upgradeBtn = document.createElement('button');
+      upgradeBtn.className = 'ds-nav-btn pd-upgrade-btn';
+      upgradeBtn.textContent = tier === 'free' ? 'Boost ↑' : 'Feature ↑';
+      upgradeBtn.style.cssText = tier === 'free' ? 'border-color:var(--coral);color:var(--coral);' : 'border-color:#e0bb55;color:#e0bb55;';
+      upgradeBtn.onclick = () => openPricingModal(posting.id);
+      titleRow.insertBefore(upgradeBtn, document.getElementById('pdEditBtn'));
+    }
+
+    activatePostingTab('likes', likers, recommended, posting);
+    showHireView('detail');
+  }
+
+  function activatePostingTab(tab, likers, recommended, posting){
+    activeDetailTab = tab;
+    document.querySelectorAll('.pd-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+    renderPostingDetailBody(tab, likers || getCandidatesWhoLiked(activePostingId), recommended || getRecommendedCandidates(postings.find(p=>p.id===activePostingId)), posting || postings.find(p=>p.id===activePostingId));
+  }
+
+  // ===== CONFIRM MODAL =====
+  let confirmCallback = null;
+  function showConfirm(title, body, note, okLabel, okClass, cb){
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmBody').textContent = body;
+    const noteEl = document.getElementById('confirmNote');
+    if(note){ noteEl.style.display='block'; noteEl.textContent=note; }
+    else noteEl.style.display='none';
+    const okBtn = document.getElementById('confirmOk');
+    okBtn.textContent = okLabel||'Confirm';
+    okBtn.className = 'confirm-ok'+(okClass?' '+okClass:'');
+    confirmCallback = cb;
+    document.getElementById('confirmOverlay').classList.add('open');
+  }
+  document.getElementById('confirmCancel').onclick = () => document.getElementById('confirmOverlay').classList.remove('open');
+  document.getElementById('confirmOk').onclick = () => {
+    document.getElementById('confirmOverlay').classList.remove('open');
+    if(confirmCallback) confirmCallback();
+    confirmCallback = null;
+  };
+  window.showConfirm = showConfirm;
+
+  // ===== INVITE SYSTEM =====
+  function getActiveInvites(posting){ return (posting.invites||[]); }
+  function getSuperInvites(posting){ return (posting.superInvites||[]); }
+
+  function inviteCandidate(posting, candName, isSuper){
+    const tier = POSTING_TIERS[posting.tier||'free'];
+    const invites = isSuper ? posting.superInvites : posting.invites;
+    const max = isSuper ? (tier.maxSuperInvites||3) : (tier.maxInvites||3);
+    if(invites.includes(candName)) return; // already invited
+    if(invites.length >= max){
+      showToast(`You can only have ${max} active ${isSuper?'Super ':''}Invite${max>1?'s':''} at a time.`);
+      return;
+    }
+    invites.push(candName);
+    track('invite_sent',{posting:posting.id, cand:candName, super:isSuper});
+    showToast(isSuper ? `⭐ Super Invite sent to ${lastInitial(candName)}.` : `Invite sent to ${lastInitial(candName)}.`);
+    // Re-render the detail body
+    const p = postings.find(x=>x.id===activePostingId);
+    if(p) activatePostingTab(activeDetailTab,
+      getCandidatesWhoLiked(activePostingId),
+      getRecommendedCandidates(p), p);
+  }
+
+  function rescindInvite(posting, candName, isSuper){
+    showConfirm(
+      'Rescind this invite?',
+      `${lastInitial(candName)} will be notified that your invite has been withdrawn.`,
+      'The candidate will receive a notification that the invite was rescinded. This cannot be undone.',
+      'Rescind invite', '',
+      () => {
+        const arr = isSuper ? posting.superInvites : posting.invites;
+        const idx = arr.indexOf(candName);
+        if(idx>=0) arr.splice(idx,1);
+        track('invite_rescinded',{posting:posting.id,cand:candName,super:isSuper});
+        showToast(`Invite to ${lastInitial(candName)} rescinded. They have been notified.`);
+        const p=postings.find(x=>x.id===activePostingId);
+        if(p) activatePostingTab(activeDetailTab,getCandidatesWhoLiked(activePostingId),getRecommendedCandidates(p),p);
+      }
+    );
+  }
+  window.inviteCandidate = inviteCandidate;
+  window.rescindInvite = rescindInvite;
+
+  // ===== EXTENSION ($10) =====
+  function showExtensionModal(posting){
+    if(posting.hasExtended){
+      // Already extended — offer Boost instead
+      showConfirm(
+        'Extension limit reached',
+        'Basic postings can only be extended once. You can opt to Boost this posting instead to unlock all candidates and run for an additional month.',
+        'Boosting will immediately apply and replaces your current Basic posting.',
+        'Boost this posting', 'gold',
+        () => { applyPostingTierUpgrade('pro'); }
+      );
+    } else {
+      showConfirm(
+        'Extend for $10',
+        'Unlock the next 10 interested candidates and keep this posting active for 2 more weeks. Your posting stays visible to all job seekers and interest continues to be collected during this time.',
+        'You are allowed 1 extension on a Basic posting. After this, you can opt to Boost to get full access to all interested candidates and run for an additional month.',
+        'Pay $10 & extend', 'gold',
+        () => {
+          posting.hasExtended = true;
+          posting.extensionUnlocked = true;
+          track('posting_extended',{id:posting.id});
+          showToast('Extension applied! You can now see the next 10 candidates.');
+          openPostingDetail(posting);
+        }
+      );
+    }
+  }
+  window.showExtensionModal = showExtensionModal;
+
+  // ===== TRENDING MOCK DATA =====
+  function isTrendingCity(cand, i){ return (cand.recruiterLikes||0) >= 22 && i % 5 === 0; }
+  function isTrendingNational(cand, i){ return (cand.profileViews||0) >= 160 && i % 7 === 0; }
+
+  // ===== pdCandCard (rich) =====
+  function pdCandCard(cand, opts){
+    const {score=0,isTopMatch=false,isPopular=false,isTrending=false,baseType='like',posting=null,candIdx=0,showBlurred=false,showPrompts=true} = (opts||{});
+    const tier = posting ? (posting.tier||'free') : 'free';
+    const tierInfo = POSTING_TIERS[tier];
+    const revealed = isRevealed(cand);
+    const displayName = revealed ? lastInitial(cand.name) : '•••••••';
+    const nameBlur = revealed ? '' : ' blur-text';
+    const photoBlur = revealed ? '' : ' blur-photo';
+    const photoStyle = revealed ? `background-image:url('${cand.photo}')` : '';
+
+    const isInvited = (posting?.invites||[]).includes(cand.name);
+    const isSuperInvited = (posting?.superInvites||[]).includes(cand.name);
+
+    const badges = [];
+    if(isTopMatch) badges.push(`<span class="pd-match-pill top-match">&#11088; Best match</span>`);
+    if(score>0) badges.push(`<span class="pd-match-pill score">${score}% match</span>`);
+    if(isPopular) badges.push(`<span class="pd-match-pill popular">&#128293; In demand</span>`);
+    if(isTrending) badges.push(`<span class="pd-match-pill trending">&#128064; Trending</span>`);
+    if(tier==='max' && isTrendingCity(cand,candIdx)) badges.push(`<span class="trending-city">&#128205; Trending locally</span>`);
+    if(tier==='max' && isTrendingNational(cand,candIdx)) badges.push(`<span class="trending-national">&#127758; Trending nationally</span>`);
+    if(baseType==='like' && !isTopMatch && !isPopular && !isTrending) badges.push(`<span class="pd-match-pill like">Interested</span>`);
+    if(isSuperInvited) badges.push(`<span class="pd-match-pill top-match">&#11088; Super Invited</span>`);
+
+    // Prompt visibility: 1 for basic, 3 for boost, all for featured
+    const promptLimit = tierInfo.promptsVisible === Infinity ? 99 : (tierInfo.promptsVisible||1);
+    const visiblePrompts = showPrompts ? (cand.prompts||[]).slice(0, promptLimit) : [];
+
+    const cardClass = [
+      baseType==='like'?'new-like':'recommended',
+      isTopMatch?'top-match':'',
+      isSuperInvited?'top-match':'',
+    ].filter(Boolean).join(' ');
+
+    const inviteBtn = posting ? (
+      isSuperInvited
+        ? `<button class="super-invite-btn super-invited" onclick="rescindInvite(postings.find(p=>p.id===${posting.id}),'${escapeHtml(cand.name)}',true)" title="Super Invited — click to rescind">&#11088; Super Invited</button>`
+        : isInvited
+          ? `<button class="invite-btn invited" onclick="rescindInvite(postings.find(p=>p.id===${posting.id}),'${escapeHtml(cand.name)}',false)">Invited ✓ (rescind)</button>`
+          : tier==='max'
+            ? `<button class="super-invite-btn" onclick="inviteCandidate(postings.find(p=>p.id===${posting.id}),'${escapeHtml(cand.name)}',true)">&#11088; Super Invite</button>`
+            : `<button class="invite-btn" onclick="inviteCandidate(postings.find(p=>p.id===${posting.id}),'${escapeHtml(cand.name)}',false)">Invite to chat</button>`
+    ) : '';
+
+    return `
+      <div class="pd-cand-card ${cardClass}" data-cand-name="${escapeHtml(cand.name)}">
+        <div class="pd-av${photoBlur}" style="${photoStyle}" data-blur-cand="${escapeHtml(cand.name)}">
+          ${!revealed?`<div class="anon-avatar">?</div>`:''}
+        </div>
+        <div>
+          ${badges.length?`<div class="pd-badge-row">${badges.join('')}</div>`:''}
+          <div class="pd-c-name${nameBlur}" data-blur-cand="${escapeHtml(cand.name)}">${escapeHtml(displayName)}</div>
+          <div class="pd-c-title">${escapeHtml(cand.title)} &middot; ${cand.expYears} yr${cand.expYears!==1?'s':''}</div>
+          ${visiblePrompts.length ? `<div style="margin-top:6px;">${visiblePrompts.map(p=>`<div style="font-size:12px;color:rgba(251,247,240,0.5);margin-bottom:3px;"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(251,247,240,0.3);">${escapeHtml(p.label)}</span><br>${escapeHtml(p.answer)}</div>`).join('')}</div>` : ''}
+          <div class="pd-c-tags" style="margin-top:6px;">${cand.tags.slice(0,3).map(t=>`<span class="pd-c-tag">${escapeHtml(t)}</span>`).join('')}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px;">
+          ${inviteBtn}
+          <button class="ca-btn" data-action="view-pd" data-cand-name="${escapeHtml(cand.name)}">Profile</button>
+        </div>
+      </div>`;
+  }
+
+  // ===== BLURRED card for extra candidates on Basic =====
+  function pdBlurredCard(cand, score){
+    return `
+      <div class="blurred-cand-card">
+        <div class="pd-av blur-photo"><div class="anon-avatar">?</div></div>
+        <div>
+          <div class="pd-badge-row"><span class="pd-match-pill score">${score}% match</span><span class="pd-match-pill like">Interested</span></div>
+          <div class="blurred-text">${escapeHtml(cand.name)}</div>
+          <div style="font-size:12px;color:rgba(251,247,240,0.35);margin-top:3px;">${escapeHtml(cand.title)} &middot; ${cand.expYears} yr${cand.expYears!==1?'s':''}</div>
+        </div>
+        <div style="opacity:0.4;font-size:11px;color:rgba(251,247,240,0.4);">Locked</div>
+      </div>`;
+  }
+
+  // ===== renderPostingDetailBody =====
+  function renderPostingDetailBody(tab, likers, recommended, posting){
+    const body = document.getElementById('pdBody');
+    const tier = posting.tier||'free';
+    const tierInfo = POSTING_TIERS[tier];
+
+    // Invite usage bar at top
+    const invites = posting.invites||[];
+    const superInvites = posting.superInvites||[];
+    const maxInv = tierInfo.maxInvites===Infinity ? null : tierInfo.maxInvites;
+    const inviteBarHTML = `
+      <div class="invite-count-bar">
+        ${tier==='max' ? `<span>&#11088; Super Invites: <span class="n">${superInvites.length}/3</span></span> &nbsp;·&nbsp; ` : ''}
+        <span>Invites active: <span class="n">${invites.length}${maxInv?'/'+maxInv:''}</span></span>
+        ${invites.length>0 ? `<span style="color:rgba(251,247,240,0.3);">—</span><span>${invites.map(n=>`${lastInitial(n)}`).join(', ')}</span>` : ''}
+      </div>`;
+
+    if(tab==='likes'){
+      if(likers.length===0){
+        body.innerHTML=`<div class="pd-empty"><span class="em">No interest yet</span>Candidates who swipe right on this posting will appear here.</div>`;
+        return;
+      }
+
+      // Scoring and annotation
+      const scored = likers.map((cand,i)=>({
+        cand, idx:i,
+        score: matchScore(cand,posting),
+        isPopular:(cand.profileViews||0)>=150||(cand.recruiterLikes||0)>=20,
+        isTrending:(cand.profileViews||0)>=100&&(cand.profileViews||0)<150,
+      })).sort((a,b)=>b.score-a.score);
+
+      if(tier==='free'){
+        const first10 = scored.slice(0,10);
+        const next10  = scored.slice(10,20);
+        const more    = scored.slice(20);
+        const topMatchIdx = first10[0]?.score>50 ? 0 : -1;
+
+        const topPicks = first10.filter((x,i)=>i===topMatchIdx||x.isPopular);
+        const rest10   = first10.filter((x,i)=>i!==topMatchIdx&&!x.isPopular);
+
+        let html = inviteBarHTML;
+
+        if(topPicks.length){
+          html += `<div class="pd-section-head highlight">&#10022; Top picks</div>
+            <div class="pd-cand-list" style="margin-bottom:20px;">
+              ${topPicks.map(x=>pdCandCard(x.cand,{score:x.score,isTopMatch:first10.indexOf(x)===topMatchIdx,isPopular:x.isPopular,isTrending:x.isTrending,baseType:'like',posting,candIdx:x.idx,showPrompts:true})).join('')}
+            </div>`;
+        }
+        if(rest10.length){
+          html += `<div class="pd-section-head">Other interest (${rest10.length})</div>
+            <div class="pd-cand-list" style="margin-bottom:20px;">
+              ${rest10.map(x=>pdCandCard(x.cand,{score:x.score,isPopular:x.isPopular,isTrending:x.isTrending,baseType:'like',posting,candIdx:x.idx,showPrompts:true})).join('')}
+            </div>`;
+        }
+
+        // Next 10 — locked or unlocked via extension
+        if(next10.length>0){
+          if(posting.extensionUnlocked){
+            // Show next 10 with randomized match %, blurred name/company/school/prompts
+            const randScores = next10.map(x=>40+Math.floor(Math.random()*55));
+            html += `<div class="pd-section-head">Additional interested (${next10.length}${more.length?` of ${next10.length+more.length}`:''}) — extension unlocked</div>
+              <div class="pd-cand-list" style="margin-bottom:20px;">
+                ${next10.map((x,i)=>pdBlurredCard(x.cand,randScores[i])).join('')}
+              </div>`;
+          } else if(!posting.hasExtended){
+            html += `
+              <div class="basic-locked-section">
+                <div class="basic-locked-head">
+                  <h4>&#128274; ${next10.length+more.length} more candidate${next10.length+more.length!==1?'s':''} interested</h4>
+                  <button class="basic-extend-btn" onclick="showExtensionModal(postings.find(p=>p.id===${posting.id}))">Unlock for $10</button>
+                </div>
+                <p style="font-size:13px;color:rgba(251,247,240,0.45);margin:0 0 10px;line-height:1.5;">Extend this posting for $10 to see the next 10 candidates and keep it active for 2 more weeks. Your posting stays visible and interest continues to be collected.</p>
+                <p style="font-size:12px;color:rgba(251,247,240,0.35);line-height:1.5;">You are allowed <strong>1 extension</strong>. After that, you can Boost to unlock the full pool and run for another month. You can also extend now and choose to Boost after the extension ends.</p>
+                <div class="pd-cand-list">${next10.map(x=>pdBlurredCard(x.cand,40+Math.floor((x.idx*17+13)%55))).join('')}</div>
+              </div>`;
+          } else {
+            // Extension used, still locked — offer boost
+            html += `
+              <div class="basic-locked-section">
+                <div class="basic-locked-head">
+                  <h4>&#128274; ${more.length} more candidates — extension limit reached</h4>
+                  <button class="basic-extend-btn" onclick="showConfirm('Boost to unlock all','Boost this posting to unlock all ${more.length} remaining candidates and run for an additional month.','You can boost now or wait until after your current extension ends.','Boost this posting','gold',()=>applyPostingTierUpgrade(\'pro\'))">Boost to unlock</button>
+                </div>
+                <p style="font-size:12px;color:rgba(251,247,240,0.35);line-height:1.5;">Basic postings allow 1 extension. Boost to get full access.</p>
+              </div>`;
+          }
+        }
+        body.innerHTML = html;
+
+      } else {
+        // Boost or Featured — show all
+        const topMatchIdx = scored[0]?.score>50 ? 0 : -1;
+        const topPicks = scored.filter((x,i)=>i===topMatchIdx||x.isPopular);
+        const rest     = scored.filter((x,i)=>i!==topMatchIdx&&!x.isPopular);
+        let html = inviteBarHTML;
+        if(topPicks.length){
+          html += `<div class="pd-section-head highlight">&#10022; Top picks</div>
+            <div class="pd-cand-list" style="margin-bottom:20px;">
+              ${topPicks.map(x=>pdCandCard(x.cand,{score:x.score,isTopMatch:scored.indexOf(x)===topMatchIdx,isPopular:x.isPopular,isTrending:x.isTrending,baseType:'like',posting,candIdx:x.idx,showPrompts:true})).join('')}
+            </div>`;
+        }
+        if(rest.length){
+          html += `<div class="pd-section-head">All interest (${rest.length})</div>
+            <div class="pd-cand-list">${rest.map(x=>pdCandCard(x.cand,{score:x.score,isPopular:x.isPopular,isTrending:x.isTrending,baseType:'like',posting,candIdx:x.idx,showPrompts:true})).join('')}</div>`;
+        }
+        body.innerHTML = html;
+      }
+
+    } else {
+      // Recommended tab
+      if(!tierInfo.recommendations){
+        document.querySelectorAll('.pd-tab').forEach(t=>t.classList.remove('active'));
+        document.querySelector('.pd-tab[data-tab="recommended"]').classList.add('active');
+        body.innerHTML = `
+          <div class="upgrade-gate" style="margin-top:16px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            <div class="ug-text"><strong>AI recommendations unlock when you Boost this posting</strong><span>We'll surface candidates whose skills and experience most closely match this role.</span></div>
+            <button class="ug-btn" id="recUpgradeBtn">Boost this posting</button>
+          </div>`;
+        document.getElementById('recUpgradeBtn').onclick=()=>openPricingModal(activePostingId);
+        return;
+      }
+      if(recommended.length===0){
+        body.innerHTML=`<div class="pd-empty"><span class="em">No recommendations yet</span>We'll surface candidates whose skills and experience most closely match this role's requirements.</div>`;
+        return;
+      }
+      const scoredRec = recommended.map((cand,i)=>({
+        cand, idx:i, score:matchScore(cand,posting),
+        isTopMatch:i===0,
+        isPopular:(cand.profileViews||0)>=150||(cand.recruiterLikes||0)>=20,
+        isTrending:(cand.profileViews||0)>=100&&(cand.profileViews||0)<150,
+      }));
+      body.innerHTML = inviteBarHTML +
+        `<div class="pd-section-head">Candidates we think would be a strong fit</div>
+        <div class="pd-cand-list">
+          ${scoredRec.map(x=>pdCandCard(x.cand,{score:x.score,isTopMatch:x.isTopMatch,isPopular:x.isPopular,isTrending:x.isTrending,baseType:'recommended',posting,candIdx:x.idx,showPrompts:true})).join('')}
+        </div>`;
+    }
+  }
+
+  function openPostingDetail(posting){
+    activePostingId = posting.id;
+    activeDetailTab = 'likes';
+    const tier = posting.tier || 'free';
+    const tierInfo = POSTING_TIERS[tier];
+
+    document.getElementById('pdTitle').textContent = posting.title;
+    document.getElementById('pdStatus').textContent = posting.status.charAt(0).toUpperCase()+posting.status.slice(1);
+    document.getElementById('pdStatus').className = `status-badge ${posting.status}`;
+    document.getElementById('pdViews').textContent = posting.justPublished ? 0 : (posting.views || 0);
+    const likers = getCandidatesWhoLiked(posting.id);
+    const recommended = getRecommendedCandidates(posting);
+    document.getElementById('pdLikes').textContent = likers.length;
+    document.getElementById('pdMatches').textContent = posting.matches || 0;
+    document.getElementById('pdNew').textContent = Math.floor(likers.length * 0.6);
+    document.getElementById('likesCountBadge').textContent = likers.length;
+    document.getElementById('recCountBadge').textContent = tierInfo.recommendations ? recommended.length : '🔒';
+
+    // Update header: add tier badge + upgrade button
+    const titleRow = document.getElementById('pdTitle').parentElement;
+    // Remove previous tier elements
+    titleRow.querySelectorAll('.pd-tier-badge, .pd-upgrade-btn').forEach(el => el.remove());
+    const tierLabels = {free:'Basic', pro:'Boost', max:'Featured'};
     const tierBadgeEl = document.createElement('span');
     tierBadgeEl.className = `tier-badge ${tier} pd-tier-badge`;
     tierBadgeEl.textContent = tierLabels[tier];
@@ -6021,12 +7122,16 @@
       navPostings.style.display = 'none';
       navNewPost.style.display = 'none';
       navProfile.style.display = '';
+      document.getElementById('lookingModeBtn').style.display = '';
+      document.getElementById('hiringModeBtn').style.display = 'none';
     } else {
       seekPane.classList.remove('active');
       hirePane.classList.add('active');
       navPostings.style.display = '';
       navNewPost.style.display = '';
       navProfile.style.display = 'none';
+      document.getElementById('lookingModeBtn').style.display = 'none';
+      document.getElementById('hiringModeBtn').style.display = '';
       showHireView('postings');
       renderRecruiterPostingsGrid();
     }
@@ -6048,33 +7153,34 @@
 
   // ================= PER-POSTING TIER SYSTEM =================
   const POSTING_TIERS = {
-    free: { name:'Standard', label:'Standard', maxViews:50, recommendations:false, screening:false },
-    pro:  { name:'Boost',    label:'Boost',    maxViews:Infinity, recommendations:true,  screening:true  },
-    max:  { name:'Featured', label:'Featured', maxViews:Infinity, recommendations:true,  screening:true  }
+    free:{ name:'Basic',    label:'Basic',    duration:14, maxViews:50,       recommendations:false, screening:false, maxInvites:3,  superInvite:false, promptsVisible:1, promptsCanRequest:0, firstFullView:10, extendedView:10, extensionCost:10, maxExtensions:1 },
+    pro: { name:'Boost',   label:'Boost',    duration:30, maxViews:Infinity, recommendations:true,  screening:true,  maxInvites:10, superInvite:false, promptsVisible:3, promptsCanRequest:3, firstFullView:Infinity },
+    max: { name:'Featured',label:'Featured', duration:Infinity, maxViews:Infinity, recommendations:true, screening:true, maxInvites:Infinity, superInvite:true, maxSuperInvites:3, promptsVisible:Infinity, promptsCanRequest:5, firstFullView:Infinity },
   };
 
   let upgradingPostingId = null; // which posting the pricing modal is open for
 
   function postingTier(p){ return POSTING_TIERS[p.tier || 'free']; }
 
+  let pendingNewPostingTier = 'free'; // tier chosen before a posting is published
+
   function openPricingModal(postingId){
     upgradingPostingId = postingId != null ? postingId : (activePostingId || null);
     const posting = upgradingPostingId ? postings.find(p => p.id === upgradingPostingId) : null;
-    const tier = posting ? (posting.tier || 'free') : 'free';
+    // For new postings (no id yet), show the pending tier
+    const tier = posting ? (posting.tier || 'free') : pendingNewPostingTier;
 
-    // Update subhead with role name if known
     document.getElementById('pricingSubhead').textContent = posting
       ? `Upgrading: "${posting.title}". Each posting is priced independently.`
-      : 'Each posting is free by default. Upgrade individual roles to unlock better tools.';
+      : 'Choose a tier for this posting before you publish. You can always upgrade later.';
 
-    // Sync current-plan states
     ['free','pro','max'].forEach(t => {
       const card = document.getElementById(`plan${t==='free'?'Free':t==='pro'?'Pro':'Max'}Card`);
       const cta  = document.getElementById(`plan${t==='free'?'Free':t==='pro'?'Pro':'Max'}Cta`);
       if(!card||!cta) return;
       card.classList.toggle('current', t === tier);
       if(t === 'free'){
-        cta.textContent = tier==='free' ? 'Current plan' : 'Downgrade to Standard';
+        cta.textContent = tier==='free' ? 'Current plan' : 'Downgrade to Basic';
         cta.className = tier==='free' ? 'plan-cta current-plan' : 'plan-cta upgrade-pro';
       } else if(t === 'pro'){
         cta.textContent = tier==='pro' ? 'Current plan' : tier==='max' ? 'Switch to Boost' : 'Boost this posting';
@@ -6091,27 +7197,46 @@
   function closePricingModal(){ document.getElementById('pricingOverlay').classList.remove('open'); }
 
   function applyPostingTierUpgrade(newTier){
-    if(!upgradingPostingId) return;
+    closePricingModal();
+
+    if(!upgradingPostingId){
+      // New posting not yet published — store the selection and show it on the review step
+      pendingNewPostingTier = newTier;
+      updateReviewTierBadge();
+      const tierName = POSTING_TIERS[newTier].name;
+      showToast(newTier === 'free' ? 'Basic selected — free to publish.' : `${tierName} selected. This will apply when you publish.`);
+      return;
+    }
+
     const p = postings.find(x => x.id === upgradingPostingId);
     if(!p) return;
     p.tier = newTier;
-    closePricingModal();
     renderRecruiterPostingsGrid();
     updateTierNav();
-    // If the detail view is open for this posting, refresh it
-    if(activePostingId === upgradingPostingId){
-      openPostingDetail(p);
-    }
+    if(activePostingId === upgradingPostingId) openPostingDetail(p);
     const tierName = POSTING_TIERS[newTier].name;
-    const msg = newTier === 'free'
-      ? `"${p.title}" is back to Standard.`
-      : `"${p.title}" is now ${tierName}. Changes are live.`;
-    // Quick toast-style flash — reuse the drawer overlay area
+    showToast(newTier === 'free' ? `"${p.title}" is back to Basic.` : `"${p.title}" is now ${tierName}. Changes are live.`);
+  }
+
+  function showToast(msg){
     const flash = document.createElement('div');
-    flash.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--ink-soft);border:1px solid var(--line-light);color:var(--paper);font-family:Inter,sans-serif;font-size:13.5px;font-weight:600;padding:12px 22px;border-radius:12px;z-index:600;box-shadow:0 8px 30px rgba(0,0,0,0.4);';
+    flash.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--ink-soft);border:1px solid var(--line-light);color:var(--paper);font-family:Inter,sans-serif;font-size:13.5px;font-weight:600;padding:12px 22px;border-radius:12px;z-index:700;box-shadow:0 8px 30px rgba(0,0,0,0.4);white-space:nowrap;';
     flash.textContent = msg;
     document.body.appendChild(flash);
     setTimeout(() => flash.remove(), 2800);
+  }
+
+  function updateReviewTierBadge(){
+    const wrap = document.getElementById('reviewTierWrap');
+    if(!wrap) return;
+    const tierLabels = {free:'Basic — Free',pro:'Boost — $79/mo',max:'Featured — $199/mo'};
+    const tierClasses = {free:'free',pro:'pro',max:'max'};
+    wrap.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:13px;color:rgba(251,247,240,0.55);">Posting tier</span>
+        <span class="tier-badge ${tierClasses[pendingNewPostingTier]}">${tierLabels[pendingNewPostingTier]}</span>
+      </div>
+      <button class="ob-secondary" style="margin-top:0;padding:10px 0;font-size:13px;" onclick="openPricingModal(null)">Change tier</button>`;
   }
 
   function updateTierNav(){
@@ -6344,7 +7469,7 @@
   function renderAdminPostings(filter=''){
     const q = filter.toLowerCase();
     const shown = postings.filter(p=> !q || p.title.toLowerCase().includes(q));
-    const tierLabels = {free:'Standard',pro:'Boost',max:'Featured'};
+    const tierLabels = {free:'Basic',pro:'Boost',max:'Featured'};
     document.getElementById('adminPostingsBody').innerHTML = shown.map(p=>
       `<tr>
         <td><strong>${escapeHtml(p.title)}</strong></td>
@@ -6471,6 +7596,13 @@
   window.openLegal = openLegal;
   window.closeLegal = closeLegal;
   window.openPricingModal = openPricingModal;
+  window.closePricingModal = closePricingModal;
+  window.applyPostingTierUpgrade = applyPostingTierUpgrade;
+  window.showToast = showToast;
+  window.showConfirm = showConfirm;
+  window.inviteCandidate = inviteCandidate;
+  window.rescindInvite = rescindInvite;
+  window.showExtensionModal = showExtensionModal;
   window.resolveReport = resolveReport;
   window.escalateReport = escalateReport;
   window.suspendUser = suspendUser;
@@ -6609,9 +7741,22 @@
   </div>
 </div>
 
+<!-- ============ CONFIRM MODAL (rescind / extension warnings) ============ -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-modal">
+    <h3 id="confirmTitle">Are you sure?</h3>
+    <p id="confirmBody"></p>
+    <div class="note" id="confirmNote" style="display:none;"></div>
+    <div class="confirm-actions">
+      <button class="confirm-cancel" id="confirmCancel">Cancel</button>
+      <button class="confirm-ok" id="confirmOk">Confirm</button>
+    </div>
+  </div>
+</div>
+
 <div class="pricing-overlay" id="pricingOverlay">
   <div class="pricing-modal">
-    <button class="pricing-close" id="pricingClose" type="button">
+    <button class="pricing-close" id="pricingClose" type="button" onclick="closePricingModal()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
     </button>
     <div class="pricing-header">
@@ -6620,57 +7765,64 @@
     </div>
     <div class="pricing-cards">
 
-      <!-- Standard (Free) -->
+      <!-- Basic (Free) -->
       <div class="plan-card" id="planFreeCard">
-        <div class="plan-name">Standard</div>
+        <div class="plan-name">Basic</div>
         <div class="plan-price">$0 <span>/ posting</span></div>
-        <div class="plan-desc">Get listed and start receiving likes from candidates.</div>
-        <button class="plan-cta current-plan" id="planFreeCta" type="button">Current plan</button>
+        <div class="plan-desc">Get listed and start collecting interest for free.</div>
+        <button class="plan-cta current-plan" id="planFreeCta" type="button" onclick="applyPostingTierUpgrade('free')">Current plan</button>
         <div class="plan-features">
           <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Listed in candidate deck</div>
-          <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Up to 50 candidate views</div>
-          <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Interest shown</div>
-          <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Basic analytics</div>
+          <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>First 10 interested — full details</div>
+          <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>See <strong>1 prompt answer</strong> per candidate</div>
+          <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Invite up to <strong>3 candidates</strong> to chat</div>
+          <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Active for <strong>2 weeks</strong></div>
+          <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg><strong>$10 extension</strong>: +10 candidates + 2 more weeks (once)</div>
           <div class="plan-divider"></div>
-          <div class="plan-feat locked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>AI candidate recommendations</div>
+          <div class="plan-feat locked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>AI recommendations</div>
           <div class="plan-feat locked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Screening questions</div>
-          <div class="plan-feat locked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Priority in candidate deck</div>
+          <div class="plan-feat locked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Full interested pool</div>
         </div>
       </div>
 
-      <!-- Boost (Pro) -->
+      <!-- Boost -->
       <div class="plan-card popular" id="planProCard">
         <div class="plan-popular-badge">Most popular</div>
         <div class="plan-name">Boost</div>
         <div class="plan-price">$79 <span>/ month</span></div>
-        <div class="plan-desc">More reach, smarter tools, and better signal on who fits.</div>
-        <button class="plan-cta upgrade-pro" id="planProCta" type="button">Boost this posting</button>
+        <div class="plan-desc">Full access. Runs a month, extends indefinitely.</div>
+        <button class="plan-cta upgrade-pro" id="planProCta" type="button" onclick="applyPostingTierUpgrade('pro')">Boost this posting</button>
         <div class="plan-features">
-          <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg><strong>Unlimited candidate views</strong></div>
+          <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg><strong>Full pool</strong> of interested candidates</div>
           <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>AI candidate recommendations</div>
+          <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>See <strong>all 3 top prompt answers</strong></div>
+          <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Post <strong>3 optional prompts</strong> for candidates</div>
+          <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Invite up to <strong>10 candidates</strong> at once</div>
+          <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Preferential placement in search results</div>
           <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Screening questions with auto-filter</div>
-          <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Boosted placement in deck</div>
-          <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Full analytics & weekly report</div>
-          <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Pause & resume any time</div>
+          <div class="plan-feat"><svg class="feat-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Active <strong>1 month</strong>, extend indefinitely</div>
           <div class="plan-divider"></div>
-          <div class="plan-feat locked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Top of deck placement</div>
-          <div class="plan-feat locked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Featured badge on listing</div>
+          <div class="plan-feat locked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Highest placement</div>
+          <div class="plan-feat locked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Trending candidate insights</div>
+          <div class="plan-feat locked"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>&#11088; Super Invite</div>
         </div>
       </div>
 
-      <!-- Featured (Max) -->
+      <!-- Featured -->
       <div class="plan-card" id="planMaxCard">
         <div class="plan-name">Featured</div>
         <div class="plan-price">$199 <span>/ month</span></div>
-        <div class="plan-desc">Maximum visibility. Top of every relevant candidate's deck.</div>
-        <button class="plan-cta upgrade-max" id="planMaxCta" type="button">Feature this posting</button>
+        <div class="plan-desc">Maximum visibility, every prompt, and a Super Invite for your strongest picks.</div>
+        <button class="plan-cta upgrade-max" id="planMaxCta" type="button" onclick="applyPostingTierUpgrade('max')">Feature this posting</button>
         <div class="plan-features">
-          <div class="plan-feat"><svg class="feat-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg><strong>Top of deck — shown first</strong></div>
-          <div class="plan-feat"><svg class="feat-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Featured badge on the listing</div>
+          <div class="plan-feat"><svg class="feat-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg><strong>Highest</strong> placement in results</div>
           <div class="plan-feat"><svg class="feat-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Everything in Boost</div>
-          <div class="plan-feat"><svg class="feat-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Re-surfaced to candidates weekly</div>
-          <div class="plan-feat"><svg class="feat-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Candidate match score details</div>
-          <div class="plan-feat"><svg class="feat-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Dedicated support</div>
+          <div class="plan-feat"><svg class="feat-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>See <strong>every answered prompt</strong></div>
+          <div class="plan-feat"><svg class="feat-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Request up to <strong>5 prompts</strong></div>
+          <div class="plan-feat"><svg class="feat-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>&#128205; Trending candidates in your city</div>
+          <div class="plan-feat"><svg class="feat-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>&#127758; Trending nationally</div>
+          <div class="plan-feat"><svg class="feat-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg><strong>&#11088; Super Invite</strong> — 3 per posting, signals very strong interest</div>
+          <div class="plan-feat"><svg class="feat-gold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Runs indefinitely until filled</div>
         </div>
       </div>
 
