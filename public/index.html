@@ -3443,7 +3443,6 @@
       <label>Other details</label>
       <div class="size-grid">
         <div class="chip" data-group="toggle" data-value="equity">Equity offered</div>
-        <div class="chip" data-group="toggle" data-value="visa">Sponsors visas</div>
       </div>
     </div>
     <button class="ob-primary" id="posting2Next" type="button">Continue</button>
@@ -3482,7 +3481,7 @@
     </div>
     <div class="ob-eyebrow" id="postingEyebrow4">Step 4 of 6 — New posting</div>
     <h1 class="ob-h1">Add <em>screening questions</em>.</h1>
-    <p class="ob-sub">Candidates answer these when they apply. Mark questions "Essential" to automatically filter out anyone who doesn't meet the bar.</p>
+    <p class="ob-sub">Candidates answer these when they apply. Mark questions "Essential" to automatically filter out anyone who doesn't meet the bar. Voluntary self-identification questions (gender, race/ethnicity, veteran, disability) are always optional for candidates and are never used to screen.</p>
 
     <div class="sq-list" id="sqList"></div>
 
@@ -3631,7 +3630,6 @@
             <button class="quick-chip" data-quick="Full-time">Full-time</button>
             <button class="quick-chip" data-quick="$100K+">$100K+</button>
             <button class="quick-chip" data-quick="Equity">Equity</button>
-            <button class="quick-chip" data-quick="Visa sponsorship">Visa</button>
           </div>
 
           <!-- advanced filter panel -->
@@ -3694,7 +3692,6 @@
                 <label>Perks</label>
                 <div class="adv-filter-chips">
                   <button class="adv-chip" data-filter="equity" data-value="true">Equity offered</button>
-                  <button class="adv-chip" data-filter="visa" data-value="true">Visa sponsorship</button>
                 </div>
               </div>
 
@@ -5302,7 +5299,7 @@
     document.querySelectorAll('.chip[data-group="loc"]').forEach(c => c.classList.toggle('selected', c.dataset.value === p.locationType));
     document.querySelectorAll('.chip[data-group="emp"]').forEach(c => c.classList.toggle('selected', c.dataset.value === p.employmentType));
     document.querySelectorAll('.chip[data-group="toggle"]').forEach(c => {
-      const isOn = c.dataset.value === 'equity' ? !!p.equity : !!p.visa;
+      const isOn = !!p.equity;
       c.classList.toggle('selected', isOn);
     });
 
@@ -5346,7 +5343,6 @@
       salaryMin: document.getElementById('post-salary-min').value.trim(),
       salaryMax: document.getElementById('post-salary-max').value.trim(),
       equity: !!document.querySelector('.chip[data-group="toggle"][data-value="equity"].selected'),
-      visa: !!document.querySelector('.chip[data-group="toggle"][data-value="visa"].selected'),
       responsibilities: parseBullets(document.getElementById('post-responsibilities').value),
       qualifications: parseBullets(document.getElementById('post-qualifications').value),
       requestedPrompts,
@@ -5383,15 +5379,29 @@
               <div class="sec-label">We'd love to know</div>
               <ul>${data.requestedPrompts.map(r => `<li>${escapeHtml(r)}</li>`).join('')}</ul>
             </div>` : ''}
-          ${(data.screeningQuestions||[]).length ? `
-            <div class="job-section">
-              <div class="sec-label">Screening · ${data.screeningQuestions.filter(q=>q.essential).length} essential</div>
-              <ul>${data.screeningQuestions.slice(0,3).map(sq => {
-                const tpl = SQ_TEMPLATES.find(t=>t.id===sq.templateId);
-                const qText = sq.fillValue ? (tpl?.q||'').replace(/\[.*?\]/, sq.fillValue) : (tpl?.q || sq.fillValue || 'Custom question');
-                return `<li>${escapeHtml(qText)}${sq.essential ? ' <span style="color:var(--coral-dim);font-size:11px;font-weight:700;">(Essential)</span>' : ''}</li>`;
-              }).join('')}${data.screeningQuestions.length > 3 ? `<li style="color:rgba(21,23,28,0.5);font-size:12px;">…and ${data.screeningQuestions.length-3} more</li>` : ''}</ul>
-            </div>` : ''}
+          ${(() => {
+            const all = data.screeningQuestions || [];
+            const screening = all.filter(sq => { const t = SQ_TEMPLATES.find(x=>x.id===sq.templateId); return !(t && t.voluntary); });
+            const voluntary = all.filter(sq => { const t = SQ_TEMPLATES.find(x=>x.id===sq.templateId); return t && t.voluntary; });
+            let html = '';
+            if(screening.length){
+              html += `<div class="job-section">
+                <div class="sec-label">Screening · ${screening.filter(q=>q.essential).length} essential</div>
+                <ul>${screening.slice(0,3).map(sq => {
+                  const tpl = SQ_TEMPLATES.find(t=>t.id===sq.templateId);
+                  const qText = sq.fillValue ? (tpl?.q||'').replace(/\[.*?\]/, sq.fillValue) : (tpl?.q || sq.fillValue || 'Custom question');
+                  return `<li>${escapeHtml(qText)}${sq.essential ? ' <span style="color:var(--coral-dim);font-size:11px;font-weight:700;">(Essential)</span>' : ''}</li>`;
+                }).join('')}${screening.length > 3 ? `<li style="color:rgba(21,23,28,0.5);font-size:12px;">…and ${screening.length-3} more</li>` : ''}</ul>
+              </div>`;
+            }
+            if(voluntary.length){
+              html += `<div class="job-section">
+                <div class="sec-label">Voluntary self-identification · optional</div>
+                <ul>${voluntary.map(sq => { const tpl = SQ_TEMPLATES.find(t=>t.id===sq.templateId); return `<li>${escapeHtml(tpl?tpl.label:'')}</li>`; }).join('')}</ul>
+              </div>`;
+            }
+            return html;
+          })()}
         </div>
       </div>`;
   }
@@ -5466,6 +5476,11 @@
     { id:'work-auth',          label:'Work Authorization',    q:'Are you legally authorized to work in the United States?', type:'yesno', ideal:'Yes' },
     { id:'job-function-exp',   label:'Work Experience',       q:'How many years of [Job Function] experience do you currently have?', type:'fill-minyears', fillLabel:'Job Function', placeholder:'e.g. Product Management, Engineering' },
     { id:'custom',             label:'Custom Question',       q:'', type:'custom', placeholder:'Write your own screening question…' },
+    // Voluntary self-identification (EEO / DE&I). Optional for candidates, anonymous, never used to screen, rank, or reject.
+    { id:'eeo-gender',     voluntary:true, label:'Gender',            q:'How do you describe your gender identity? (Voluntary)',                         type:'voluntary', options:['Man','Woman','Non-binary','Prefer to self-describe','Decline to self-identify'] },
+    { id:'eeo-ethnicity',  voluntary:true, label:'Race / Ethnicity',  q:'Which race or ethnicity best describes you? (Voluntary)',                       type:'voluntary', options:['Hispanic or Latino','White','Black or African American','Asian','Native American or Alaska Native','Native Hawaiian or Other Pacific Islander','Two or more races','Decline to self-identify'] },
+    { id:'eeo-veteran',    voluntary:true, label:'Veteran Status',    q:'Do you identify as a protected veteran? (Voluntary)',                            type:'voluntary', options:['I am a protected veteran','I am not a protected veteran','Decline to self-identify'] },
+    { id:'eeo-disability', voluntary:true, label:'Disability Status', q:'Do you have a disability, or have you had one in the past? (Voluntary)',          type:'voluntary', options:['Yes','No','Decline to self-identify'] },
   ];
   const DEGREE_OPTIONS = ['High school diploma or equivalent','Associate degree',"Bachelor's degree","Master's degree","Doctorate","Professional (JD, MD, etc.)"];
   const PROFICIENCY_OPTIONS = ['Elementary','Limited working','Conversational','Professional working','Full professional','Native / Bilingual'];
@@ -5479,6 +5494,7 @@
   }
 
   function sqIdealText(tpl, sq){
+    if(tpl.voluntary) return '—';
     if(tpl.type === 'yesno') return tpl.ideal || 'Yes';
     if(tpl.type === 'fill-yesno') return 'Yes';
     if(tpl.type === 'education') return `Yes — ${sq.degreeLevel||DEGREE_OPTIONS[2]}`;
@@ -5490,6 +5506,23 @@
   function renderSqCard(sq, idx){
     const tpl = SQ_TEMPLATES.find(t => t.id === sq.templateId);
     if(!tpl) return '';
+
+    // Voluntary self-identification (EEO / DE&I): no ideal answer, no Essential toggle, cannot reject.
+    if(tpl.voluntary){
+      const opts = (tpl.options||[]).map(o => `<span class="tag" style="background:rgba(251,247,240,0.06);font-size:11px;">${escapeHtml(o)}</span>`).join('');
+      return `
+        <div class="sq-card voluntary" data-sq-idx="${idx}">
+          <div class="sq-card-top">
+            <div class="sq-question">${escapeHtml(tpl.q)}</div>
+            <button class="sq-remove" data-remove-sq="${idx}" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+          </div>
+          <div class="tagrow" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px;">${opts}</div>
+          <div class="sq-bottom">
+            <div class="sq-ideal" style="color:rgba(251,247,240,0.45);font-size:12px;">Voluntary &amp; anonymous — answers are optional for candidates and are never used to screen, rank, or reject.</div>
+          </div>
+        </div>`;
+    }
+
     const isEssential = sq.essential;
     let questionText = tpl.q;
     if(sq.fillValue) questionText = questionText.replace(/\[.*?\]/, sq.fillValue);
@@ -5543,12 +5576,17 @@
   function renderSqChipBank(){
     const bank = document.getElementById('sqChipBank');
     const usedIds = new Set(activeScreeningQuestions.map(q=>q.templateId));
-    bank.innerHTML = SQ_TEMPLATES.map(tpl => {
+    const checkSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`;
+    const plusSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`;
+    const chipHTML = tpl => {
       const isUsed = usedIds.has(tpl.id) && tpl.id !== 'custom'; // custom can be added multiple times
-      const checkSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`;
-      const plusSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`;
       return `<button class="sq-chip${isUsed?' used':''}" data-add-sq="${tpl.id}" type="button" ${isUsed?'disabled':''}>${isUsed?checkSVG:plusSVG}${escapeHtml(tpl.label)}</button>`;
-    }).join('');
+    };
+    const screening = SQ_TEMPLATES.filter(t => !t.voluntary);
+    const voluntary = SQ_TEMPLATES.filter(t => t.voluntary);
+    bank.innerHTML = screening.map(chipHTML).join('')
+      + `<div class="sq-voluntary-head" style="flex-basis:100%;margin-top:10px;font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:rgba(251,247,240,0.4);">Voluntary self-identification (EEO / DE&amp;I) — optional, never used to screen</div>`
+      + voluntary.map(chipHTML).join('');
   }
 
   // Delegated event handling on the screening screen
@@ -6003,7 +6041,6 @@
     dept: [],        // 'Engineering','Product',...
     minSalary: 0,    // in $K
     equity: false,
-    visa: false,
   };
   let jobSortMode = 'match';
   // Keep jobSearchQuery alias so existing code (e.g. highlightJobSearch) still works
@@ -6013,7 +6050,7 @@
     return jobFilters.setup.length + jobFilters.empType.length +
            jobFilters.seniority.length + jobFilters.dept.length +
            (jobFilters.minSalary > 0 ? 1 : 0) +
-           (jobFilters.equity ? 1 : 0) + (jobFilters.visa ? 1 : 0);
+           (jobFilters.equity ? 1 : 0);
   }
 
   function jobPassesFilters(j){
@@ -6031,7 +6068,6 @@
       if(sal < jobFilters.minSalary) return false;
     }
     if(jobFilters.equity && !j.equity) return false;
-    if(jobFilters.visa && !j.visa) return false;
     return true;
   }
 
@@ -6067,7 +6103,6 @@
     jobFilters.dept.forEach(v => tags.push({label:v, remove:()=>{ jobFilters.dept=jobFilters.dept.filter(x=>x!==v); applyFilters(); }}));
     if(jobFilters.minSalary > 0) tags.push({label:`$${jobFilters.minSalary}K+`, remove:()=>{ jobFilters.minSalary=0; document.getElementById('salarySlider').value=0; document.getElementById('salaryDisplay').textContent='Any'; applyFilters(); }});
     if(jobFilters.equity) tags.push({label:'Equity', remove:()=>{ jobFilters.equity=false; applyFilters(); }});
-    if(jobFilters.visa)   tags.push({label:'Visa sponsorship', remove:()=>{ jobFilters.visa=false; applyFilters(); }});
 
     row.innerHTML = tags.map((t,i) =>
       `<span class="active-filter-tag" data-tag-idx="${i}">${escapeHtml(t.label)}<button title="Remove">×</button></span>`
@@ -6089,7 +6124,6 @@
       if(f==='seniority') active = jobFilters.seniority.includes(v);
       if(f==='dept') active = jobFilters.dept.includes(v);
       if(f==='equity') active = jobFilters.equity;
-      if(f==='visa') active = jobFilters.visa;
       chip.classList.toggle('active', active);
     });
     document.querySelectorAll('.quick-chip').forEach(chip => {
@@ -6100,7 +6134,6 @@
       if(v==='Full-time') active = jobFilters.empType.includes('Full-time');
       if(v==='$100K+') active = jobFilters.minSalary >= 100;
       if(v==='Equity') active = jobFilters.equity;
-      if(v==='Visa sponsorship') active = jobFilters.visa;
       chip.classList.toggle('active', active);
     });
   }
@@ -6115,7 +6148,7 @@
   function clearAllFilters(){
     jobFilters.query=''; jobFilters.setup=[]; jobFilters.empType=[];
     jobFilters.seniority=[]; jobFilters.dept=[]; jobFilters.minSalary=0;
-    jobFilters.equity=false; jobFilters.visa=false;
+    jobFilters.equity=false;
     document.getElementById('jobSearch').value='';
     document.getElementById('salarySlider').value=0;
     document.getElementById('salaryDisplay').textContent='Any';
@@ -6206,7 +6239,6 @@
       else if(v==='Full-time'){ if(jobFilters.empType.includes('Full-time')) jobFilters.empType=jobFilters.empType.filter(x=>x!=='Full-time'); else jobFilters.empType.push('Full-time'); }
       else if(v==='$100K+'){ jobFilters.minSalary = jobFilters.minSalary>=100 ? 0 : 100; document.getElementById('salarySlider').value=jobFilters.minSalary; document.getElementById('salaryDisplay').textContent=jobFilters.minSalary>0?`$${jobFilters.minSalary}K+`:'Any'; }
       else if(v==='Equity'){ jobFilters.equity = !jobFilters.equity; }
-      else if(v==='Visa sponsorship'){ jobFilters.visa = !jobFilters.visa; }
       applyFilters();
     });
   });
@@ -6221,7 +6253,6 @@
       else if(f==='seniority'){ if(jobFilters.seniority.includes(v)) jobFilters.seniority=jobFilters.seniority.filter(x=>x!==v); else jobFilters.seniority.push(v); }
       else if(f==='dept'){ if(jobFilters.dept.includes(v)) jobFilters.dept=jobFilters.dept.filter(x=>x!==v); else jobFilters.dept.push(v); }
       else if(f==='equity'){ jobFilters.equity=!jobFilters.equity; }
-      else if(f==='visa'){ jobFilters.visa=!jobFilters.visa; }
       applyFilters();
     });
   });
