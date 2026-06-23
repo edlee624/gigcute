@@ -5089,9 +5089,7 @@
   ];
 
   function lastInitial(name){
-    const parts=(name||'').trim().split(/\s+/);
-    if(parts.length<2) return name;
-    return parts.slice(0,-1).join(' ')+' '+parts[parts.length-1][0]+'.';
+    return name || ''; // full name shown on hiring side (last-initial masking removed)
   }
   function escapeHtml(s){
     return (s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -6927,7 +6925,7 @@
 
   // ===== BLIND HIRING: identity reveal =====
   const revealedCandidates = new Set();
-  function isRevealed(cand){ return revealedCandidates.has(cand.name); }
+  function isRevealed(cand){ return true; } // blind-hiring removed: identities always shown
   function revealCandidate(cand){
     revealedCandidates.add(cand.name);
     document.querySelectorAll('[data-blur-cand]').forEach(el => {
@@ -7413,13 +7411,6 @@
     shortlistBtn.textContent = cand.status==='shortlisted'?'Shortlisted \u2713':'Shortlist';
     shortlistBtn.classList.toggle('on', cand.status==='shortlisted');
     document.getElementById('drawerBody').innerHTML = `
-      <div class="reveal-banner">
-        <div class="rb-left">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-          <span>${revealed ? "Identity revealed &mdash; evaluating with full context." : "Name, photo, and employers are hidden. Evaluate on skills and answers first."}</span>
-        </div>
-        <button class="reveal-btn${revealed?' revealed-state':''}" id="drawerRevealBtn" type="button">${revealed ? 'Identity revealed &#10003;' : 'Reveal identity'}</button>
-      </div>
       <div class="drawer-hero">
         <div class="drawer-avatar${revealed?'':' blur-photo'}" style="${revealed?`background-image:url('${cand.photo}')`:''}" data-blur-cand="${escapeHtml(cand.name)}">
           ${!revealed ? `<div class="anon-avatar" style="width:80px;height:80px;font-size:26px;border-radius:50%;">?</div>` : ''}
