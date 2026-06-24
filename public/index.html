@@ -3012,11 +3012,11 @@
     </div>
 
     <div class="prereg-banner">
-      <div class="prereg-head">Coming soon!</div>
-      <div class="prereg-sub">Pre-register now to get early access.</div>
+      <div class="prereg-head">Alpha testing</div>
+      <div class="prereg-sub">GigCute is live in alpha — some features are still in progress. Sample data is marked <strong>DEMO-</strong>.</div>
       <a href="https://forms.gle/w63jhrFDBy44x4SEA" target="_blank" rel="noopener noreferrer" class="prereg-cta">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
-        Pre-register on our Google Form
+        Get updates on our progress &amp; full launch
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
       </a>
     </div>
@@ -4264,7 +4264,6 @@
       <button class="pw-toggle" type="button" data-target="admin-pw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
     </div>
     <button class="ob-primary" id="adminLoginBtn" type="button">Access admin</button>
-    <p style="text-align:center;font-size:12px;color:rgba(251,247,240,0.3);margin-top:14px;">Demo credentials: admin@gigcute.com / admin123</p>
   </div>
 </div>
 
@@ -8534,14 +8533,9 @@
       }
       return;
     }
-    // Demo fallback (no backend configured)
-    if(email === 'admin@gigcute.com' && pw === 'admin123'){
-      showAdminPanel();
-      track('admin_login',{});
-    } else {
-      err.textContent = 'Incorrect credentials.';
-      err.classList.add('show');
-    }
+    // No backend configured: admin requires the live connection (no demo bypass).
+    err.textContent = 'Admin sign-in requires the live backend connection.';
+    err.classList.add('show');
   };
   document.getElementById('admin-pw').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('adminLoginBtn').click(); });
 
