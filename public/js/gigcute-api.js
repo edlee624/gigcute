@@ -253,7 +253,7 @@ const admin = {
   async pendingVerifications() {
     const { data, error } = await requireClient()
       .from('verification_requests')
-      .select('*, profiles(full_name, email), companies(name)')
+      .select('*, profiles!verification_requests_profile_id_fkey(full_name, email), companies(name)')
       .eq('status', 'pending').order('created_at');
     if (error) throw error;
     return data;
@@ -397,6 +397,57 @@ const reference = {
   },
 };
 
+// ---- Chat / messaging ------------------------------------------------------
+const chat = {
+  // All conversations the current user participates in (seeker or company member).
+  async listConversations() {
+    const { data, error } = await requireClient()
+      .from('conversations')
+      .select('id, posting_id, seeker_id, last_message_at, postings(title, companies(name)), seeker_profiles(headline)')
+      .order('last_message_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+  // Open (or fetch) the conversation for a posting+seeker. Requires an open
+  // connection (match or accepted invite) — enforced by RLS.
+  async openConversation(postingId, seekerId) {
+    const c = requireClient();
+    const existing = await c.from('conversations').select('id')
+      .eq('posting_id', postingId).eq('seeker_id', seekerId).limit(1);
+    if (existing.data && existing.data[0]) return existing.data[0].id;
+    const { data, error } = await c.from('conversations')
+      .insert({ posting_id: postingId, seeker_id: seekerId }).select('id').single();
+    if (error) throw error;
+    return data.id;
+  },
+  async listMessages(conversationId) {
+    const { data, error } = await requireClient()
+      .from('messages').select('id, sender_id, body, created_at, read_at')
+      .eq('conversation_id', conversationId).order('created_at');
+    if (error) throw error;
+    return data;
+  },
+  async send(conversationId, body) {
+    const c = requireClient();
+    const { data: u } = await c.auth.getUser();
+    const { data, error } = await c.from('messages')
+      .insert({ conversation_id: conversationId, sender_id: u.user.id, body }).select().single();
+    if (error) throw error;
+    return data;
+  },
+  // Live updates: invokes cb(message) on each new message. Returns an unsubscribe fn.
+  subscribe(conversationId, cb) {
+    if (!supabase) return () => {};
+    const ch = supabase
+      .channel('conv:' + conversationId)
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
+        payload => cb(payload.new))
+      .subscribe();
+    return () => supabase.removeChannel(ch);
+  },
+};
+
 const reports = {
   async file({ targetType, targetId, reason, details }) {
     const c = requireClient();
@@ -410,7 +461,7 @@ const reports = {
 window.GigCuteAPI = {
   enabled,
   supabase,
-  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification,
+  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat,
   isFreeEmailDomain,
 };
 

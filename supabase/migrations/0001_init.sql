@@ -12,6 +12,11 @@
 
 create extension if not exists "pgcrypto";
 
+-- Helper functions below are defined before the tables they reference (so RLS
+-- policies created alongside each table can call them). Defer body validation
+-- until call time so these forward references don't error at creation.
+set check_function_bodies = off;
+
 -- ---------------------------------------------------------------------------
 -- Enums
 -- ---------------------------------------------------------------------------

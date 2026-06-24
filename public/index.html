@@ -8525,15 +8525,37 @@
   document.getElementById('adminPostingSearch').addEventListener('input', e => renderAdminPostings(e.target.value));
 
   // Admin login
-  document.getElementById('adminLoginBtn').onclick = () => {
+  document.getElementById('adminLoginBtn').onclick = async () => {
     const email = document.getElementById('admin-email').value.trim();
     const pw = document.getElementById('admin-pw').value;
     const err = document.getElementById('adminLoginError');
     err.classList.remove('show');
+    const API = window.GigCuteAPI;
+    if(API && API.enabled){
+      // Real auth: sign in, then require profiles.role === 'admin'.
+      try{
+        await API.auth.signIn({ email, password: pw });
+        const me = await API.profiles.me();
+        if(me && me.role === 'admin'){
+          showAdminPanel();
+          track('admin_login',{});
+        } else {
+          try{ await API.auth.signOut(); }catch(e){}
+          err.textContent = 'This account is not an administrator.';
+          err.classList.add('show');
+        }
+      }catch(e){
+        err.textContent = e.message || 'Incorrect credentials.';
+        err.classList.add('show');
+      }
+      return;
+    }
+    // Demo fallback (no backend configured)
     if(email === 'admin@gigcute.com' && pw === 'admin123'){
       showAdminPanel();
       track('admin_login',{});
     } else {
+      err.textContent = 'Incorrect credentials.';
       err.classList.add('show');
     }
   };
