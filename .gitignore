@@ -5,5 +5,6 @@ node_modules/
 .env.local
 .DS_Store
 
-# Runtime Supabase config (project URL + anon key) — copy from config.example.js
-public/config.js
+# Note: public/config.js holds only the Supabase URL + PUBLISHABLE (anon) key,
+# which are safe to expose in the browser (RLS protects the data), so it IS
+# committed for the static Vercel deploy. Never put the service_role/secret key here.
