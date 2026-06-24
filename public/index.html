@@ -72,6 +72,26 @@
   }
   .wordmark span{ color:var(--coral); font-style:normal; }
 
+  /* Landing pre-register banner */
+  .prereg-banner{
+    text-align:center; margin:4px auto 26px; padding:20px 22px; max-width:540px;
+    background:linear-gradient(135deg, rgba(255,107,74,0.16), rgba(224,183,96,0.13));
+    border:1px solid rgba(255,107,74,0.4); border-radius:16px;
+  }
+  .prereg-head{
+    font-family:'Fraunces',serif; font-style:italic; font-weight:600;
+    font-size:30px; line-height:1.1; color:var(--coral); margin-bottom:4px;
+  }
+  .prereg-sub{ font-size:14px; color:rgba(251,247,240,0.7); margin-bottom:16px; }
+  .prereg-cta{
+    display:inline-flex; align-items:center; justify-content:center; gap:10px;
+    background:var(--coral); color:var(--paper); text-decoration:none;
+    font-size:15.5px; font-weight:700; padding:13px 24px; border-radius:999px;
+    box-shadow:0 10px 24px -8px rgba(255,107,74,0.6);
+    transition:background .15s, transform .15s, box-shadow .15s;
+  }
+  .prereg-cta:hover{ background:var(--coral-dim); transform:translateY(-2px); box-shadow:0 14px 30px -8px rgba(255,107,74,0.7); }
+
   .mode-toggle{
     display:flex;
     background:var(--ink-soft);
@@ -509,6 +529,20 @@
     background-size:16px;
   }
   .field .size-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .field .size-grid.benefit-grid{ grid-template-columns:repeat(3,1fr); }
+  /* tooltip marker */
+  .tip{ display:inline-flex; width:15px; height:15px; align-items:center; justify-content:center; border-radius:50%;
+    background:rgba(251,247,240,0.12); color:rgba(251,247,240,0.75); font-size:10px; cursor:help; vertical-align:middle; }
+  /* posting location bubbles */
+  .loc-add-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .loc-add-row #post-loc-input{ flex:1; min-width:160px; }
+  .loc-dist{ width:140px; }
+  .loc-bubble-list{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .loc-bubble{ display:inline-flex; align-items:center; gap:4px; background:var(--ink-soft);
+    border:1px solid var(--line-light); border-radius:999px; padding:5px 6px 5px 12px; font-size:12.5px; color:rgba(251,247,240,0.8); }
+  .loc-bubble-dist{ color:rgba(251,247,240,0.45); font-size:11px; }
+  .loc-bubble button{ background:none; border:none; color:rgba(251,247,240,0.5); cursor:pointer; font-size:16px; line-height:1; padding:0 4px; }
+  .loc-bubble button:hover{ color:var(--coral); }
   .field .chip{
     border:1.5px solid var(--line-light);
     background:var(--ink-soft);
@@ -1802,6 +1836,9 @@
   }
   .pd-c-name{ font-family:'Fraunces',serif; font-size:15.5px; font-weight:600; margin-bottom:2px; }
   .pd-c-title{ font-size:12.5px; color:rgba(251,247,240,0.5); margin-bottom:6px; }
+  .pd-c-activity{ display:flex; flex-wrap:wrap; gap:5px 10px; margin:0 0 6px; }
+  .act-pill{ font-size:11px; color:rgba(251,247,240,0.55); white-space:nowrap; }
+  .act-pill.gated{ filter:blur(3.5px); opacity:0.5; user-select:none; pointer-events:none; }
   .pd-c-tags{ display:flex; flex-wrap:wrap; gap:5px; }
   .pd-c-tag{
     font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
@@ -2974,6 +3011,16 @@
       <div class="wordmark" style="font-size:30px;">GigCute<span>.</span></div>
     </div>
 
+    <div class="prereg-banner">
+      <div class="prereg-head">Coming soon!</div>
+      <div class="prereg-sub">Pre-register now to get early access.</div>
+      <a href="https://forms.gle/w63jhrFDBy44x4SEA" target="_blank" rel="noopener noreferrer" class="prereg-cta">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
+        Pre-register on our Google Form
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+
     <div style="text-align:center; margin:-4px auto 28px;">
       <p class="ob-h1" style="font-size:22px; margin-bottom:14px; line-height:1.3;">
         Where the <em>dream candidate</em><br>meets their <em>dream job</em>.
@@ -2981,15 +3028,15 @@
       <div style="display:flex; flex-direction:column; gap:7px; max-width:340px; margin:0 auto;">
         <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:rgba(251,247,240,0.55);">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:15px;height:15px;flex-shrink:0;color:var(--coral);"><path d="M20 6L9 17l-5-5"/></svg>
-          Every profile is more than just a resume
+          Candidates are more than a résumé — prompts reveal the person behind it
         </div>
         <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:rgba(251,247,240,0.55);">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:15px;height:15px;flex-shrink:0;color:var(--coral);"><path d="M20 6L9 17l-5-5"/></svg>
-          Every job is actively managed — not sent to a black hole
+          Every job is posted by a real person — never an automated dragnet
         </div>
         <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:rgba(251,247,240,0.55);">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:15px;height:15px;flex-shrink:0;color:var(--coral);"><path d="M20 6L9 17l-5-5"/></svg>
-          Matches only happen when both sides say yes
+          When both sides show interest, the conversation begins
         </div>
       </div>
     </div>
@@ -3298,6 +3345,7 @@
     <p class="ob-sub">We'll use your work email to look up your company — so have it handy.</p>
 
     <div class="field"><label for="em-name">Your full name</label><input type="text" id="em-name" placeholder="Jordan Lee" autocomplete="name"></div>
+    <div class="field"><label for="em-company-reg">Company name</label><input type="text" id="em-company-reg" placeholder="Acme Inc." autocomplete="organization"></div>
     <div class="field"><label for="em-work-email">Work email</label><input type="email" id="em-work-email" placeholder="jordan@company.com" autocomplete="email">
       <div id="recruiterEmailHint" style="display:none;margin-top:7px;font-size:12px;line-height:1.45;color:#e0b760;">Use your <strong>company email</strong> to get verified instantly. Personal/disposable addresses can sign up but stay pending manual review and can't view candidates until approved.</div>
     </div>
@@ -3310,6 +3358,18 @@
       </button>
     </div>
     <label class="accept-row"><input type="checkbox" id="em1Terms"><span>I agree to GigCute's <a onclick="openLegal('tos')">Terms of Service</a> and <a onclick="openLegal('privacy')">Privacy Policy</a>.</span></label>
+
+    <!-- Shown when a personal/disposable email is detected on Continue. Offers ID-photo verification. -->
+    <div id="recruiterIdVerify" style="display:none; margin:4px 0 16px; padding:16px 18px; border:1px solid rgba(224,183,96,0.4); background:rgba(224,183,96,0.08); border-radius:12px;">
+      <div style="font-weight:700; color:#e7c879; font-size:14px; margin-bottom:6px;">Personal email detected — verify your identity</div>
+      <p style="font-size:12.5px; line-height:1.5; color:rgba(251,247,240,0.72); margin:0 0 12px;">
+        Company emails verify instantly. To verify a personal address, upload <strong>one photo of yourself holding your government ID next to your face</strong> (name and photo legible). A reviewer confirms it privately — it's never shown to candidates. You can also continue and verify later, but candidate profiles stay hidden until you're approved.
+      </p>
+      <input class="file-input" type="file" id="recruiterIdFile" accept="image/*" capture="user" style="display:none;">
+      <button class="btn-sm" id="recruiterIdUploadBtn" type="button">Upload ID photo</button>
+      <span id="recruiterIdFileName" style="margin-left:10px; font-size:12px; color:rgba(251,247,240,0.6);"></span>
+    </div>
+
     <button class="ob-primary" id="em1Next" type="button">Continue</button>
   </div>
 </div>
@@ -3432,7 +3492,24 @@
     <p class="ob-sub">The basics. You'll add compensation and details next.</p>
 
     <div class="field"><label for="post-title">Job title</label><input type="text" id="post-title" placeholder="Senior Product Designer"></div>
-    <div class="field"><label for="post-department">Department</label><input type="text" id="post-department" placeholder="Product"></div>
+    <div class="field"><label for="post-company-name">Company</label><input type="text" id="post-company-name" readonly style="opacity:0.8;"></div>
+    <div class="field">
+      <label>Location <span class="tip" title="Add one or more office locations — city, state, or ZIP. Adding a ZIP enables more precise distance matching to candidates near each office. You can add multiple offices.">&#9432;</span></label>
+      <div class="loc-add-row">
+        <input type="text" id="post-loc-input" placeholder="City, state or ZIP — e.g. Austin, TX or 78701">
+        <select id="post-loc-distance" class="loc-dist">
+          <option value="5">Within 5 mi</option>
+          <option value="10">Within 10 mi</option>
+          <option value="25" selected>Within 25 mi</option>
+          <option value="50">Within 50 mi</option>
+          <option value="100">Within 100 mi</option>
+          <option value="100+">100 mi+</option>
+        </select>
+        <button class="btn-sm" id="post-loc-add" type="button">Add</button>
+      </div>
+      <label class="accept-row" style="margin-top:8px;"><input type="checkbox" id="post-local-search"><span>Local search — only match candidates within the set distance of an office</span></label>
+      <div id="post-loc-list" class="loc-bubble-list"></div>
+    </div>
     <div class="field">
       <label>Location type</label>
       <div class="size-grid" style="grid-template-columns:repeat(3,1fr);">
@@ -3440,10 +3517,6 @@
         <div class="chip" data-group="loc" data-value="Hybrid">Hybrid</div>
         <div class="chip" data-group="loc" data-value="Onsite">Onsite</div>
       </div>
-    </div>
-    <div class="field city-field" id="post-city-field">
-      <label for="post-city">City</label>
-      <input type="text" id="post-city" placeholder="Austin, TX">
     </div>
     <div class="field">
       <label>Employment type</label>
@@ -3484,10 +3557,22 @@
       <div style="flex:1;"><label for="post-salary-min">Minimum (in $K)</label><input type="text" id="post-salary-min" placeholder="150"></div>
       <div style="flex:1;"><label for="post-salary-max">Maximum (in $K)</label><input type="text" id="post-salary-max" placeholder="180"></div>
     </div>
-    <div class="field">
-      <label>Other details</label>
-      <div class="size-grid">
+    <label class="accept-row"><input type="checkbox" id="post-share-salary" checked><span>Show the salary range publicly on this posting <span class="tip" title="Always enter a salary range — it's required for accurate matching even if you keep it hidden. Unchecking only hides the numbers from candidates; matching still uses them.">&#9432;</span></span></label>
+    <div class="field" style="margin-top:14px;">
+      <label>Other details &amp; benefits</label>
+      <div class="size-grid benefit-grid">
         <div class="chip" data-group="toggle" data-value="equity">Equity offered</div>
+        <div class="chip" data-group="benefit" data-value="Health insurance">Health insurance</div>
+        <div class="chip" data-group="benefit" data-value="Dental">Dental</div>
+        <div class="chip" data-group="benefit" data-value="Vision">Vision</div>
+        <div class="chip" data-group="benefit" data-value="401(k)">401(k)</div>
+        <div class="chip" data-group="benefit" data-value="Paid time off">Paid time off</div>
+        <div class="chip" data-group="benefit" data-value="Remote / flexible">Remote / flexible</div>
+        <div class="chip" data-group="benefit" data-value="Parental leave">Parental leave</div>
+        <div class="chip" data-group="benefit" data-value="Professional development">Professional development</div>
+        <div class="chip" data-group="benefit" data-value="Commuter benefits">Commuter benefits</div>
+        <div class="chip" data-group="benefit" data-value="Wellness stipend">Wellness stipend</div>
+        <div class="chip" data-group="benefit" data-value="Relocation assistance">Relocation assistance</div>
       </div>
     </div>
     <button class="ob-primary" id="posting2Next" type="button">Continue</button>
@@ -3701,6 +3786,23 @@
           <!-- advanced filter panel -->
           <div class="adv-filter-panel" id="advFilterPanel">
             <div class="adv-filter-grid">
+
+              <div class="adv-filter-group" style="grid-column:1 / -1;">
+                <label>Location &amp; distance</label>
+                <div class="loc-add-row">
+                  <input type="text" id="jobLocationInput" placeholder="Your city, state or ZIP — e.g. Austin, TX or 78701">
+                  <select id="jobRadius" class="loc-dist">
+                    <option value="0">Any distance</option>
+                    <option value="5">Within 5 mi</option>
+                    <option value="10">Within 10 mi</option>
+                    <option value="25">Within 25 mi</option>
+                    <option value="50">Within 50 mi</option>
+                    <option value="100">Within 100 mi</option>
+                    <option value="100+">100 mi+</option>
+                  </select>
+                </div>
+                <div style="font-size:11px;color:rgba(251,247,240,0.4);margin-top:6px;">Remote roles always match. Add a ZIP for closer matches to an office.</div>
+              </div>
 
               <div class="adv-filter-group">
                 <label>Work setup</label>
@@ -4191,6 +4293,7 @@
         <button class="admin-tab" data-admin-tab="users">Users</button>
         <button class="admin-tab" data-admin-tab="postings">Postings</button>
         <button class="admin-tab" data-admin-tab="reports">Reports <span id="adminReportsBadge" style="background:var(--coral);color:var(--paper);border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;">0</span></button>
+        <button class="admin-tab" data-admin-tab="verification">Verification <span id="adminVerifyBadge" style="background:#e0b760;color:var(--ink);border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;">0</span></button>
         <button class="admin-tab" data-admin-tab="analytics">Analytics</button>
       </div>
       <div class="admin-nav-right">
@@ -4236,6 +4339,13 @@
       <div class="admin-panel-view" id="adminTabReports">
         <div class="admin-section-head"><h2>Reported content</h2></div>
         <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Filed by</th><th>Type</th><th>Target</th><th>Reason</th><th>Details</th><th>Filed</th><th>Actions</th></tr></thead><tbody id="adminReportsBody"></tbody></table></div>
+      </div>
+
+      <!-- VERIFICATION -->
+      <div class="admin-panel-view" id="adminTabVerification">
+        <div class="admin-section-head"><h2>Recruiter verification queue</h2></div>
+        <p style="font-size:12.5px;color:rgba(251,247,240,0.45);margin:-6px 0 16px;">Recruiters on personal/flagged emails who submitted an ID photo for manual review. Approving verifies their company and unlocks candidate access.</p>
+        <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Recruiter</th><th>Company</th><th>Email</th><th>ID</th><th>Submitted</th><th>Actions</th></tr></thead><tbody id="adminVerificationBody"></tbody></table></div>
       </div>
 
       <!-- ANALYTICS -->
@@ -4921,24 +5031,42 @@
   }
 
   // Step 1: personal info → then autofill company and advance to step 2
+  // Recruiter ID-verification photo (for flagged/personal emails)
+  let currentIdFile = null;
+  let recruiterIdMsgShown = false;
+  document.getElementById('recruiterIdUploadBtn').onclick = () => document.getElementById('recruiterIdFile').click();
+  document.getElementById('recruiterIdFile').addEventListener('change', () => {
+    const f = document.getElementById('recruiterIdFile').files[0];
+    if(f){ currentIdFile = f; document.getElementById('recruiterIdFileName').textContent = f.name + ' ✓'; }
+  });
+
   document.getElementById('em1Next').onclick = () => {
     const name = document.getElementById('em-name').value.trim();
     const email = document.getElementById('em-work-email').value.trim();
-    const pw = document.getElementById('em-password').value;
 
     // basic validation
     const nameInput = document.getElementById('em-name');
     const emailInput = document.getElementById('em-work-email');
     nameInput.style.borderColor = ''; emailInput.style.borderColor = '';
-
     if(!name){ nameInput.style.borderColor = 'var(--coral)'; nameInput.focus(); return; }
     if(!email || !email.includes('@')){ emailInput.style.borderColor = 'var(--coral)'; emailInput.focus(); return; }
 
-    // Autofill company from email domain
+    // Flagged/personal email → reveal the ID-verification message on first Continue.
+    const isFree = (window.GigCuteAPI && window.GigCuteAPI.isFreeEmailDomain) ? window.GigCuteAPI.isFreeEmailDomain(email) : false;
+    if(isFree && !recruiterIdMsgShown){
+      recruiterIdMsgShown = true;
+      const block = document.getElementById('recruiterIdVerify');
+      block.style.display = 'block';
+      block.scrollIntoView({behavior:'smooth', block:'center'});
+      return; // stay on step 1 so they can read / upload; press Continue again to proceed
+    }
+
+    // Autofill company from email domain, then prefer the name typed at registration.
     const companyData = autofillCompanyFromEmail(email);
     if(companyData) applyCompanyAutofill(companyData);
+    const regCompany = document.getElementById('em-company-reg').value.trim();
+    if(regCompany) document.getElementById('em-company').value = regCompany;
 
-    // Update sub-copy on step 2
     const firstName = name.split(' ')[0];
     document.getElementById('em2Sub').textContent =
       `${firstName}, this becomes the company profile candidates see when they swipe on your postings.`;
@@ -5323,15 +5451,11 @@
   document.querySelectorAll('.chip[data-group]').forEach(chip => {
     chip.addEventListener('click', () => {
       const group = chip.dataset.group;
-      if(group === 'toggle'){
-        chip.classList.toggle('selected');
+      if(group === 'toggle' || group === 'benefit'){
+        chip.classList.toggle('selected');   // multi-select
       } else {
         document.querySelectorAll(`.chip[data-group="${group}"]`).forEach(c => c.classList.remove('selected'));
         chip.classList.add('selected');
-      }
-      if(group === 'loc'){
-        const showCity = chip.dataset.value !== 'Remote' && chip.classList.contains('selected');
-        document.getElementById('post-city-field').style.display = showCity ? 'block' : 'none';
       }
     });
   });
@@ -5373,12 +5497,43 @@
     return (text || '').split('\n').map(s => s.trim()).filter(Boolean);
   }
 
+  // ----- Multi office-location bubbles (posting step 1) -----
+  let postLocations = []; // [{label, distance}]
+  function distLabel(d){ return d === '100+' ? '100 mi+' : `${d} mi`; }
+  function renderPostLocations(){
+    const list = document.getElementById('post-loc-list');
+    if(!list) return;
+    list.innerHTML = postLocations.map((loc, i) =>
+      `<span class="loc-bubble">${escapeHtml(loc.label)} <span class="loc-bubble-dist">· ${distLabel(loc.distance)}</span><button type="button" data-loc-rm="${i}" aria-label="Remove">&times;</button></span>`
+    ).join('');
+    list.querySelectorAll('[data-loc-rm]').forEach(btn => {
+      btn.onclick = () => { postLocations.splice(Number(btn.dataset.locRm), 1); renderPostLocations(); };
+    });
+  }
+  (function(){
+    const addBtn = document.getElementById('post-loc-add');
+    const input = document.getElementById('post-loc-input');
+    if(!addBtn || !input) return;
+    function add(){
+      const label = input.value.trim();
+      if(!label) return;
+      const distance = document.getElementById('post-loc-distance').value;
+      postLocations.push({ label, distance });
+      input.value = '';
+      renderPostLocations();
+    }
+    addBtn.onclick = add;
+    input.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); add(); } });
+  })();
+
   function resetPostingForm(){
     document.getElementById('post-title').value = '';
     document.getElementById('post-title').style.borderColor = '';
-    document.getElementById('post-department').value = '';
-    document.getElementById('post-city').value = '';
-    document.getElementById('post-city-field').style.display = 'none';
+    document.getElementById('post-company-name').value = (companyState.name || '');
+    postLocations = []; renderPostLocations();
+    document.getElementById('post-loc-input').value = '';
+    document.getElementById('post-local-search').checked = false;
+    document.getElementById('post-share-salary').checked = true;
     document.getElementById('post-seniority').selectedIndex = 2;
     document.getElementById('post-salary-min').value = '';
     document.getElementById('post-salary-max').value = '';
@@ -5400,20 +5555,24 @@
   function loadPostingIntoForm(p){
     document.getElementById('post-title').value = p.title || '';
     document.getElementById('post-title').style.borderColor = '';
-    document.getElementById('post-department').value = p.department || '';
-    document.getElementById('post-city').value = p.city || '';
-    document.getElementById('post-city-field').style.display = (p.locationType !== 'Remote') ? 'block' : 'none';
+    document.getElementById('post-company-name').value = (companyState.name || '');
     document.getElementById('post-salary-min').value = p.salaryMin || '';
     document.getElementById('post-salary-max').value = p.salaryMax || '';
+    document.getElementById('post-share-salary').checked = (p.shareSalary !== false);
     document.getElementById('post-responsibilities').value = (p.responsibilities || []).join('\n');
     document.getElementById('post-qualifications').value = (p.qualifications || []).join('\n');
 
+    // Locations (fall back to legacy single city)
+    postLocations = (p.locations && p.locations.length)
+      ? p.locations.map(l => ({ label: l.label, distance: l.distance || '25' }))
+      : (p.city ? [{ label: p.city, distance: '25' }] : []);
+    renderPostLocations();
+    document.getElementById('post-local-search').checked = !!p.localSearch;
+
     document.querySelectorAll('.chip[data-group="loc"]').forEach(c => c.classList.toggle('selected', c.dataset.value === p.locationType));
     document.querySelectorAll('.chip[data-group="emp"]').forEach(c => c.classList.toggle('selected', c.dataset.value === p.employmentType));
-    document.querySelectorAll('.chip[data-group="toggle"]').forEach(c => {
-      const isOn = !!p.equity;
-      c.classList.toggle('selected', isOn);
-    });
+    document.querySelectorAll('.chip[data-group="toggle"]').forEach(c => c.classList.toggle('selected', c.dataset.value === 'equity' && !!p.equity));
+    document.querySelectorAll('.chip[data-group="benefit"]').forEach(c => c.classList.toggle('selected', (p.benefits || []).includes(c.dataset.value)));
 
     const seniorityOptions = [...document.getElementById('post-seniority').options];
     const match = seniorityOptions.findIndex(o => o.value === p.seniority);
@@ -5445,16 +5604,20 @@
     const locChip = document.querySelector('.chip[data-group="loc"].selected');
     const empChip = document.querySelector('.chip[data-group="emp"].selected');
     const requestedPrompts = [...selectedPrompts].map(idx => SEEKER_PROMPT_BANK[idx].label);
+    const benefits = [...document.querySelectorAll('.chip[data-group="benefit"].selected')].map(c => c.dataset.value);
     return {
       title: document.getElementById('post-title').value.trim() || 'Untitled role',
-      department: document.getElementById('post-department').value.trim(),
       locationType: locChip ? locChip.dataset.value : 'Remote',
-      city: document.getElementById('post-city').value.trim(),
+      locations: postLocations.map(l => ({...l})),
+      localSearch: document.getElementById('post-local-search').checked,
+      city: postLocations[0] ? postLocations[0].label : '',
       employmentType: empChip ? empChip.dataset.value : 'Full-time',
       seniority: document.getElementById('post-seniority').value,
       salaryMin: document.getElementById('post-salary-min').value.trim(),
       salaryMax: document.getElementById('post-salary-max').value.trim(),
+      shareSalary: document.getElementById('post-share-salary').checked,
       equity: !!document.querySelector('.chip[data-group="toggle"][data-value="equity"].selected'),
+      benefits,
       responsibilities: parseBullets(document.getElementById('post-responsibilities').value),
       qualifications: parseBullets(document.getElementById('post-qualifications').value),
       requestedPrompts,
@@ -5464,7 +5627,11 @@
   }
 
   function buildPreviewCardHTML(data){
-    const tags = [compTagFor(data.salaryMin, data.salaryMax), locTagFor(data.locationType, data.city), data.employmentType];
+    const compTag = (data.shareSalary === false) ? 'Salary undisclosed' : compTagFor(data.salaryMin, data.salaryMax);
+    const locTag = (data.locations && data.locations.length)
+      ? (data.locations.length === 1 ? data.locations[0].label : `${data.locations[0].label} +${data.locations.length-1} more`)
+      : locTagFor(data.locationType, data.city);
+    const tags = [compTag, locTag, data.employmentType].filter(Boolean);
     return `
       <div class="card preview-card">
         <div class="card-photo" style="background-image:url('${COMPANY_PLACEHOLDER_PHOTO}')">
@@ -5476,6 +5643,11 @@
         <div class="card-body">
           <div class="tagrow">${tags.map(t => `<span class="tag">${escapeHtml(String(t))}</span>`).join('')}</div>
           ${companyState.linkedinUrl ? `<a href="${escapeHtml(/^https?:\/\//i.test(companyState.linkedinUrl) ? companyState.linkedinUrl : 'https://'+companyState.linkedinUrl)}" target="_blank" rel="noopener noreferrer nofollow" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--coral);text-decoration:none;margin-bottom:4px;"><svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;"><path d="M19 0h-14c-2.76 0-5 2.24-5 5v14c0 2.76 2.24 5 5 5h14c2.76 0 5-2.24 5-5v-14c0-2.76-2.24-5-5-5zm-11 19h-3v-9h3v9zm-1.5-10.3c-1 0-1.7-.7-1.7-1.6s.7-1.6 1.7-1.6c1 0 1.7.7 1.7 1.6s-.7 1.6-1.7 1.6zm13.5 10.3h-3v-4.7c0-1.3-.5-2.2-1.7-2.2-.9 0-1.4.6-1.7 1.2-.1.2-.1.5-.1.8v4.9h-3v-9h3v1.3c.4-.6 1.2-1.5 2.8-1.5 2 0 3.7 1.3 3.7 4.2v5z"/></svg>${escapeHtml(companyState.name||'Company')} on LinkedIn</a>` : ''}
+          ${((data.benefits && data.benefits.length) || data.equity) ? `
+            <div class="job-section">
+              <div class="sec-label">Benefits</div>
+              <div class="tagrow">${[...(data.equity?['Equity']:[]), ...(data.benefits||[])].map(b => `<span class="tag">${escapeHtml(b)}</span>`).join('')}</div>
+            </div>` : ''}
           ${data.responsibilities.length ? `
             <div class="job-section">
               <div class="sec-label">Responsibilities</div>
@@ -6041,6 +6213,10 @@
         status: "new",
         profileViews: 20 + ((i * 17 + 43) % 200),
         recruiterLikes: 2 + ((i * 7 + 11) % 32),
+        // Activity signals (shown to recruiters; gated on Basic)
+        lastActiveDays: i % 30,
+        respondsDays: 1 + (i % 7),
+        activityLevel: ((i % 30) <= 2 ? 'high' : (i % 30) <= 9 ? 'mid' : 'low'),
       });
     }
     return result;
@@ -6161,6 +6337,8 @@
     dept: [],        // 'Engineering','Product',...
     minSalary: 0,    // in $K
     equity: false,
+    location: '',    // candidate's city/state/ZIP
+    radius: '0',     // '0'=any, else 5/10/25/50/100/100+ (mi)
   };
   let jobSortMode = 'match';
   // Keep jobSearchQuery alias so existing code (e.g. highlightJobSearch) still works
@@ -6170,7 +6348,8 @@
     return jobFilters.setup.length + jobFilters.empType.length +
            jobFilters.seniority.length + jobFilters.dept.length +
            (jobFilters.minSalary > 0 ? 1 : 0) +
-           (jobFilters.equity ? 1 : 0);
+           (jobFilters.equity ? 1 : 0) +
+           (jobFilters.location ? 1 : 0);
   }
 
   function jobPassesFilters(j){
@@ -6188,6 +6367,18 @@
       if(sal < jobFilters.minSalary) return false;
     }
     if(jobFilters.equity && !j.equity) return false;
+    if(jobFilters.location){
+      // Remote roles always match. Otherwise match the entered location text
+      // against the job's office locations / city. (Real mileage needs geocoding;
+      // prototype does a text match within the chosen radius.)
+      const isRemote = (j.locationType === 'Remote') || (j.setup === 'Remote');
+      if(!isRemote){
+        const needle = jobFilters.location.toLowerCase().split(',')[0].trim();
+        const locs = (j.locations||[]).map(l => (l.label||'').toLowerCase());
+        const hay = [j.city||'', ...locs, ...(j.tags||[])].join(' ').toLowerCase();
+        if(needle && !hay.includes(needle)) return false;
+      }
+    }
     return true;
   }
 
@@ -6223,6 +6414,10 @@
     jobFilters.dept.forEach(v => tags.push({label:v, remove:()=>{ jobFilters.dept=jobFilters.dept.filter(x=>x!==v); applyFilters(); }}));
     if(jobFilters.minSalary > 0) tags.push({label:`$${jobFilters.minSalary}K+`, remove:()=>{ jobFilters.minSalary=0; document.getElementById('salarySlider').value=0; document.getElementById('salaryDisplay').textContent='Any'; applyFilters(); }});
     if(jobFilters.equity) tags.push({label:'Equity', remove:()=>{ jobFilters.equity=false; applyFilters(); }});
+    if(jobFilters.location){
+      const radTxt = jobFilters.radius && jobFilters.radius !== '0' ? ` · ${jobFilters.radius==='100+'?'100mi+':jobFilters.radius+'mi'}` : '';
+      tags.push({label:`📍 ${jobFilters.location}${radTxt}`, remove:()=>{ jobFilters.location=''; jobFilters.radius='0'; const li=document.getElementById('jobLocationInput'); if(li) li.value=''; const jr=document.getElementById('jobRadius'); if(jr) jr.value='0'; applyFilters(); }});
+    }
 
     row.innerHTML = tags.map((t,i) =>
       `<span class="active-filter-tag" data-tag-idx="${i}">${escapeHtml(t.label)}<button title="Remove">×</button></span>`
@@ -6268,12 +6463,21 @@
   function clearAllFilters(){
     jobFilters.query=''; jobFilters.setup=[]; jobFilters.empType=[];
     jobFilters.seniority=[]; jobFilters.dept=[]; jobFilters.minSalary=0;
-    jobFilters.equity=false;
+    jobFilters.equity=false; jobFilters.location=''; jobFilters.radius='0';
     document.getElementById('jobSearch').value='';
     document.getElementById('salarySlider').value=0;
     document.getElementById('salaryDisplay').textContent='Any';
+    const li=document.getElementById('jobLocationInput'); if(li) li.value='';
+    const jr=document.getElementById('jobRadius'); if(jr) jr.value='0';
     applyFilters();
   }
+  // Candidate location/radius filter inputs
+  (function(){
+    const li = document.getElementById('jobLocationInput');
+    const jr = document.getElementById('jobRadius');
+    if(li) li.addEventListener('input', () => { jobFilters.location = li.value.trim(); applyFilters(); });
+    if(jr) jr.addEventListener('change', () => { jobFilters.radius = jr.value; applyFilters(); });
+  })();
 
   function renderJobList(){
     const list = document.getElementById('jobList');
@@ -7230,6 +7434,13 @@
           ${badges.length?`<div class="pd-badge-row">${badges.join('')}</div>`:''}
           <div class="pd-c-name${nameBlur}" data-blur-cand="${escapeHtml(cand.name)}">${escapeHtml(displayName)}</div>
           <div class="pd-c-title">${escapeHtml(cand.title)} &middot; ${cand.expYears} yr${cand.expYears!==1?'s':''}</div>
+          ${(() => {
+            const free = (tier === 'free');
+            const act = `<span class="act-pill${free?' gated':''}">⏱ Active ${cand.lastActiveDays===0?'today':cand.lastActiveDays+'d ago'}</span>`
+              + `<span class="act-pill${free?' gated':''}">↩ Responds ~${cand.respondsDays}d</span>`
+              + `<span class="act-pill${free?' gated':''}">📊 ${cand.activityLevel} activity <span style="opacity:.6">(30d)</span></span>`;
+            return `<div class="pd-c-activity"${free?' title="Upgrade to Boost to see candidate activity"':''}>${act}</div>`;
+          })()}
           ${visiblePrompts.length ? `<div style="margin-top:6px;">${visiblePrompts.map(p=>`<div style="font-size:12px;color:rgba(251,247,240,0.5);margin-bottom:3px;"><span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:rgba(251,247,240,0.3);">${escapeHtml(p.label)}</span><br>${escapeHtml(p.answer)}</div>`).join('')}</div>` : ''}
           <div class="pd-c-tags" style="margin-top:6px;">${cand.tags.slice(0,3).map(t=>`<span class="pd-c-tag">${escapeHtml(t)}</span>`).join('')}</div>
         </div>
@@ -8082,11 +8293,15 @@
   ];
 
   function showAdminPanel(){
+    // Hide any active flow screen (e.g. the admin login) so the panel isn't pushed below it.
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    window.scrollTo(0,0);
     document.getElementById('screen-admin').style.display='block';
     renderAdminOverview();
     renderAdminUsers();
     renderAdminPostings();
     renderAdminReports();
+    renderAdminVerification();
     renderAdminAnalytics();
     track('admin_accessed', {});
   }
@@ -8168,6 +8383,71 @@
     document.getElementById('adminReportsBadge').textContent = reports.filter(r=>r.status==='pending').length;
   }
 
+  // ----- Recruiter ID-verification review queue -----
+  // Demo entries (used when the backend isn't configured); in backend mode this
+  // is replaced by pending rows from verification_requests.
+  let verificationQueue = [
+    { id:'v1', name:'Edward Lee',  company:'EnterpriseCX', email:'edward@gmail.com',     submitted:'Today',     status:'pending', docPath:null },
+    { id:'v2', name:'Dana Brooks', company:'BrightHire',   email:'dana@protonmail.com', submitted:'Yesterday', status:'pending', docPath:null },
+  ];
+  async function renderAdminVerification(){
+    const body = document.getElementById('adminVerificationBody');
+    const badge = document.getElementById('adminVerifyBadge');
+    if(!body) return;
+    let items = verificationQueue;
+    const API = window.GigCuteAPI;
+    if(API && API.enabled){
+      try{
+        const rows = await API.admin.pendingVerifications();
+        items = rows.map(r => ({
+          id: r.id, live: true,
+          name: (r.profiles && r.profiles.full_name) || '—',
+          company: (r.companies && r.companies.name) || '—',
+          email: (r.profiles && r.profiles.email) || '—',
+          submitted: (r.created_at || '').slice(0,10),
+          status: r.status, docPath: r.doc_path,
+        }));
+      }catch(e){ /* fall back to demo data */ }
+    }
+    const pending = items.filter(i => i.status === 'pending');
+    body.innerHTML = pending.length ? pending.map(it => `
+      <tr>
+        <td style="font-size:12.5px;">${escapeHtml(it.name)}</td>
+        <td style="font-size:12.5px;">${escapeHtml(it.company)}</td>
+        <td style="font-size:12px;color:rgba(251,247,240,0.5);">${escapeHtml(it.email)}</td>
+        <td>${it.docPath ? `<button class="admin-action-btn" onclick="adminViewVerificationDoc('${escapeHtml(it.docPath)}')">View ID</button>` : '<span style="font-size:11.5px;color:rgba(251,247,240,0.4);">ID photo</span>'}</td>
+        <td style="font-size:11.5px;color:rgba(251,247,240,0.4);">${escapeHtml(it.submitted)}</td>
+        <td>
+          <button class="admin-action-btn success" onclick="approveVerification('${it.id}',${!!it.live})">Approve</button>
+          <button class="admin-action-btn danger" onclick="rejectVerification('${it.id}',${!!it.live})">Reject</button>
+        </td>
+      </tr>`).join('') : `<tr><td colspan="6" style="text-align:center;color:rgba(251,247,240,0.35);padding:24px;font-size:13px;">No pending verifications.</td></tr>`;
+    if(badge) badge.textContent = pending.length;
+  }
+  async function approveVerification(id, live){
+    const API = window.GigCuteAPI;
+    if(live && API){ try{ await API.admin.reviewVerification(id, true); }catch(e){ showToast(e.message||'Failed'); return; } }
+    else { const it = verificationQueue.find(x=>x.id===id); if(it) it.status='approved'; }
+    showToast('Recruiter verified — candidate access unlocked.');
+    track('verification_approved',{id});
+    renderAdminVerification();
+  }
+  async function rejectVerification(id, live){
+    const API = window.GigCuteAPI;
+    if(live && API){ try{ await API.admin.reviewVerification(id, false); }catch(e){ showToast(e.message||'Failed'); return; } }
+    else { const it = verificationQueue.find(x=>x.id===id); if(it) it.status='rejected'; }
+    showToast('Verification rejected.');
+    track('verification_rejected',{id});
+    renderAdminVerification();
+  }
+  async function adminViewVerificationDoc(path){
+    const API = window.GigCuteAPI;
+    if(API && API.enabled){
+      try{ const url = await API.admin.verificationDocUrl(path); window.open(url, '_blank', 'noopener'); }
+      catch(e){ showToast(e.message||'Could not open document'); }
+    } else { showToast('ID photo preview available once the backend is connected.'); }
+  }
+
   function renderAdminAnalytics(){
     const totalEvents = Object.values(eventCounts).reduce((a,b)=>a+b,0);
     document.getElementById('adminAnalyticsStrip').innerHTML = [
@@ -8230,6 +8510,7 @@
       document.querySelectorAll('.admin-panel-view').forEach(v=>v.classList.remove('active'));
       document.getElementById(`adminTab${tab.dataset.adminTab.charAt(0).toUpperCase()+tab.dataset.adminTab.slice(1)}`).classList.add('active');
       if(tab.dataset.adminTab==='analytics') renderAdminAnalytics();
+      if(tab.dataset.adminTab==='verification') renderAdminVerification();
       track('admin_tab',{tab:tab.dataset.adminTab});
     });
   });
@@ -8272,6 +8553,9 @@
   window.resolveReport = resolveReport;
   window.escalateReport = escalateReport;
   window.suspendUser = suspendUser;
+  window.approveVerification = approveVerification;
+  window.rejectVerification = rejectVerification;
+  window.adminViewVerificationDoc = adminViewVerificationDoc;
   window.adminToggleUser = adminToggleUser;
   window.adminViewUser = adminViewUser;
   window.adminSetPostingTier = adminSetPostingTier;
@@ -8409,7 +8693,12 @@
           if(currentLogoFile){ try{ company.logo_url = await API.companies.uploadLogo(currentLogoFile); }catch(e){ console.warn('logo upload failed', e.message); } }
           gcPendingSet({ kind:'company', company });
           await gcCompletePending(API);
-          showSuccess({ headline:`${companyName} is ready.`, sub:`Your company profile is live. Create your first posting so candidates can find you.`, primaryText:"Create your first posting", primaryAction:()=>{ editingId=null; resetPostingForm(); setWizardMode('create'); showScreen('screen-posting-1'); }, secondaryText:"Skip for now", secondaryAction:()=>enterApp('recruiter') });
+          // If they supplied an ID-verification photo (personal email path), submit it for review.
+          if(currentIdFile && API.verification){
+            try{ const docPath = await API.verification.uploadId(currentIdFile); await API.verification.submit({ docPath }); }
+            catch(e){ console.warn('ID verification upload failed', e.message); }
+          }
+          showSuccess({ headline:`${companyName} is ready.`, sub: currentIdFile ? `Thanks — your ID is in review. You'll be verified once approved, then candidate profiles unlock.` : `Your company profile is live. Create your first posting so candidates can find you.`, primaryText:"Create your first posting", primaryAction:()=>{ editingId=null; resetPostingForm(); setWizardMode('create'); showScreen('screen-posting-1'); }, secondaryText:"Skip for now", secondaryAction:()=>enterApp('recruiter') });
         } else {
           gcPendingSet({ kind:'company', company });
           showSuccess({ headline:"Check your email.", sub:`We sent a verification link to ${email}. Confirm it, then log in to finish setting up ${companyName}.`, primaryText:"Back to login", primaryAction:()=>showScreen('screen-login-recruiter') });

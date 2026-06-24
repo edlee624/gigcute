@@ -213,6 +213,33 @@ const companies = {
   },
 };
 
+// ---- ID verification (personal/flagged-email recruiters) ------------------
+const verification = {
+  // Upload the ID-selfie photo to the PRIVATE 'verification' bucket. Returns the
+  // storage path (not a public URL — the bucket has no public read).
+  async uploadId(file) {
+    const c = requireClient();
+    const { data: u } = await c.auth.getUser();
+    const path = `${u.user.id}/${Date.now()}_${safeName(file.name)}`;
+    const { error } = await c.storage.from('verification').upload(path, file, { upsert: true });
+    if (error) throw error;
+    return path;
+  },
+  // Create a review request linked to the uploader's company (if any).
+  async submit({ docPath }) {
+    const c = requireClient();
+    const { data: u } = await c.auth.getUser();
+    let company_id = null;
+    try {
+      const m = await c.from('companies').select('id').eq('owner_id', u.user.id).limit(1);
+      if (m.data && m.data[0]) company_id = m.data[0].id;
+    } catch (e) { /* company may not exist yet */ }
+    const { error } = await c.from('verification_requests')
+      .insert({ profile_id: u.user.id, company_id, doc_path: docPath });
+    if (error) throw error;
+  },
+};
+
 // ---- Admin ----------------------------------------------------------------
 const admin = {
   // Manually verify/unverify a company (server checks the caller is an admin).
@@ -221,6 +248,28 @@ const admin = {
       p_company: companyId, p_verified: verified,
     });
     if (error) throw error;
+  },
+  // Pending ID-verification requests (admin only via RLS).
+  async pendingVerifications() {
+    const { data, error } = await requireClient()
+      .from('verification_requests')
+      .select('*, profiles(full_name, email), companies(name)')
+      .eq('status', 'pending').order('created_at');
+    if (error) throw error;
+    return data;
+  },
+  // Approve/reject a request; approving also verifies the company.
+  async reviewVerification(requestId, approve, note) {
+    const { error } = await requireClient().rpc('admin_review_verification', {
+      p_request: requestId, p_approve: approve, p_note: note || null,
+    });
+    if (error) throw error;
+  },
+  // Signed URL to view a private verification doc (admin).
+  async verificationDocUrl(docPath, seconds = 120) {
+    const { data, error } = await requireClient().storage.from('verification').createSignedUrl(docPath, seconds);
+    if (error) throw error;
+    return data.signedUrl;
   },
 };
 
@@ -361,7 +410,7 @@ const reports = {
 window.GigCuteAPI = {
   enabled,
   supabase,
-  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin,
+  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification,
   isFreeEmailDomain,
 };
 
