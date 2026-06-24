@@ -435,6 +435,16 @@ const chat = {
     if (error) throw error;
     return data;
   },
+  // End-of-chat feedback.
+  async submitFeedback({ conversationId = null, experience, professionalism, match, note }) {
+    const c = requireClient();
+    const { data: u } = await c.auth.getUser();
+    const { error } = await c.from('chat_feedback').insert({
+      conversation_id: conversationId, rater_id: u.user.id,
+      experience, professionalism, match_accuracy: match, note: note || null,
+    });
+    if (error) throw error;
+  },
   // Live updates: invokes cb(message) on each new message. Returns an unsubscribe fn.
   subscribe(conversationId, cb) {
     if (!supabase) return () => {};
@@ -445,6 +455,26 @@ const chat = {
         payload => cb(payload.new))
       .subscribe();
     return () => supabase.removeChannel(ch);
+  },
+};
+
+// ---- Support tickets ------------------------------------------------------
+const support = {
+  async fileTicket({ type, aboutName = null, aboutId = null, details = '' }) {
+    const c = requireClient();
+    const { data: u } = await c.auth.getUser();
+    const { error } = await c.from('support_tickets').insert({
+      reporter_id: u.user?.id, type, about_name: aboutName, about_id: aboutId, details,
+    });
+    if (error) throw error;
+  },
+  // People the current user has chatted with (for the abuse-report picker).
+  async chattedWith() {
+    const c = requireClient();
+    const { data, error } = await c.from('conversations')
+      .select('id, postings(title, companies(name)), seeker_profiles(profile_id, headline)');
+    if (error) throw error;
+    return data || [];
   },
 };
 
@@ -461,7 +491,7 @@ const reports = {
 window.GigCuteAPI = {
   enabled,
   supabase,
-  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat,
+  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat, support,
   isFreeEmailDomain,
 };
 

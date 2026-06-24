@@ -150,6 +150,9 @@
   .cv-co{ font-weight:700; color:var(--paper); font-size:14px; width:38%; }
   .cv-role{ flex:1; color:rgba(251,247,240,0.6); font-size:13px; }
   .cv-go{ color:var(--coral); font-size:12px; font-weight:600; white-space:nowrap; }
+  .ic-templates{ display:flex; flex-wrap:wrap; gap:8px; }
+  .ic-tpl{ font-size:12.5px; color:rgba(251,247,240,0.75); background:var(--ink); border:1px solid var(--line-light); border-radius:999px; padding:6px 12px; cursor:pointer; font-family:'Inter',sans-serif; }
+  .ic-tpl:hover{ border-color:var(--coral); color:var(--coral); }
   /* Image logo (Logo-new.png) */
   .hero-logo{ width:360px; max-width:82vw; height:auto; display:block; border-radius:12px; }
   .brand-img{ height:30px; width:auto; display:block; border-radius:5px; }
@@ -3156,6 +3159,42 @@
     </div>
     <p class="cv-sub">These companies looked at your profile recently — here's what they're hiring for. Tap a role to view it.</p>
     <div class="cv-list" id="cvList"></div>
+  </div>
+</div>
+
+<!-- ============ SUPPORT TICKET ============ -->
+<div class="cv-overlay" id="supportOverlay" hidden>
+  <div class="cv-backdrop" id="supportBackdrop"></div>
+  <div class="cv-panel" style="width:480px;">
+    <div class="cv-head"><div class="cv-title">Get support</div>
+      <button class="cv-close" id="supportClose" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <p class="cv-sub">Tell us what's going on and we'll look into it.</p>
+    <div class="cf-q"><div class="cf-label">Issue type</div><div class="cf-opts">
+      <label><input type="radio" name="sup-type" value="technical" checked><span>Technical issue</span></label>
+      <label><input type="radio" name="sup-type" value="abuse"><span>User abuse</span></label>
+    </div></div>
+    <div class="field" id="supAbuseWrap" style="display:none;">
+      <label for="supAbout">Who is this about? (someone you've chatted with)</label>
+      <select id="supAbout"></select>
+    </div>
+    <div class="field"><label for="supDetails">Details</label><textarea id="supDetails" rows="4" placeholder="Describe the issue…"></textarea></div>
+    <div class="cf-actions"><button class="cf-cancel" id="supCancel" type="button">Cancel</button><button class="cf-submit" id="supSubmit" type="button">Submit ticket</button></div>
+  </div>
+</div>
+
+<!-- ============ INVITE COMPOSE (recruiter intro message) ============ -->
+<div class="cv-overlay" id="inviteComposeOverlay" hidden>
+  <div class="cv-backdrop" id="icBackdrop"></div>
+  <div class="cv-panel" style="width:520px;">
+    <div class="cv-head"><div class="cv-title" id="icTitle">Invite to chat</div>
+      <button class="cv-close" id="icClose" type="button" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <p class="cv-sub">Add a short intro message — candidates respond far more to a personal note. Pick a template or write your own.</p>
+    <div class="cf-label">Templates</div>
+    <div class="ic-templates" id="icTemplates"></div>
+    <div class="field" style="margin-top:12px;"><label for="icMessage">Your message</label><textarea id="icMessage" rows="4" placeholder="Hi! We loved your profile…"></textarea></div>
+    <div class="cf-actions"><button class="cf-cancel" id="icCancel" type="button">Cancel</button><button class="cf-submit" id="icSend" type="button">Send invite</button></div>
   </div>
 </div>
 
@@ -7462,7 +7501,9 @@
   function getActiveInvites(posting){ return (posting.invites||[]); }
   function getSuperInvites(posting){ return (posting.superInvites||[]); }
 
-  function inviteCandidate(posting, candName, isSuper){
+  function inviteCandidate(posting, candName, isSuper, note){
+    // First click (no note yet) → open the compose modal to add an intro message.
+    if(note === undefined){ openInviteCompose(posting, candName, isSuper); return; }
     const tier = POSTING_TIERS[posting.tier||'free'];
     const invites = isSuper ? posting.superInvites : posting.invites;
     const max = isSuper ? (tier.maxSuperInvites||3) : (tier.maxInvites||3);
@@ -7472,6 +7513,8 @@
       return;
     }
     invites.push(candName);
+    posting.inviteNotes = posting.inviteNotes || {};
+    if(note) posting.inviteNotes[candName] = note;
     track('invite_sent',{posting:posting.id, cand:candName, super:isSuper});
     showToast(isSuper ? `⭐ Super Invite sent to ${lastInitial(candName)}.` : `Invite sent to ${lastInitial(candName)}.`);
     // Re-render the detail body
@@ -8726,6 +8769,7 @@
   window.showConfirm = showConfirm;
   window.inviteCandidate = inviteCandidate;
   window.rescindInvite = rescindInvite;
+  window.postings = postings;   // inline candidate-card onclicks reference postings.find(...)
   window.showExtensionModal = showExtensionModal;
   window.resolveReport = resolveReport;
   window.escalateReport = escalateReport;
@@ -8962,7 +9006,7 @@
     document.getElementById('ndPostings').onclick    = () => { close(); navigate('/postings'); };
     document.getElementById('ndNewPosting').onclick  = () => { close(); document.getElementById('navNewPostingBtn').click(); };
     document.getElementById('ndSettings').onclick    = () => { close(); showToast('Settings & privacy — coming soon.'); };
-    document.getElementById('ndHelp').onclick        = () => { close(); showToast('Help center — coming soon.'); };
+    document.getElementById('ndHelp').onclick        = () => { close(); if(window.openSupport) window.openSupport(); };
     document.getElementById('ndSignOut').onclick     = async () => {
       close();
       const API = window.GigCuteAPI;
@@ -9096,9 +9140,15 @@
     // End chat + feedback
     endBtn.onclick = () => { feedbackEl.hidden = false; composerEl.style.display = 'none'; feedbackEl.scrollIntoView({block:'nearest'}); };
     document.getElementById('cfCancel').onclick = () => { feedbackEl.hidden = true; composerEl.style.display = 'flex'; };
-    document.getElementById('cfSubmit').onclick = () => {
-      const get = n => (document.querySelector('input[name="cf-'+n+'"]:checked')||{}).value || '—';
-      track('chat_feedback', { experience:get('experience'), professionalism:get('professionalism'), match:get('match') });
+    document.getElementById('cfSubmit').onclick = async () => {
+      const get = n => (document.querySelector('input[name="cf-'+n+'"]:checked')||{}).value || null;
+      const fb = { experience:get('experience'), professionalism:get('professionalism'), match:get('match') };
+      track('chat_feedback', fb);
+      const api = API();
+      if(api && api.enabled){
+        try{ await api.chat.submitFeedback({ conversationId: (demoConv ? null : threadEl.dataset.conv) || null, ...fb }); }
+        catch(e){ console.warn('feedback save failed', e.message); }
+      }
       feedbackEl.querySelectorAll('input[type=radio]').forEach(r => r.checked = false);
       showToast('Thanks for the feedback — chat ended.');
       renderList();
@@ -9110,6 +9160,71 @@
     window.openChatDrawer = openDrawer;
     window.openConversation = (id, title) => { openDrawer(); openConv(id, title); };
   })();
+
+  // ================= INVITE COMPOSE (recruiter intro + templates) =================
+  let __icCtx = null;
+  const INVITE_TEMPLATES = [
+    "Hi {name} — your profile really stood out to us. Would love to chat about the {role} role.",
+    "We're impressed by your background and think you'd be a great fit here. Open to connecting?",
+    "Your experience lines up well with what we're building. Got time for a quick chat?",
+    "Loved your prompt answers — they show exactly the kind of thinking we need. Let's talk!"
+  ];
+  function renderInviteTemplates(){
+    const el = document.getElementById('icTemplates');
+    el.innerHTML = INVITE_TEMPLATES.map((t,i)=>`<button class="ic-tpl" data-tpl="${i}" type="button">${escapeHtml(t.slice(0,40))}…</button>`).join('');
+    el.querySelectorAll('[data-tpl]').forEach(b => b.onclick = () => {
+      let t = INVITE_TEMPLATES[Number(b.dataset.tpl)];
+      if(__icCtx) t = t.replace('{name}', lastInitial(__icCtx.candName)).replace('{role}', (__icCtx.posting && __icCtx.posting.title) || 'this role');
+      document.getElementById('icMessage').value = t;
+    });
+  }
+  function openInviteCompose(posting, candName, isSuper){
+    __icCtx = { posting, candName, isSuper };
+    document.getElementById('icTitle').textContent = (isSuper ? '⭐ Super Invite ' : 'Invite ') + lastInitial(candName);
+    document.getElementById('icMessage').value = '';
+    renderInviteTemplates();
+    document.getElementById('inviteComposeOverlay').hidden = false;
+  }
+  function closeInviteCompose(){ document.getElementById('inviteComposeOverlay').hidden = true; }
+  document.getElementById('icCancel').onclick = closeInviteCompose;
+  document.getElementById('icClose').onclick = closeInviteCompose;
+  document.getElementById('icBackdrop').onclick = closeInviteCompose;
+  document.getElementById('icSend').onclick = () => {
+    if(!__icCtx) return;
+    const note = document.getElementById('icMessage').value.trim();
+    closeInviteCompose();
+    inviteCandidate(__icCtx.posting, __icCtx.candName, __icCtx.isSuper, note || ' ');
+  };
+
+  // ================= SUPPORT TICKET =================
+  function openSupport(){
+    document.querySelector('input[name="sup-type"][value="technical"]').checked = true;
+    document.getElementById('supAbuseWrap').style.display = 'none';
+    document.getElementById('supDetails').value = '';
+    const sel = document.getElementById('supAbout');
+    let names = [];
+    try{ if(typeof candidateInvites !== 'undefined') names = candidateInvites.filter(i=>!i.intro).map(i=>`${i.company} — ${i.role}`); }catch(e){}
+    sel.innerHTML = (names.length ? names : ['(no chats yet)']).map(n => `<option>${escapeHtml(n)}</option>`).join('');
+    document.getElementById('supportOverlay').hidden = false;
+  }
+  function closeSupport(){ document.getElementById('supportOverlay').hidden = true; }
+  document.querySelectorAll('input[name="sup-type"]').forEach(r => r.onchange = () => {
+    document.getElementById('supAbuseWrap').style.display = (document.querySelector('input[name="sup-type"]:checked').value === 'abuse') ? 'block' : 'none';
+  });
+  document.getElementById('supCancel').onclick = closeSupport;
+  document.getElementById('supportClose').onclick = closeSupport;
+  document.getElementById('supportBackdrop').onclick = closeSupport;
+  document.getElementById('supSubmit').onclick = async () => {
+    const type = document.querySelector('input[name="sup-type"]:checked').value;
+    const aboutName = type === 'abuse' ? document.getElementById('supAbout').value : null;
+    const details = document.getElementById('supDetails').value.trim();
+    const api = window.GigCuteAPI;
+    if(api && api.enabled){ try{ await api.support.fileTicket({ type, aboutName, details }); }catch(e){ showToast(e.message || 'Could not submit'); return; } }
+    track('support_ticket', { type });
+    closeSupport();
+    showToast("Support ticket submitted — we'll be in touch.");
+  };
+  window.openSupport = openSupport;
 
   // Tag all seeded demo content with a "DEMO-" prefix so new users can explore
   // the site but tell sample postings/profiles apart from real ones. Real
