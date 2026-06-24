@@ -118,6 +118,10 @@
   .chat-send:hover{ background:var(--coral-dim); }
   /* Messages nav button + unread dot */
   .ds-nav-btn.has-unread::after{ content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--coral); margin-left:6px; vertical-align:middle; }
+  /* Landing brand story icons (job-seeker ♥ employer) */
+  .brand-icons{ display:flex; align-items:center; justify-content:center; gap:14px; }
+  .brand-icons svg{ width:26px; height:26px; color:rgba(251,247,240,0.7); }
+  .brand-icons .bi-heart{ width:24px; height:24px; color:var(--coral); }
 
   /* Landing pre-register banner */
   .prereg-banner{
@@ -3084,8 +3088,14 @@
 <!-- ============ SCREEN: LANDING / ROLE PICKER ============ -->
 <div class="screen flow-screen active" id="screen-landing">
   <div class="ob-shell">
-    <div class="ob-top" style="justify-content:center;">
-      <div class="wordmark" style="font-size:30px;">GigCute<span>.</span></div>
+    <div class="ob-top" style="justify-content:center; flex-direction:column; gap:10px;">
+      <div class="wordmark" style="font-size:38px;">GigCute<span>.</span></div>
+      <!-- Brand story: job-seeker ♥ employer (inline SVG: scalable, transparent) -->
+      <div class="brand-icons" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+        <svg viewBox="0 0 24 24" class="bi-heart" fill="currentColor" stroke="none"><path d="M12 21s-7.5-4.6-10-9.3C.4 8.4 2 5 5.3 5c2 0 3.3 1.1 4.2 2.3l.5.7.5-.7C11.4 6.1 12.7 5 14.7 5 18 5 19.6 8.4 22 11.7 19.5 16.4 12 21 12 21z"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      </div>
     </div>
 
     <div class="prereg-banner">
