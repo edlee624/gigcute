@@ -4817,7 +4817,7 @@
 
   document.getElementById('pickSeeker').onclick = () => showScreen('screen-seeker-1');
   document.getElementById('pickEmployer').onclick = () => showScreen('screen-employer-1');
-  document.getElementById('skipToDemo').onclick = () => showScreen('screen-app');
+  document.getElementById('skipToDemo').onclick = () => { demoMode = true; showScreen('screen-app'); setMode('candidate'); };
   { const a=document.getElementById('lmSeekerCta'); if(a) a.onclick = () => showScreen('screen-seeker-1'); }
   { const a=document.getElementById('lmRecruiterCta'); if(a) a.onclick = () => showScreen('screen-employer-1'); }
 
@@ -6712,6 +6712,26 @@
   let history = [];
   const swipeDeck = [...jobs];
 
+  // ---- Demo experience state ----
+  // demoMode = entered via "Skip registration" (not a real logged-in account).
+  // In demo mode both top-left mode buttons are exposed so one person can try the
+  // job-seeking AND hiring experiences, and matches/invites open real (in-memory)
+  // chats that persist across mode switches.
+  let demoMode = false;
+  let demoChats = [];           // {id, title, role, side:'seeker'|'recruiter', messages:[{body,mine}], greeting, greeted}
+  let __demoChatSeq = 1;
+  function findDemoChat(side, title, role){
+    return demoChats.find(c => c.side === side && c.title === title && c.role === role);
+  }
+  function addDemoChat({ side, title, role, greeting }){
+    let c = findDemoChat(side, title, role);
+    if(c) return c;
+    c = { id: 'demo-' + (__demoChatSeq++), title, role, side, messages: [], greeting: greeting || '', greeted:false };
+    demoChats.unshift(c);
+    return c;
+  }
+  window.__openDemoChat = null; // set by the chat-drawer IIFE
+
   const stage = document.getElementById('stage');
   const hintText = document.getElementById('hintText');
 
@@ -7490,15 +7510,30 @@
     },260);
   }
 
+  let __lastMatch = null;
   function showMatch(item){
+    __lastMatch = item;
     const overlay=document.getElementById('matchOverlay');
     document.getElementById('matchAvatars').innerHTML=`<div class="av" style="background-image:url('${item.photo}')"></div><div class="av" style="background-image:url('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300&q=80')"></div>`;
     document.getElementById('matchText').textContent=`${item.name} liked your profile too. The chat's open.`;
     overlay.classList.add('show');
   }
+  // Open (creating if needed) the seeker-side demo chat for a matched role.
+  function openMatchChat(item){
+    const role = (item.role||item.title||'this role').replace(/^Hiring:\s*/,'');
+    const chat = addDemoChat({
+      side:'seeker', title:item.name, role,
+      greeting:`Hi! We loved your profile and would love to chat about the ${role} role. When are you free?`
+    });
+    if(window.__openDemoChat) window.__openDemoChat(chat);
+  }
 
   document.getElementById('keepSwiping').onclick=()=>{document.getElementById('matchOverlay').classList.remove('show');render();};
-  document.getElementById('sendMessage').onclick=()=>{document.getElementById('matchOverlay').classList.remove('show');render();};
+  document.getElementById('sendMessage').onclick=()=>{
+    document.getElementById('matchOverlay').classList.remove('show');
+    if(__lastMatch) openMatchChat(__lastMatch);
+    render();
+  };
   document.getElementById('likeBtn').onclick=()=>{if(currentDeck().length)resolveSwipe('like');};
   document.getElementById('passBtn').onclick=()=>{if(currentDeck().length)resolveSwipe('pass');};
   document.getElementById('undoBtn').onclick=()=>{const last=history.pop();if(!last)return;swipeDeck.unshift(last.item);render();};
@@ -7786,6 +7821,14 @@
     if(note) posting.inviteNotes[candName] = note;
     track('invite_sent',{posting:posting.id, cand:candName, super:isSuper});
     showToast(isSuper ? `⭐ Super Invite sent to ${lastInitial(candName)}.` : `Invite sent to ${lastInitial(candName)}.`);
+    // Open a recruiter-side demo chat so the conversation is clickable from
+    // Messages (the candidate "accepts" and replies). Seeded with the intro note.
+    const __role = (posting && posting.title) || 'this role';
+    const __chat = addDemoChat({
+      side:'recruiter', title:candName, role:__role,
+      greeting:`Thanks for the ${isSuper?'super ':''}invite — I'd love to learn more about the ${__role} role!`
+    });
+    if(note && note.trim() && !__chat.messages.length) __chat.messages.push({ body:note.trim(), mine:true });
     // Re-render the detail body
     const p = postings.find(x=>x.id===activePostingId);
     if(p) activatePostingTab(activeDetailTab,
@@ -8350,7 +8393,7 @@
       navNewPost.style.display = 'none';
       navProfile.style.display = '';
       document.getElementById('lookingModeBtn').style.display = '';
-      document.getElementById('hiringModeBtn').style.display = 'none';
+      document.getElementById('hiringModeBtn').style.display = demoMode ? '' : 'none';
       document.getElementById('navViewProfileBtn').style.display = '';
     } else {
       seekPane.classList.remove('active');
@@ -8358,7 +8401,7 @@
       navPostings.style.display = '';
       navNewPost.style.display = '';
       navProfile.style.display = 'none';
-      document.getElementById('lookingModeBtn').style.display = 'none';
+      document.getElementById('lookingModeBtn').style.display = demoMode ? '' : 'none';
       document.getElementById('hiringModeBtn').style.display = '';
       document.getElementById('navViewProfileBtn').style.display = 'none';
       showHireView('postings');
@@ -9147,6 +9190,7 @@
   // Activates only when public/config.js is present (GigCuteAPI.enabled).
   // Otherwise the demo/simulated auth handlers above remain in effect.
   function enterApp(mode){
+    demoMode = false;        // real, single-role account
     showScreen('screen-app');
     setMode(mode);
     if(mode === 'candidate'){ renderDashboard(); loadBackendPostingsIntoDeck(); }
@@ -9418,6 +9462,18 @@
       if(invite.intro) introMessages().forEach(t => renderLocal(t, false));
       else renderLocal(`Hi! Thanks for accepting — we'd love to learn more about you for the ${invite.role} role. When are you free to chat?`, false);
     }
+    // Open an in-memory demo conversation (from a match or a sent invite).
+    function openDemoChatThread(chat){
+      demoConv = { chat };
+      enterThread(chat.title || 'Chat');
+      if(!chat.messages.length && chat.greeting && !chat.greeted){
+        chat.messages.push({ body: chat.greeting, mine:false });
+        chat.greeted = true;
+      }
+      chat.messages.forEach(m => renderLocal(m.body, m.mine));
+    }
+    window.__openDemoChat = (chat) => { drawer.hidden = false; showListView(); openDemoChatThread(chat); };
+
     function openDrawer(){ drawer.hidden = false; renderList(); }
     function closeDrawer(){ drawer.hidden = true; teardown(); }
 
@@ -9453,9 +9509,22 @@
           }
         }catch(e){ html += '<div class="chat-empty">Couldn’t load chats: ' + escapeHtml(e.message||'') + '</div>'; }
       }
+      // ---- Demo chats (matches you made + invites you sent) ----
+      if(demoChats.length){
+        html += '<div class="chat-group-label">Chats</div>';
+        html += demoChats.map(c => {
+          const tag = c.side === 'recruiter' ? 'Candidate' : 'Company';
+          const av = (c.title||'?').trim().charAt(0).toUpperCase() || '?';
+          return `<div class="chat-conv" data-demo="${c.id}"><div class="chat-conv-av">${escapeHtml(av)}</div><div class="chat-conv-main"><div class="chat-conv-name">${escapeHtml(c.title)}</div><div class="chat-conv-sub">${escapeHtml(c.role)} · ${tag}</div></div></div>`;
+        }).join('');
+      }
       if(!html){ html = '<div class="chat-empty">No invitations or chats yet.<br>When you and a company both show interest — or an invite is accepted — a chat opens here.</div>'; }
       listEl.innerHTML = html;
       listEl.querySelectorAll('[data-conv]').forEach(row => row.onclick = () => openConv(row.dataset.conv, row.dataset.title));
+      listEl.querySelectorAll('[data-demo]').forEach(row => row.onclick = () => {
+        const c = demoChats.find(x => x.id === row.dataset.demo);
+        if(c) openDemoChatThread(c);
+      });
       listEl.querySelectorAll('[data-invite]').forEach(row => row.onclick = () => {
         const inv = (typeof candidateInvites !== 'undefined') ? candidateInvites.find(x => x.id === Number(row.dataset.invite)) : null;
         if(inv) openInviteChat(inv);
@@ -9491,6 +9560,15 @@
       input.value = '';
       if(demoConv){
         renderLocal(body, true);
+        if(demoConv.chat){
+          demoConv.chat.messages.push({ body, mine:true });
+          const replies = demoConv.chat.side === 'recruiter'
+            ? ["Sounds great — I'm definitely interested. What are the next steps?","Thanks for reaching out! Could you tell me more about the team?","That works for me. I'm excited to learn more."]
+            : ["Thanks for the quick reply! Could we set up a short call this week?","Great — your background looks like a strong fit. What's your availability?","Appreciate it! I'll send over a couple of times that work."];
+          const reply = replies[demoConv.chat.messages.length % replies.length];
+          setTimeout(() => { if(demoConv && demoConv.chat){ demoConv.chat.messages.push({ body: reply, mine:false }); renderLocal(reply, false); } }, 700);
+          return;
+        }
         if(demoConv.invite && demoConv.invite.intro) setTimeout(() => renderLocal("Great — dive into the roles and fill out your prompts. That's the fastest way to get noticed. 🚀", false), 600);
         return;
       }
