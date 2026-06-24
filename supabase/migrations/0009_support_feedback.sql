@@ -34,3 +34,7 @@ alter table public.support_tickets enable row level security;
 create policy "tickets: insert auth" on public.support_tickets for insert with check (auth.uid() is not null);
 create policy "tickets: own/admin read" on public.support_tickets for select using (reporter_id = auth.uid() or public.is_admin());
 create policy "tickets: admin update" on public.support_tickets for update using (public.is_admin());
+
+-- Grants (anon/authenticated need these in addition to RLS, per migration 0006).
+grant select, insert, update on public.chat_feedback   to authenticated;
+grant select, insert, update on public.support_tickets to authenticated;

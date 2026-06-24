@@ -37,6 +37,9 @@
   /* Onboarding/flow screens: still centered, max-width pill on desktop */
   .screen.flow-screen{ display:none; min-height:100vh; align-items:center; justify-content:center; padding:28px 14px; }
   .screen.flow-screen.active{ display:flex; }
+  /* Landing stacks vertically (login on top, value-prop sections below, scrollable) */
+  #screen-landing.flow-screen{ flex-direction:column; justify-content:flex-start; align-items:stretch; padding-left:0; padding-right:0; }
+  #screen-landing .ob-shell{ padding:0 14px; }
   /* App screen: full desktop layout */
   .screen.app-screen{ display:none; }
   .screen.app-screen.active{ display:block; }
@@ -162,6 +165,77 @@
   .brand-icons{ display:flex; align-items:center; justify-content:center; gap:14px; }
   .brand-icons svg{ width:26px; height:26px; color:rgba(251,247,240,0.7); }
   .brand-icons .bi-heart{ width:24px; height:24px; color:var(--coral); }
+
+  /* ===== Landing value-prop sections (seekers + recruiters) ===== */
+  .lm-wide{ max-width:1080px; margin:0 auto; padding:0 24px; }
+  .lm-section{ padding:72px 0; border-top:1px solid var(--line-light); }
+  .lm-eyebrow{ font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--coral); text-align:center; margin-bottom:14px; }
+  .lm-eyebrow.sage{ color:#9fc2ad; }
+  .lm-h2{ font-family:'Fraunces',serif; font-size:34px; font-weight:600; line-height:1.15; text-align:center; color:var(--paper); margin:0 auto 16px; max-width:640px; }
+  .lm-h2 em{ color:var(--coral); font-style:italic; }
+  .lm-h2 em.sage{ color:#9fc2ad; }
+  .lm-sub{ font-size:16px; color:rgba(251,247,240,0.6); line-height:1.55; text-align:center; margin:0 auto 48px; max-width:560px; }
+  .lm-value-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+  .lm-value-card{ background:var(--ink-soft); border:1px solid var(--line-light); border-radius:18px; padding:28px 26px; }
+  .lm-value-card .lm-vc-icon{ width:44px;height:44px;border-radius:12px; background:rgba(255,90,60,0.12); border:1px solid rgba(255,90,60,0.3); display:flex;align-items:center;justify-content:center; margin-bottom:16px; }
+  .lm-value-card.sage .lm-vc-icon{ background:rgba(61,90,76,0.25); border-color:rgba(87,116,99,0.5); }
+  .lm-value-card .lm-vc-icon svg{ width:22px;height:22px;color:var(--coral); }
+  .lm-value-card.sage .lm-vc-icon svg{ color:#9fc2ad; }
+  .lm-value-card h3{ font-family:'Fraunces',serif; font-size:19px; margin:0 0 8px; color:var(--paper); }
+  .lm-value-card p{ font-size:14px; color:rgba(251,247,240,0.55); line-height:1.55; margin:0; }
+  .lm-shots{ display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:center; margin-top:8px; }
+  .lm-shots.reverse .lm-shot-text{ order:2; }
+  .lm-shot-text h3{ font-family:'Fraunces',serif; font-size:24px; margin:0 0 12px; color:var(--paper); line-height:1.2; }
+  .lm-shot-text h3 em{ color:var(--coral); font-style:italic; }
+  .lm-shot-text p{ font-size:15px; color:rgba(251,247,240,0.6); line-height:1.6; margin:0 0 14px; }
+  .lm-shot-list{ list-style:none; padding:0; margin:0; }
+  .lm-shot-list li{ display:flex; align-items:flex-start; gap:10px; font-size:14px; color:rgba(251,247,240,0.7); margin-bottom:9px; line-height:1.45; }
+  .lm-shot-list li svg{ width:16px;height:16px;color:var(--coral);flex-shrink:0;margin-top:2px; }
+  .lm-frame{ background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px; overflow:hidden; box-shadow:0 30px 60px -25px rgba(0,0,0,0.6); }
+  .lm-frame-bar{ height:34px; background:rgba(10,10,12,0.5); border-bottom:1px solid var(--line-light); display:flex; align-items:center; gap:6px; padding:0 13px; }
+  .lm-frame-bar .dot{ width:10px;height:10px;border-radius:50%; }
+  .lm-frame-bar .dot.r{ background:#ff5f57; } .lm-frame-bar .dot.y{ background:#febc2e; } .lm-frame-bar .dot.g{ background:#28c840; }
+  .lm-frame-body{ padding:20px; }
+  .mock-prompt{ background:var(--ink); border:1px solid var(--line-light); border-radius:13px; padding:15px 17px; margin-bottom:11px; }
+  .mock-prompt:last-child{ margin-bottom:0; }
+  .mock-prompt .mp-label{ font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--coral); margin-bottom:7px; }
+  .mock-prompt .mp-answer{ font-family:'Fraunces',serif; font-size:15px; color:var(--paper); line-height:1.4; font-style:italic; }
+  .mock-prompt .mp-rate{ display:flex; gap:7px; margin-top:11px; align-items:center; }
+  .mock-prompt .mp-rate span{ font-size:11px; color:rgba(251,247,240,0.4); margin-right:auto; }
+  .mock-rate-btn{ width:28px;height:28px;border-radius:8px; border:1px solid var(--line-light); background:var(--ink-soft); display:flex;align-items:center;justify-content:center; }
+  .mock-rate-btn svg{ width:14px;height:14px;color:rgba(251,247,240,0.5); }
+  .mock-rate-btn.up{ border-color:rgba(87,116,99,0.5); } .mock-rate-btn.up svg{ color:#9fc2ad; }
+  .mock-profile-head{ display:flex; gap:14px; align-items:center; margin-bottom:16px; }
+  .mock-pf-photo{ width:52px;height:52px;border-radius:50%;background-size:cover;background-position:center;flex-shrink:0;border:2px solid rgba(255,90,60,0.6); }
+  .mock-pf-name{ font-family:'Fraunces',serif; font-size:17px; color:var(--paper); }
+  .mock-pf-title{ font-size:12.5px; color:rgba(251,247,240,0.5); }
+  .mock-tags{ display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; }
+  .mock-tag{ background:var(--ink); border:1px solid var(--line-light); border-radius:6px; padding:3px 8px; font-size:10.5px; color:rgba(251,247,240,0.6); }
+  .lm-compare{ background:var(--ink-soft); border:1px solid var(--line-light); border-radius:18px; overflow:hidden; margin-top:8px; }
+  .lm-compare table{ width:100%; border-collapse:collapse; }
+  .lm-compare th, .lm-compare td{ padding:16px 20px; text-align:left; border-bottom:1px solid var(--line-light); }
+  .lm-compare thead th{ font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:rgba(251,247,240,0.4); }
+  .lm-compare thead th.gigcute{ color:var(--coral); }
+  .lm-compare tbody td:first-child{ font-size:14px; color:rgba(251,247,240,0.75); font-weight:500; }
+  .lm-compare tbody td{ font-size:14px; color:rgba(251,247,240,0.55); }
+  .lm-compare td.gigcute-col{ color:var(--paper); font-weight:600; background:rgba(255,90,60,0.05); }
+  .lm-compare tr:last-child td{ border-bottom:none; }
+  .lm-compare .price-big{ font-family:'Fraunces',serif; font-size:22px; font-weight:700; }
+  .lm-compare .price-big.coral{ color:var(--coral); }
+  .lm-check{ width:17px;height:17px;color:#9fc2ad;vertical-align:-3px; }
+  .lm-x{ width:15px;height:15px;color:rgba(251,247,240,0.25);vertical-align:-2px; }
+  .lm-cta-row{ text-align:center; margin-top:44px; }
+  .lm-cta-btn{ background:var(--coral); border:none; border-radius:12px; color:var(--paper); font-family:'Inter',sans-serif; font-size:15px; font-weight:700; padding:15px 34px; cursor:pointer; transition:opacity .15s; }
+  .lm-cta-btn:hover{ opacity:0.88; }
+  .lm-cta-btn.sage{ background:var(--sage); }
+  .lm-cta-sub{ font-size:13px; color:rgba(251,247,240,0.4); margin-top:12px; }
+  @media (max-width:760px){
+    .lm-value-grid{ grid-template-columns:1fr; }
+    .lm-shots{ grid-template-columns:1fr; }
+    .lm-shots.reverse .lm-shot-text{ order:0; }
+    .lm-h2{ font-size:26px; }
+    .lm-compare{ overflow-x:auto; }
+  }
 
   /* Landing pre-register banner */
   .prereg-banner{
@@ -3260,6 +3334,136 @@
     </div>
     <div class="ob-divider">OR</div>
     <button class="ob-secondary" id="skipToDemo" type="button">Skip registration, see the demo app</button>
+  </div>
+
+  <!-- ============ FOR JOB SEEKERS ============ -->
+  <div class="lm-section" style="width:100%;">
+    <div class="lm-wide">
+      <div class="lm-eyebrow">For job seekers</div>
+      <h2 class="lm-h2">You're more than a <em>resume</em>. We built a profile that proves it.</h2>
+      <p class="lm-sub">Resumes flatten you into bullet points and buzzwords. GigCute lets you answer prompts that show how you actually think — so recruiters meet the real you before they ever see a match.</p>
+      <div class="lm-shots">
+        <div class="lm-shot-text">
+          <h3>Answer prompts that <em>show who you are</em></h3>
+          <p>Pick from dozens of prompts and answer in your own voice. Your answers sit right alongside your work history — the first thing a recruiter reads.</p>
+          <ul class="lm-shot-list">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Stand out with substance, not keyword stuffing</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Recruiters rate your answers, training better matches</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Your last name stays private until you both opt in</li>
+          </ul>
+        </div>
+        <div class="lm-frame">
+          <div class="lm-frame-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+          <div class="lm-frame-body">
+            <div class="mock-prompt">
+              <div class="mp-label">My superpower at work</div>
+              <div class="mp-answer">"Turning messy, ambiguous problems into something a whole team can rally around."</div>
+              <div class="mp-rate"><span>Did you like this answer?</span>
+                <div class="mock-rate-btn up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg></div>
+                <div class="mock-rate-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zm7-13h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/></svg></div>
+              </div>
+            </div>
+            <div class="mock-prompt">
+              <div class="mp-label">I'm proudest of</div>
+              <div class="mp-answer">"The redesign that moved our core metric 23 points in six weeks."</div>
+              <div class="mp-rate"><span>Did you like this answer?</span>
+                <div class="mock-rate-btn up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg></div>
+                <div class="mock-rate-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zm7-13h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/></svg></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="lm-value-grid" style="margin-top:56px;">
+        <div class="lm-value-card">
+          <div class="lm-vc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></div>
+          <h3>No more black holes</h3>
+          <p>Every posting on GigCute is actively managed by a real recruiter. No applications vanishing into an ATS, ever.</p>
+        </div>
+        <div class="lm-value-card">
+          <div class="lm-vc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>
+          <h3>Mutual interest only</h3>
+          <p>You only match when a company is interested too. No rejection letters, no one-sided applications — just genuine two-way interest.</p>
+        </div>
+        <div class="lm-value-card">
+          <div class="lm-vc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
+          <h3>Get invited directly</h3>
+          <p>Recruiters can invite you to chat — and a ⭐ Super Invite means a company is seriously excited to talk to you.</p>
+        </div>
+      </div>
+      <div class="lm-cta-row">
+        <button class="lm-cta-btn" id="lmSeekerCta">Create your profile — free</button>
+        <div class="lm-cta-sub">Takes 5 minutes. Your last name stays private.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ FOR RECRUITERS ============ -->
+  <div class="lm-section" style="width:100%;">
+    <div class="lm-wide">
+      <div class="lm-eyebrow sage">For recruiters</div>
+      <h2 class="lm-h2">Hire from a pool that <em class="sage">actually wants to talk</em> to you.</h2>
+      <p class="lm-sub">Every candidate has opted in. Post a role for free, see who's interested, and only pay when you want more reach. No per-seat contracts, no annual lock-in, no recruiter agency fees.</p>
+      <div class="lm-shots reverse">
+        <div class="lm-shot-text">
+          <h3>Read how candidates <em>think</em> — then invite the best</h3>
+          <p>See substance-first profiles with rated prompt answers, full work history, and match scores. Invite candidates to chat, or send a Super Invite to signal serious interest.</p>
+          <ul class="lm-shot-list">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Post your first role completely free</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>AI surfaces your strongest-fit candidates</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Upgrade per-posting only when you need to</li>
+          </ul>
+        </div>
+        <div class="lm-frame">
+          <div class="lm-frame-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+          <div class="lm-frame-body">
+            <div class="mock-profile-head">
+              <div class="mock-pf-photo" style="background-image:url('https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=200&q=80')"></div>
+              <div>
+                <div class="mock-pf-name">Maya O.</div>
+                <div class="mock-pf-title">Senior Product Designer · 8 yrs</div>
+                <div class="mock-tags"><span class="mock-tag">$140–175K</span><span class="mock-tag">Remote</span><span class="mock-tag">94% match</span></div>
+              </div>
+            </div>
+            <div class="mock-prompt" style="margin-bottom:11px;">
+              <div class="mp-label">My superpower at work</div>
+              <div class="mp-answer">"Turning ambiguity into quarterly plans the team actually believes in."</div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <div style="flex:1; background:var(--sage); color:var(--paper); border-radius:8px; padding:9px 0; text-align:center; font-size:12.5px; font-weight:700;">Invite to chat</div>
+              <div style="flex:1; background:linear-gradient(135deg,#d4a017,#e8c848); color:var(--ink); border-radius:8px; padding:9px 0; text-align:center; font-size:12.5px; font-weight:800;">⭐ Super Invite</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:64px;">
+        <div class="lm-eyebrow sage">Pricing that makes sense</div>
+        <h2 class="lm-h2">A fraction of what you pay <em class="sage">everywhere else</em>.</h2>
+        <p class="lm-sub">Traditional job boards and recruiter agencies charge thousands per hire. GigCute is priced per posting, with a free tier that actually works.</p>
+        <div class="lm-compare">
+          <table>
+            <thead><tr><th>What it costs to fill one role</th><th class="gigcute">GigCute</th><th>LinkedIn Recruiter</th><th>Indeed Sponsored</th><th>Recruiter agency</th></tr></thead>
+            <tbody>
+              <tr><td>Post a job</td><td class="gigcute-col">Free</td><td>~$199/mo seat</td><td>$5–15 / click</td><td>—</td></tr>
+              <tr><td>See interested candidates</td><td class="gigcute-col">First 10 free</td><td>Add-on</td><td>Pay per click</td><td>Included</td></tr>
+              <tr><td>Full candidate access</td><td class="gigcute-col">$79 / posting</td><td>$835+/mo</td><td>Varies</td><td>Included</td></tr>
+              <tr><td>Typical total per hire</td><td class="gigcute-col"><span class="price-big coral">$79–199</span></td><td><span class="price-big">$2,000+</span></td><td><span class="price-big">$1,500+</span></td><td><span class="price-big">15–25%</span><br><span style="font-size:11px;color:rgba(251,247,240,0.4);">of salary ($20K+)</span></td></tr>
+              <tr><td>Candidates pre-opted in</td><td class="gigcute-col"><svg class="lm-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg> Always</td><td><svg class="lm-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></td><td><svg class="lm-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></td><td><svg class="lm-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></td></tr>
+              <tr><td>Annual contract required</td><td class="gigcute-col"><svg class="lm-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg> Never</td><td>Usually</td><td>No</td><td>Per-hire fee</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="text-align:center; font-size:12px; color:rgba(251,247,240,0.35); margin-top:14px;">Competitor pricing reflects publicly listed rates and typical agency fees. For illustration only.</div>
+      </div>
+      <div class="lm-cta-row">
+        <button class="lm-cta-btn sage" id="lmRecruiterCta">Post a role — free</button>
+        <div class="lm-cta-sub">No credit card. No contract. Upgrade only if you want more.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div style="width:100%; border-top:1px solid var(--line-light); padding:32px 14px 40px;">
     <div class="landing-footer">
       <div>By signing up you agree to our <button onclick="openLegal('tos')">Terms of Service</button> and <button onclick="openLegal('privacy')">Privacy Policy</button>.</div>
       <div style="margin-top:4px;">GigCute is not responsible for the accuracy of job postings or candidate profiles. See our <button onclick="openLegal('disclaimer')">Disclaimer</button>.</div>
@@ -4474,6 +4678,8 @@
         <button class="admin-tab" data-admin-tab="postings">Postings</button>
         <button class="admin-tab" data-admin-tab="reports">Reports <span id="adminReportsBadge" style="background:var(--coral);color:var(--paper);border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;">0</span></button>
         <button class="admin-tab" data-admin-tab="verification">Verification <span id="adminVerifyBadge" style="background:#e0b760;color:var(--ink);border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;">0</span></button>
+        <button class="admin-tab" data-admin-tab="support">Support <span id="adminSupportBadge" style="background:var(--coral);color:var(--paper);border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;">0</span></button>
+        <button class="admin-tab" data-admin-tab="feedback">Feedback</button>
         <button class="admin-tab" data-admin-tab="analytics">Analytics</button>
       </div>
       <div class="admin-nav-right">
@@ -4526,6 +4732,21 @@
         <div class="admin-section-head"><h2>Recruiter verification queue</h2></div>
         <p style="font-size:12.5px;color:rgba(251,247,240,0.45);margin:-6px 0 16px;">Recruiters on personal/flagged emails who submitted an ID photo for manual review. Approving verifies their company and unlocks candidate access.</p>
         <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Recruiter</th><th>Company</th><th>Email</th><th>ID</th><th>Submitted</th><th>Actions</th></tr></thead><tbody id="adminVerificationBody"></tbody></table></div>
+      </div>
+
+      <!-- SUPPORT -->
+      <div class="admin-panel-view" id="adminTabSupport">
+        <div class="admin-section-head"><h2>Support tickets</h2></div>
+        <p style="font-size:12.5px;color:rgba(251,247,240,0.45);margin:-6px 0 16px;">Technical issues and abuse reports filed by users. Abuse reports name the person the reporter chatted with.</p>
+        <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Type</th><th>From</th><th>About</th><th>Details</th><th>Filed</th><th>Status</th><th>Actions</th></tr></thead><tbody id="adminSupportBody"></tbody></table></div>
+      </div>
+
+      <!-- FEEDBACK -->
+      <div class="admin-panel-view" id="adminTabFeedback">
+        <div class="admin-section-head"><h2>End-of-chat feedback</h2></div>
+        <p style="font-size:12.5px;color:rgba(251,247,240,0.45);margin:-6px 0 16px;">Ratings collected when users end a conversation — chat experience, candidate professionalism, and match accuracy.</p>
+        <div class="admin-stat-strip" id="adminFeedbackStrip"></div>
+        <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>From</th><th>Experience</th><th>Professionalism</th><th>Match accuracy</th><th>Note</th><th>When</th></tr></thead><tbody id="adminFeedbackBody"></tbody></table></div>
       </div>
 
       <!-- ANALYTICS -->
@@ -4597,6 +4818,8 @@
   document.getElementById('pickSeeker').onclick = () => showScreen('screen-seeker-1');
   document.getElementById('pickEmployer').onclick = () => showScreen('screen-employer-1');
   document.getElementById('skipToDemo').onclick = () => showScreen('screen-app');
+  { const a=document.getElementById('lmSeekerCta'); if(a) a.onclick = () => showScreen('screen-seeker-1'); }
+  { const a=document.getElementById('lmRecruiterCta'); if(a) a.onclick = () => showScreen('screen-employer-1'); }
 
   // ---- Landing: login shortcuts ----
   document.getElementById('loginSeeker').onclick = () => showScreen('screen-login-seeker');
@@ -5518,6 +5741,42 @@
       swipeDeck.unshift(postingToCard(p));
     }
     if(mode === 'candidate') render();
+  }
+
+  // Map a live (backend) posting row → a seeker swipe card, tagged with the real
+  // posting UUID so a "like" can record genuine interest.
+  function backendPostingToCard(p){
+    const co = p.companies || {};
+    return {
+      kind: 'job',
+      name: co.name || 'A company',
+      role: `Hiring: ${p.title}`,
+      photo: co.logo_url || COMPANY_PLACEHOLDER_PHOTO,
+      tags: [compTagFor(p.salary_min, p.salary_max), locTagFor(p.location_type, p.city), p.employment_type].filter(Boolean),
+      responsibilities: (p.responsibilities || []).map(r => escapeHtml(r)),
+      qualifications: (p.qualifications || []).map(q => escapeHtml(q)),
+      requestedPrompts: [],
+      _backendId: p.id
+    };
+  }
+
+  // Fetch active postings from the backend and prepend them to the seeker deck.
+  // No-op in demo mode. Deduped by _backendId so repeated calls are safe.
+  let __backendPostingsLoaded = false;
+  async function loadBackendPostingsIntoDeck(){
+    const API = window.GigCuteAPI;
+    if(!API || !API.enabled || __backendPostingsLoaded) return;
+    try{
+      const user = await API.auth.currentUser();
+      if(!user) return; // only for signed-in seekers
+      const rows = await API.postings.listActive();
+      if(rows && rows.length){
+        const have = new Set(swipeDeck.map(c => c._backendId).filter(Boolean));
+        rows.filter(p => !have.has(p.id)).forEach(p => swipeDeck.unshift(backendPostingToCard(p)));
+        __backendPostingsLoaded = true;
+        if(mode === 'candidate') render();
+      }
+    }catch(e){ console.warn('[gigcute] could not load live postings:', e.message); }
   }
 
   function updateRecruiterBar(){
@@ -7211,11 +7470,21 @@
     const topCard=stage.querySelector('.card:last-child');
     if(topCard){topCard.style.transform=`translate(${flyX}px,-20px) rotate(${flyX/18}deg)`;topCard.style.opacity='0';}
     history.push({item,direction});
+    // Record genuine interest for live (backend) postings. The match is created
+    // server-side once the recruiter also expresses interest; the conversation
+    // then appears in the Messages drawer.
+    const API = window.GigCuteAPI;
+    if(direction==='like' && item._backendId && API && API.enabled){
+      API.interest.seekerLike(item._backendId)
+        .then(()=>{ showToast("Interest sent — you'll match if they're interested too."); })
+        .catch(e=>{ showToast(e.message || 'Could not send interest.'); });
+    }
     setTimeout(()=>{
       items.shift();
       if(direction==='like'){
         trackJob(item,'interested');
-        if(Math.random()<0.6){ trackJob(item,'matched'); showMatch(item); return; }
+        // Demo "it's a match" celebration only for sample postings, not live ones.
+        if(!item._backendId && Math.random()<0.6){ trackJob(item,'matched'); showMatch(item); return; }
       }
       render();
     },260);
@@ -8505,6 +8774,8 @@
     renderAdminPostings();
     renderAdminReports();
     renderAdminVerification();
+    renderAdminSupport();
+    renderAdminFeedback();
     renderAdminAnalytics();
     track('admin_accessed', {});
   }
@@ -8651,6 +8922,92 @@
     } else { showToast('ID photo preview available once the backend is connected.'); }
   }
 
+  // ----- Support tickets queue -----
+  // Demo entries shown when the backend isn't configured.
+  let supportTickets = [
+    { id:'s1', live:false, type:'technical', from:'Maya Okafor', about:null, details:'Photo upload spins forever on Safari.', when:'Today', status:'open' },
+    { id:'s2', live:false, type:'abuse', from:'Devon Marsh', about:'Render Studio — Senior PM', details:'Recruiter asked for my home address in chat.', when:'Yesterday', status:'open' },
+  ];
+  async function renderAdminSupport(){
+    const body = document.getElementById('adminSupportBody');
+    const badge = document.getElementById('adminSupportBadge');
+    if(!body) return;
+    let items = supportTickets;
+    const API = window.GigCuteAPI;
+    if(API && API.enabled){
+      try{
+        const rows = await API.admin.listSupportTickets();
+        items = rows.map(r => ({
+          id:r.id, live:true, type:r.type,
+          from:(r.profiles && (r.profiles.full_name || r.profiles.email)) || '—',
+          about:r.about_name || null, details:r.details || '', when:(r.created_at||'').slice(0,10), status:r.status,
+        }));
+      }catch(e){ /* fall back to demo data */ }
+    }
+    body.innerHTML = items.length ? items.map(t => `
+      <tr>
+        <td><span class="flag-badge ${t.type==='abuse'?'harassment':'clear'}">${t.type}</span></td>
+        <td style="font-size:12.5px;">${escapeHtml(t.from)}</td>
+        <td style="font-size:12px;color:rgba(251,247,240,0.5);">${t.about?escapeHtml(t.about):'—'}</td>
+        <td style="font-size:11.5px;color:rgba(251,247,240,0.5);max-width:240px;">${escapeHtml((t.details||'').slice(0,80))}${(t.details||'').length>80?'…':''}</td>
+        <td style="font-size:11.5px;color:rgba(251,247,240,0.35);">${escapeHtml(t.when)}</td>
+        <td><span class="flag-badge ${t.status==='open'?'spam':t.status==='escalated'?'scam':'clear'}">${t.status}</span></td>
+        <td>
+          ${t.status!=='resolved'?`<button class="admin-action-btn success" onclick="adminSetTicket('${t.id}',${!!t.live},'resolved')">Resolve</button>`:''}
+          ${t.status==='open'?`<button class="admin-action-btn danger" onclick="adminSetTicket('${t.id}',${!!t.live},'escalated')">Escalate</button>`:''}
+          ${t.status==='resolved'?`<button class="admin-action-btn" onclick="adminSetTicket('${t.id}',${!!t.live},'open')">Reopen</button>`:''}
+        </td>
+      </tr>`).join('') : `<tr><td colspan="7" style="text-align:center;color:rgba(251,247,240,0.35);padding:24px;font-size:13px;">No support tickets.</td></tr>`;
+    if(badge) badge.textContent = items.filter(t=>t.status==='open').length;
+  }
+  async function adminSetTicket(id, live, status){
+    const API = window.GigCuteAPI;
+    if(live && API){ try{ await API.admin.setSupportTicketStatus(id, status); }catch(e){ showToast(e.message||'Failed'); return; } }
+    else { const t = supportTickets.find(x=>x.id===id); if(t) t.status = status; }
+    showToast(status==='resolved'?'Ticket resolved.':status==='escalated'?'Ticket escalated.':'Ticket reopened.');
+    track('support_ticket_'+status,{id});
+    renderAdminSupport();
+  }
+
+  // ----- End-of-chat feedback -----
+  let chatFeedbackRows = [
+    { id:'f1', from:'Maya Okafor', experience:'Great', professionalism:'Very professional', match:'Spot on', note:'Loved the conversation.', when:'Today' },
+    { id:'f2', from:'Devon Marsh', experience:'Okay', professionalism:'Professional', match:'Decent', note:'', when:'Yesterday' },
+  ];
+  async function renderAdminFeedback(){
+    const body = document.getElementById('adminFeedbackBody');
+    const strip = document.getElementById('adminFeedbackStrip');
+    if(!body) return;
+    let items = chatFeedbackRows;
+    const API = window.GigCuteAPI;
+    if(API && API.enabled){
+      try{
+        const rows = await API.admin.listChatFeedback();
+        items = rows.map(r => ({
+          id:r.id, from:(r.profiles && r.profiles.full_name) || '—',
+          experience:r.experience||'—', professionalism:r.professionalism||'—',
+          match:r.match_accuracy||'—', note:r.note||'', when:(r.created_at||'').slice(0,10),
+        }));
+      }catch(e){ /* fall back to demo data */ }
+    }
+    const pct = (arr, good) => arr.length ? Math.round(100*arr.filter(good).length/arr.length) : 0;
+    if(strip) strip.innerHTML = [
+      {n:items.length, l:'Responses'},
+      {n:pct(items,x=>x.experience==='Great')+'%', l:'Great experience'},
+      {n:pct(items,x=>x.professionalism==='Very professional')+'%', l:'Very professional'},
+      {n:pct(items,x=>x.match==='Spot on')+'%', l:'Match spot on'},
+    ].map(s=>`<div class="admin-stat-card"><div class="n">${s.n}</div><div class="l">${s.l}</div></div>`).join('');
+    body.innerHTML = items.length ? items.map(f => `
+      <tr>
+        <td style="font-size:12.5px;">${escapeHtml(f.from)}</td>
+        <td style="font-size:12px;">${escapeHtml(f.experience)}</td>
+        <td style="font-size:12px;">${escapeHtml(f.professionalism)}</td>
+        <td style="font-size:12px;">${escapeHtml(f.match)}</td>
+        <td style="font-size:11.5px;color:rgba(251,247,240,0.5);max-width:240px;">${f.note?escapeHtml(f.note.slice(0,80)):'—'}</td>
+        <td style="font-size:11.5px;color:rgba(251,247,240,0.35);">${escapeHtml(f.when)}</td>
+      </tr>`).join('') : `<tr><td colspan="6" style="text-align:center;color:rgba(251,247,240,0.35);padding:24px;font-size:13px;">No feedback yet.</td></tr>`;
+  }
+
   function renderAdminAnalytics(){
     const totalEvents = Object.values(eventCounts).reduce((a,b)=>a+b,0);
     document.getElementById('adminAnalyticsStrip').innerHTML = [
@@ -8714,6 +9071,8 @@
       document.getElementById(`adminTab${tab.dataset.adminTab.charAt(0).toUpperCase()+tab.dataset.adminTab.slice(1)}`).classList.add('active');
       if(tab.dataset.adminTab==='analytics') renderAdminAnalytics();
       if(tab.dataset.adminTab==='verification') renderAdminVerification();
+      if(tab.dataset.adminTab==='support') renderAdminSupport();
+      if(tab.dataset.adminTab==='feedback') renderAdminFeedback();
       track('admin_tab',{tab:tab.dataset.adminTab});
     });
   });
@@ -8781,6 +9140,7 @@
   window.adminViewUser = adminViewUser;
   window.adminSetPostingTier = adminSetPostingTier;
   window.adminRemovePosting = adminRemovePosting;
+  window.adminSetTicket = adminSetTicket;
   window.showScreen = showScreen;
 
   // ================= BACKEND AUTH (Supabase) =================
@@ -8789,7 +9149,7 @@
   function enterApp(mode){
     showScreen('screen-app');
     setMode(mode);
-    if(mode === 'candidate') renderDashboard();
+    if(mode === 'candidate'){ renderDashboard(); loadBackendPostingsIntoDeck(); }
   }
   function gcPendingSet(o){ try{ localStorage.setItem('gc_pending', JSON.stringify(o)); }catch(e){} }
   function gcPendingGet(){ try{ return JSON.parse(localStorage.getItem('gc_pending')||'null'); }catch(e){ return null; } }

@@ -271,6 +271,36 @@ const admin = {
     if (error) throw error;
     return data.signedUrl;
   },
+
+  // Support tickets queue (admin reads all via RLS). status: 'open'|'resolved'|'escalated'|null(all)
+  async listSupportTickets(status = null) {
+    let q = requireClient()
+      .from('support_tickets')
+      .select('*, profiles!support_tickets_reporter_id_fkey(full_name, email)')
+      .order('created_at', { ascending: false });
+    if (status) q = q.eq('status', status);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data;
+  },
+  // Resolve / escalate / reopen a ticket. status: 'resolved'|'escalated'|'open'
+  async setSupportTicketStatus(id, status) {
+    const c = requireClient();
+    const { data: u } = await c.auth.getUser();
+    const patch = { status, reviewed_by: u?.user?.id || null };
+    patch.resolved_at = status === 'resolved' ? new Date().toISOString() : null;
+    const { error } = await c.from('support_tickets').update(patch).eq('id', id);
+    if (error) throw error;
+  },
+  // End-of-chat feedback (admin reads all via RLS).
+  async listChatFeedback() {
+    const { data, error } = await requireClient()
+      .from('chat_feedback')
+      .select('*, profiles!chat_feedback_rater_id_fkey(full_name)')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
 };
 
 // Free / disposable email providers — client-side hint only (the database is the
