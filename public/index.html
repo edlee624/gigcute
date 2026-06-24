@@ -118,6 +118,20 @@
   .chat-send{ width:42px; height:42px; border-radius:50%; background:var(--coral); border:none; color:var(--paper); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   .chat-send svg{ width:18px; height:18px; }
   .chat-send:hover{ background:var(--coral-dim); }
+  .chat-endbtn{ background:none; border:1px solid var(--line-light); color:rgba(251,247,240,0.7); font-size:12px; font-weight:600; padding:5px 11px; border-radius:999px; cursor:pointer; font-family:'Inter',sans-serif; }
+  .chat-endbtn:hover{ border-color:var(--coral); color:var(--coral); }
+  .chat-feedback{ padding:16px; border-top:1px solid var(--line-light); background:var(--ink-soft); }
+  .chat-feedback[hidden]{ display:none; }
+  .cf-title{ font-weight:700; color:var(--paper); font-size:14px; margin-bottom:12px; }
+  .cf-q{ margin-bottom:12px; }
+  .cf-label{ font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(251,247,240,0.4); margin-bottom:6px; }
+  .cf-opts{ display:flex; flex-wrap:wrap; gap:6px; }
+  .cf-opts label{ display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:rgba(251,247,240,0.75); border:1px solid var(--line-light); border-radius:999px; padding:5px 10px; cursor:pointer; }
+  .cf-opts label:has(input:checked){ border-color:var(--coral); color:var(--coral); background:rgba(255,107,74,0.08); }
+  .cf-opts input{ accent-color:var(--coral); }
+  .cf-actions{ display:flex; gap:8px; margin-top:6px; }
+  .cf-cancel{ flex:1; background:none; border:1px solid var(--line-light); color:rgba(251,247,240,0.7); border-radius:8px; padding:9px; cursor:pointer; font-family:'Inter',sans-serif; font-size:13px; }
+  .cf-submit{ flex:1; background:var(--coral); border:none; color:var(--paper); border-radius:8px; padding:9px; cursor:pointer; font-weight:600; font-family:'Inter',sans-serif; font-size:13px; }
   /* Messages nav button + unread dot */
   .ds-nav-btn.has-unread::after{ content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--coral); margin-left:6px; vertical-align:middle; }
   /* Companies-viewed page (sidebar insight) */
@@ -3091,6 +3105,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
       </button>
       <div class="chat-title" id="chatTitle">Messages</div>
+      <button class="chat-endbtn" id="chatEndBtn" type="button" hidden>End chat</button>
       <button class="chat-close" id="chatCloseBtn" type="button" aria-label="Close">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </button>
@@ -3098,6 +3113,29 @@
     <div class="chat-list" id="chatList"></div>
     <div class="chat-thread" id="chatThread" hidden>
       <div class="chat-messages" id="chatMessages"></div>
+      <!-- Feedback panel (shown when ending a chat) -->
+      <div class="chat-feedback" id="chatFeedback" hidden>
+        <div class="cf-title">Before you go — how was it?</div>
+        <div class="cf-q" data-cf="experience"><div class="cf-label">Chat experience</div><div class="cf-opts">
+          <label><input type="radio" name="cf-experience" value="Great"><span>Great</span></label>
+          <label><input type="radio" name="cf-experience" value="Okay"><span>Okay</span></label>
+          <label><input type="radio" name="cf-experience" value="Poor"><span>Poor</span></label>
+        </div></div>
+        <div class="cf-q" data-cf="professionalism"><div class="cf-label">Their professionalism</div><div class="cf-opts">
+          <label><input type="radio" name="cf-professionalism" value="Very professional"><span>Very professional</span></label>
+          <label><input type="radio" name="cf-professionalism" value="Professional"><span>Professional</span></label>
+          <label><input type="radio" name="cf-professionalism" value="Unprofessional"><span>Unprofessional</span></label>
+        </div></div>
+        <div class="cf-q" data-cf="match"><div class="cf-label">Match accuracy</div><div class="cf-opts">
+          <label><input type="radio" name="cf-match" value="Spot on"><span>Spot on</span></label>
+          <label><input type="radio" name="cf-match" value="Decent"><span>Decent</span></label>
+          <label><input type="radio" name="cf-match" value="Off"><span>Off</span></label>
+        </div></div>
+        <div class="cf-actions">
+          <button class="cf-cancel" id="cfCancel" type="button">Keep chatting</button>
+          <button class="cf-submit" id="cfSubmit" type="button">Submit & end</button>
+        </div>
+      </div>
       <form class="chat-composer" id="chatComposer">
         <input type="text" id="chatInput" placeholder="Write a message…" autocomplete="off">
         <button type="submit" class="chat-send" aria-label="Send">
@@ -6735,6 +6773,7 @@
   // ===== CANDIDATE INVITE INBOX =====
   // Each invite: {id, postingId, company, role, type:'super'|'regular', tags, status:'pending'|'accepted'|'declined', date}
   const candidateInvites = [
+    { id:0, postingId:null, company:'GigCute', role:'New user intro', type:'super', intro:true, tags:['Welcome','Start here'], status:'pending', date:'Just now', note:'Welcome to GigCute! Accept to learn how the site works and how to stand out to recruiters.' },
     { id:1, postingId:5, company:'Render Studio', role:'VP of Engineering',              type:'super',   tags:['$230–290K','Hybrid','Director+'], status:'pending', date:'Today',      note:'We reviewed your profile and believe you would be an exceptional fit. We would love to connect at your earliest convenience.' },
     { id:2, postingId:6, company:'Render Studio', role:'Staff Data Scientist, ML Platform', type:'super', tags:['$195–240K','Remote','Staff'],   status:'pending', date:'Today',      note:'Your ML experience is exactly what we are looking for. This is a priority role for us.' },
     { id:3, postingId:3, company:'Render Studio', role:'Head of Growth',                  type:'regular', tags:['$160–200K','Remote','Manager'], status:'pending', date:'Yesterday',   note:'' },
@@ -8943,10 +8982,38 @@
     const msgsEl = document.getElementById('chatMessages');
     const titleEl = document.getElementById('chatTitle');
     const backBtn = document.getElementById('chatBackBtn');
-    let unsub = null, myId = null;
+    const endBtn = document.getElementById('chatEndBtn');
+    const feedbackEl = document.getElementById('chatFeedback');
+    const composerEl = document.getElementById('chatComposer');
+    let unsub = null, myId = null, demoConv = null;
 
     function teardown(){ if(unsub){ unsub(); unsub = null; } }
-    function showListView(){ teardown(); threadEl.hidden = true; listEl.style.display = 'block'; backBtn.hidden = true; titleEl.textContent = 'Messages'; }
+    function showListView(){
+      teardown(); demoConv = null;
+      threadEl.hidden = true; listEl.style.display = 'block';
+      backBtn.hidden = true; endBtn.hidden = true; feedbackEl.hidden = true; composerEl.style.display = 'flex';
+      titleEl.textContent = 'Messages';
+    }
+    function enterThread(title){
+      threadEl.hidden = false; listEl.style.display = 'none';
+      backBtn.hidden = false; endBtn.hidden = false; feedbackEl.hidden = true; composerEl.style.display = 'flex';
+      titleEl.textContent = title || 'Conversation';
+      msgsEl.innerHTML = '';
+    }
+    function renderLocal(body, mine){ const d=document.createElement('div'); d.className='chat-bubble '+(mine?'me':'them'); d.textContent=body; msgsEl.appendChild(d); msgsEl.scrollTop=msgsEl.scrollHeight; }
+    function introMessages(){ return [
+      "👋 Welcome to GigCute! I'm here to show you around.",
+      "How it works: browse roles, tap Interested, and when a company is interested back, it's a match — then you chat directly. No black holes; every posting is managed by a real person.",
+      "The big win: your profile is more than a résumé. The prompts you answer are how recruiters see the real you — your superpower, how you work, what you're proud of. Answer as many as you can and star your best 3.",
+      "Specific, thoughtful prompt answers get far more recruiter interest than a plain résumé — that's your edge here. Welcome aboard! 🎉"
+    ]; }
+    function openInviteChat(invite){
+      if(typeof respondToInvite === 'function') respondToInvite(invite.id, 'accepted');
+      demoConv = { invite };
+      enterThread(invite.company || 'Chat');
+      if(invite.intro) introMessages().forEach(t => renderLocal(t, false));
+      else renderLocal(`Hi! Thanks for accepting — we'd love to learn more about you for the ${invite.role} role. When are you free to chat?`, false);
+    }
     function openDrawer(){ drawer.hidden = false; renderList(); }
     function closeDrawer(){ drawer.hidden = true; teardown(); }
 
@@ -8986,7 +9053,8 @@
       listEl.innerHTML = html;
       listEl.querySelectorAll('[data-conv]').forEach(row => row.onclick = () => openConv(row.dataset.conv, row.dataset.title));
       listEl.querySelectorAll('[data-invite]').forEach(row => row.onclick = () => {
-        if(typeof respondToInvite === 'function'){ respondToInvite(Number(row.dataset.invite), 'accepted'); renderList(); }
+        const inv = (typeof candidateInvites !== 'undefined') ? candidateInvites.find(x => x.id === Number(row.dataset.invite)) : null;
+        if(inv) openInviteChat(inv);
       });
     }
 
@@ -8999,8 +9067,9 @@
 
     async function openConv(convId, title){
       const api = API();
-      threadEl.hidden = false; listEl.style.display = 'none'; backBtn.hidden = false; titleEl.textContent = title || 'Conversation';
-      threadEl.dataset.conv = convId; msgsEl.innerHTML = '';
+      demoConv = null;
+      enterThread(title);
+      threadEl.dataset.conv = convId;
       try{
         const u = await api.auth.currentUser(); myId = u && u.id;
         const msgs = await api.chat.listMessages(convId);
@@ -9011,13 +9080,28 @@
       }catch(e){ msgsEl.innerHTML = '<div class="chat-empty">' + escapeHtml(e.message||'Could not load messages') + '</div>'; }
     }
 
-    document.getElementById('chatComposer').onsubmit = async (e) => {
+    composerEl.onsubmit = async (e) => {
       e.preventDefault();
       const input = document.getElementById('chatInput');
       const body = input.value.trim(); if(!body) return;
       input.value = '';
+      if(demoConv){
+        renderLocal(body, true);
+        if(demoConv.invite && demoConv.invite.intro) setTimeout(() => renderLocal("Great — dive into the roles and fill out your prompts. That's the fastest way to get noticed. 🚀", false), 600);
+        return;
+      }
       try{ await API().chat.send(threadEl.dataset.conv, body); }
       catch(err){ showToast(err.message || 'Could not send'); }
+    };
+    // End chat + feedback
+    endBtn.onclick = () => { feedbackEl.hidden = false; composerEl.style.display = 'none'; feedbackEl.scrollIntoView({block:'nearest'}); };
+    document.getElementById('cfCancel').onclick = () => { feedbackEl.hidden = true; composerEl.style.display = 'flex'; };
+    document.getElementById('cfSubmit').onclick = () => {
+      const get = n => (document.querySelector('input[name="cf-'+n+'"]:checked')||{}).value || '—';
+      track('chat_feedback', { experience:get('experience'), professionalism:get('professionalism'), match:get('match') });
+      feedbackEl.querySelectorAll('input[type=radio]').forEach(r => r.checked = false);
+      showToast('Thanks for the feedback — chat ended.');
+      renderList();
     };
     backBtn.onclick = renderList;
     document.getElementById('chatCloseBtn').onclick = closeDrawer;
@@ -9035,7 +9119,7 @@
     candidates.forEach(c => { c.name = pfx(c.name); });
     postings.forEach(p => { p.title = pfx(p.title); });
     jobs.forEach(j => { j.name = pfx(j.name); });
-    candidateInvites.forEach(i => { i.company = pfx(i.company); });
+    candidateInvites.forEach(i => { if(!i.intro) i.company = pfx(i.company); });
   })();
 
   postings.forEach(p => syncPostingIntoDeck(p));
