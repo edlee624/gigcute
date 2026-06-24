@@ -72,6 +72,14 @@
   }
   .wordmark span{ color:var(--coral); font-style:normal; }
 
+  /* Persistent home logo (top-left) for flow screens that lack a nav */
+  .home-logo{
+    position:fixed; top:16px; left:22px; z-index:1400;
+    font-family:'Fraunces',serif; font-weight:600; font-style:italic;
+    font-size:22px; color:var(--paper); cursor:pointer;
+  }
+  .home-logo span{ color:var(--coral); font-style:normal; }
+
   /* Landing pre-register banner */
   .prereg-banner{
     text-align:center; margin:4px auto 26px; padding:20px 22px; max-width:540px;
@@ -3004,6 +3012,10 @@
 </head>
 <body>
 
+<!-- Persistent home logo: shown on flow screens (login/onboarding/wizard/etc.); -->
+<!-- the landing, app and admin have their own clickable wordmark. -->
+<div class="home-logo" id="homeLogo" style="display:none;" title="Home">GigCute<span>.</span></div>
+
 <!-- ============ SCREEN: LANDING / ROLE PICKER ============ -->
 <div class="screen flow-screen active" id="screen-landing">
   <div class="ob-shell">
@@ -3013,7 +3025,7 @@
 
     <div class="prereg-banner">
       <div class="prereg-head">Alpha testing</div>
-      <div class="prereg-sub">GigCute is live in alpha — some features are still in progress. Sample data is marked <strong>DEMO-</strong>.</div>
+      <div class="prereg-sub">GigCute is live in alpha — some features are still in progress. Sample data is marked <strong>DEMO-</strong>. Register and preview the site right now — all job postings are free!</div>
       <a href="https://forms.gle/w63jhrFDBy44x4SEA" target="_blank" rel="noopener noreferrer" class="prereg-cta">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
         Get updates on our progress &amp; full launch
@@ -3025,16 +3037,16 @@
       <p class="ob-h1" style="font-size:22px; margin-bottom:14px; line-height:1.3;">
         Where the <em>dream candidate</em><br>meets their <em>dream job</em>.
       </p>
-      <div style="display:flex; flex-direction:column; gap:7px; max-width:340px; margin:0 auto;">
-        <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:rgba(251,247,240,0.55);">
+      <div style="display:flex; flex-direction:column; gap:7px; width:fit-content; max-width:100%; margin:0 auto; text-align:left;">
+        <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:rgba(251,247,240,0.55); white-space:nowrap;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:15px;height:15px;flex-shrink:0;color:var(--coral);"><path d="M20 6L9 17l-5-5"/></svg>
           Candidates are more than a résumé — prompts reveal the person behind it
         </div>
-        <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:rgba(251,247,240,0.55);">
+        <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:rgba(251,247,240,0.55); white-space:nowrap;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:15px;height:15px;flex-shrink:0;color:var(--coral);"><path d="M20 6L9 17l-5-5"/></svg>
           Every job is posted by a real person — never an automated dragnet
         </div>
-        <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:rgba(251,247,240,0.55);">
+        <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:rgba(251,247,240,0.55); white-space:nowrap;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:15px;height:15px;flex-shrink:0;color:var(--coral);"><path d="M20 6L9 17l-5-5"/></svg>
           When both sides show interest, the conversation begins
         </div>
@@ -4386,6 +4398,9 @@
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     window.scrollTo(0,0);
+    // Persistent home logo: show on flow screens (landing/app have their own wordmark)
+    var hl = document.getElementById('homeLogo');
+    if(hl) hl.style.display = (id === 'screen-app' || id === 'screen-landing') ? 'none' : 'block';
     // sync URL for mapped top-level pages (the app screen is handled by setMode)
     if(!__applyingRoute && id !== 'screen-app'){
       const p = PATH_BY_SCREEN[id];
@@ -8279,6 +8294,7 @@
     // Hide any active flow screen (e.g. the admin login) so the panel isn't pushed below it.
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     window.scrollTo(0,0);
+    var hl = document.getElementById('homeLogo'); if(hl) hl.style.display='none';
     document.getElementById('screen-admin').style.display='block';
     renderAdminOverview();
     renderAdminUsers();
@@ -8723,6 +8739,16 @@
   }
   window.GigCuteNavigate = navigate; // handy for links/console
   window.addEventListener('popstate', () => applyRoute(location.pathname));
+
+  // ----- Clickable GigCute logo → home, on every page -----
+  function goHome(){ navigate('/'); }
+  (function(){
+    var hl = document.getElementById('homeLogo');
+    if(hl) hl.onclick = goHome;
+    document.querySelectorAll('.ds-nav .wordmark, .admin-wordmark, #screen-landing .wordmark').forEach(w => {
+      w.style.cursor = 'pointer'; w.title = 'Home'; w.addEventListener('click', goHome);
+    });
+  })();
 
   // Show the "pending verification" banner when a backend recruiter's company
   // is not yet verified. No-op in demo mode.
