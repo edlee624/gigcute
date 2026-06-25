@@ -68,6 +68,20 @@ const auth = {
     });
     if (error) throw error;
   },
+  // Set a new password for the currently-authenticated (or recovery) session.
+  async updatePassword(password) {
+    const { error } = await requireClient().auth.updateUser({ password });
+    if (error) throw error;
+  },
+  // Fires when the user arrives via a password-recovery link. The Supabase client
+  // establishes a temporary session and emits PASSWORD_RECOVERY.
+  onPasswordRecovery(cb) {
+    if (!supabase) return () => {};
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') cb(session);
+    });
+    return () => data.subscription.unsubscribe();
+  },
   async currentUser() {
     if (!supabase) return null;
     const { data } = await supabase.auth.getUser();

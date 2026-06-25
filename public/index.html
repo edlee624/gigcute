@@ -3571,6 +3571,35 @@
   </div>
 </div>
 
+<!-- ============ SET NEW PASSWORD (recovery-link landing) ============ -->
+<div class="screen flow-screen" id="screen-set-pw">
+  <div class="ob-shell">
+    <div class="ob-eyebrow">Account recovery</div>
+    <h1 class="ob-h1">Choose a new <em>password</em>.</h1>
+    <p class="ob-sub">Enter a new password for your account. You're signed in from the reset link.</p>
+
+    <div id="setPwFormWrap">
+      <div class="field">
+        <label for="set-pw">New password</label>
+        <div class="pw-wrap"><input type="password" id="set-pw" placeholder="At least 8 characters" autocomplete="new-password"><button class="pw-toggle" type="button" data-target="set-pw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+      </div>
+      <div class="field">
+        <label for="set-pw-confirm">Confirm new password</label>
+        <div class="pw-wrap"><input type="password" id="set-pw-confirm" placeholder="Re-enter password" autocomplete="new-password"><button class="pw-toggle" type="button" data-target="set-pw-confirm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+      </div>
+      <div class="auth-error" id="setPwError" style="display:none;color:var(--coral);font-size:13px;margin:-4px 0 12px;"></div>
+      <button class="ob-primary" id="setPwBtn" type="button">Update password</button>
+    </div>
+
+    <div class="reset-sent" id="setPwDoneWrap" style="display:none;">
+      <div class="rs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+      <p style="font-family:'Fraunces',serif;font-size:18px;margin:0 0 8px;">Password updated.</p>
+      <p style="font-size:13px;color:rgba(251,247,240,0.5);margin:0;">You can now use your new password. You're signed in and ready to go.</p>
+      <div class="auth-footer" style="margin-top:24px;"><button class="auth-link" id="setPwContinue">Continue →</button></div>
+    </div>
+  </div>
+</div>
+
 <!-- ============ SEEKER FLOW ============ -->
 
 <div class="screen flow-screen" id="screen-seeker-1">
@@ -9435,15 +9464,53 @@
     const API = window.GigCuteAPI;
     if(!API || !API.enabled) return; // demo mode — keep simulated handlers
 
+    // ---- Password recovery: arriving via the reset email link ----
+    // The link puts a recovery token in the URL hash; the Supabase client turns
+    // it into a temporary session. Show the "set new password" screen instead of
+    // routing into the app.
+    let __inRecovery = /type=recovery|recovery_token/.test(location.hash || '');
+    function enterRecovery(){
+      __inRecovery = true;
+      document.getElementById('setPwFormWrap').style.display = '';
+      document.getElementById('setPwDoneWrap').style.display = 'none';
+      const err = document.getElementById('setPwError'); if(err) err.style.display = 'none';
+      showScreen('screen-set-pw');
+    }
+    if(__inRecovery) enterRecovery();
+    API.auth.onPasswordRecovery(() => enterRecovery());
+
     // Restore an existing session (returning user / OAuth redirect) and route in.
     API.auth.currentUser().then(async (user) => {
-      if(!user) return;
+      if(!user || __inRecovery) return;   // recovery flow handles its own screen
       await gcCompletePending(API);
       let role = 'seeker';
       try{ const me = await API.profiles.me(); if(me && me.role) role = me.role; }catch(e){}
       if(sessionStorage.getItem('gc_oauth_role') === 'recruiter') role = 'recruiter';
       enterApp(role === 'recruiter' ? 'recruiter' : 'candidate');
     }).catch(()=>{});
+
+    // ---- Set new password (recovery landing) ----
+    document.getElementById('setPwBtn').onclick = async () => {
+      const pw = document.getElementById('set-pw').value;
+      const confirm = document.getElementById('set-pw-confirm').value;
+      const err = document.getElementById('setPwError');
+      const fail = m => { err.textContent = m; err.style.display = 'block'; };
+      if(pw.length < 8) return fail('Password must be at least 8 characters.');
+      if(pw !== confirm) return fail('Passwords don’t match.');
+      err.style.display = 'none';
+      try{
+        await API.auth.updatePassword(pw);
+        document.getElementById('setPwFormWrap').style.display = 'none';
+        document.getElementById('setPwDoneWrap').style.display = 'block';
+        if(history.replaceState) window.history.replaceState({}, '', location.pathname);
+      }catch(e){ fail(e.message || 'Could not update password.'); }
+    };
+    document.getElementById('setPwContinue').onclick = async () => {
+      __inRecovery = false;
+      let role = 'seeker';
+      try{ const me = await API.profiles.me(); if(me && me.role) role = me.role; }catch(e){}
+      enterApp(role === 'recruiter' ? 'recruiter' : 'candidate');
+    };
 
     // ---- Logins ----
     document.getElementById('seekerLoginBtn').onclick = async () => {
