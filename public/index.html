@@ -5905,8 +5905,23 @@
 
   // postings dashboard back navigation wired via data-back attribute
 
-  function openPostingEditor(posting){
+  async function openPostingEditor(posting){
     editingId = posting.id;
+    // For live postings, hydrate the requested prompts + screening questions from
+    // the backend so the editor shows (and can re-save) what's actually stored.
+    if(posting._backendId){
+      const API = window.GigCuteAPI;
+      try{ posting.requestedPrompts = await API.postings.getRequestedPrompts(posting._backendId); }catch(e){}
+      try{
+        const sqs = await API.postings.getScreeningQuestions(posting._backendId);
+        posting.screeningQuestions = sqs.map(sq => ({
+          templateId: sq.template_id || '', fillValue: sq.fill_value || '',
+          minYears: sq.min_years != null ? String(sq.min_years) : '',
+          degreeLevel: sq.degree_level || '', proficiency: sq.proficiency || '',
+          essential: !!sq.essential, isVoluntary: !!sq.is_voluntary,
+        }));
+      }catch(e){}
+    }
     loadPostingIntoForm(posting);
     setWizardMode('edit');
     // Dynamically update back arrow on step 1 to return to postings landing
@@ -7913,6 +7928,19 @@
         responsibilities: data.responsibilities || [], qualifications: data.qualifications || [],
         status: 'active',
       });
+      // Replace requested prompts wholesale.
+      try{ await API.postings.clearRequestedPrompts(backendId); await API.postings.addRequestedPrompts(backendId, data.requestedPrompts || []); }catch(e){ console.warn('prompts update:', e.message); }
+      // Replace screening questions wholesale (tier-limit trigger still applies).
+      try{
+        await API.postings.clearScreeningQuestions(backendId);
+        for(const sq of (data.screeningQuestions || [])){
+          try{ await API.postings.addScreeningQuestion({
+            posting_id: backendId, template_id: sq.templateId || null, fill_value: sq.fillValue || null,
+            min_years: toInt(sq.minYears), degree_level: sq.degreeLevel || null,
+            proficiency: sq.proficiency || null, essential: !!sq.essential, is_voluntary: !!sq.isVoluntary,
+          }); }catch(e){ console.warn('screening question skipped:', e.message); }
+        }
+      }catch(e){ console.warn('screening update:', e.message); }
     }catch(e){ showToast('Saved locally, but server update failed: ' + (e.message||'')); }
   }
 

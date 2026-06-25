@@ -408,6 +408,26 @@ const postings = {
     const { error } = await requireClient().from('posting_requested_prompts').insert(rows);
     if (error) throw error;
   },
+  async getRequestedPrompts(postingId) {
+    const { data, error } = await requireClient()
+      .from('posting_requested_prompts').select('prompt_label').eq('posting_id', postingId).order('sort_order');
+    if (error) throw error;
+    return (data || []).map(r => r.prompt_label);
+  },
+  async clearRequestedPrompts(postingId) {
+    const { error } = await requireClient().from('posting_requested_prompts').delete().eq('posting_id', postingId);
+    if (error) throw error;
+  },
+  async getScreeningQuestions(postingId) {
+    const { data, error } = await requireClient()
+      .from('screening_questions').select('*').eq('posting_id', postingId).order('sort_order');
+    if (error) throw error;
+    return data || [];
+  },
+  async clearScreeningQuestions(postingId) {
+    const { error } = await requireClient().from('screening_questions').delete().eq('posting_id', postingId);
+    if (error) throw error;
+  },
 };
 
 // ---- Interest / invites / matches -----------------------------------------
