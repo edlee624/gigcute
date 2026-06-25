@@ -6481,9 +6481,12 @@
     const wasEdit = wizardMode === 'edit' && editingId;
     if(wasEdit){
       const p = postings.find(x => x.id === editingId);
+      const liveId = p && p._backendId;
       Object.assign(p, data);
       if(p.status === 'closed') p.status = 'active';
+      if(liveId) p._backendId = liveId;            // Object.assign mustn't drop the marker
       syncPostingIntoDeck(p);
+      if(liveId) gcUpdateLivePosting(liveId, data); // write-through to the backend
     } else {
       const newPosting = Object.assign(
         { id: nextPostingId++, status: 'active', views: 0, matches: 0, justPublished: true, tier: pendingNewPostingTier },
@@ -7680,7 +7683,8 @@
     const grid = document.getElementById('recruiterPostingsGrid');
     const active = postings.filter(p => p.status !== 'closed');
     const closed = postings.filter(p => p.status === 'closed');
-    const all = [...active, ...closed];
+    // Live (real backend) postings first, then demo — the recruiter's own roles matter most.
+    const all = [...active, ...closed].sort((a,b) => (b._live?1:0) - (a._live?1:0));
 
     if(all.length === 0){
       grid.innerHTML = `
@@ -7695,8 +7699,9 @@
     }
 
     grid.innerHTML = all.map(p => {
-      const likeCount = (postingLikes[p.id] || []).length;
-      const newCount = Math.floor(likeCount * 0.6);
+      const isLive = !!p._live;
+      const likeCount = isLive ? (p._liveInterest || 0) : (postingLikes[p.id] || []).length;
+      const newCount = isLive ? 0 : Math.floor(likeCount * 0.6);
       const tier = p.tier || 'free';
       const tierInfo = POSTING_TIERS[tier];
       const tierLabels = {free:'Basic', pro:'Boost', max:'Featured'};
@@ -7705,6 +7710,7 @@
           <div class="pt-top">
             <div class="pt-title">${escapeHtml(p.title)}</div>
             <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+              ${isLive ? `<span class="tier-badge" style="background:rgba(61,90,76,0.25);color:#9fc2ad;border-color:rgba(61,90,76,0.5);">● Live</span>` : ''}
               <span class="tier-badge ${tier}">${tierLabels[tier]}</span>
               <span class="status-badge ${p.status}">${p.status.charAt(0).toUpperCase()+p.status.slice(1)}</span>
             </div>
@@ -7716,12 +7722,14 @@
             <div class="pt-stat"><div class="n new-count">${newCount}</div><div class="l">New</div></div>
           </div>
           <div class="pt-actions">
-            <button class="pt-btn primary" data-action="view-detail" data-posting-id="${p.id}">View likes & matches</button>
+            ${isLive
+              ? `<button class="pt-btn primary" data-action="see-live" data-posting-id="${p.id}">See interested candidates ↑</button>`
+              : `<button class="pt-btn primary" data-action="view-detail" data-posting-id="${p.id}">View likes & matches</button>`}
             <button class="pt-btn edit" data-action="edit-posting" data-posting-id="${p.id}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:13px;height:13px;vertical-align:-2px;margin-right:4px;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit
             </button>
-            ${tier === 'free' ? `<button class="pt-btn" data-action="upgrade-posting" data-posting-id="${p.id}" style="border-color:var(--coral);color:var(--coral);">Boost ↑</button>` : ''}
-            ${tier === 'pro'  ? `<button class="pt-btn" data-action="upgrade-posting" data-posting-id="${p.id}" style="border-color:#e0bb55;color:#e0bb55;">Feature ↑</button>` : ''}
+            ${(!isLive && tier === 'free') ? `<button class="pt-btn" data-action="upgrade-posting" data-posting-id="${p.id}" style="border-color:var(--coral);color:var(--coral);">Boost ↑</button>` : ''}
+            ${(!isLive && tier === 'pro')  ? `<button class="pt-btn" data-action="upgrade-posting" data-posting-id="${p.id}" style="border-color:#e0bb55;color:#e0bb55;">Feature ↑</button>` : ''}
           </div>
         </div>`;
     }).join('') + `
@@ -7793,6 +7801,11 @@
     });
   }
 
+  function scrollToLiveCandidates(){
+    const panel = document.getElementById('liveCandidatesPanel');
+    if(panel && panel.style.display !== 'none'){ panel.scrollIntoView({behavior:'smooth', block:'start'}); }
+    else { showToast('No interested candidates on your live postings yet.'); }
+  }
   document.getElementById('recruiterPostingsGrid').addEventListener('click', e => {
     const btn = e.target.closest('[data-action]');
     if(!btn) return;
@@ -7801,6 +7814,8 @@
     if(!posting) return;
     if(btn.dataset.action === 'view-detail'){
       openPostingDetail(posting);
+    } else if(btn.dataset.action === 'see-live'){
+      scrollToLiveCandidates();
     } else if(btn.dataset.action === 'edit-posting'){
       openPostingEditor(posting);
     } else if(btn.dataset.action === 'upgrade-posting'){
@@ -7808,14 +7823,66 @@
     }
     e.stopPropagation();
   });
-  // Clicking the tile itself (not a button) opens detail
+  // Clicking the tile itself (not a button) opens detail (live tiles → candidates panel)
   document.getElementById('recruiterPostingsGrid').addEventListener('click', e => {
     if(e.target.closest('[data-action]')) return;
     const tile = e.target.closest('.posting-tile');
     if(!tile) return;
     const posting = postings.find(p => p.id === Number(tile.dataset.postingId));
-    if(posting) openPostingDetail(posting);
+    if(posting){ posting._live ? scrollToLiveCandidates() : openPostingDetail(posting); }
   });
+
+  // ---- Load the recruiter's real (backend) postings into the grid ----
+  // Converted to the demo posting shape with a synthetic numeric id (so the grid
+  // and editor machinery work) plus _backendId for write-through to Supabase.
+  function backendPostingToDemo(p){
+    return {
+      id: nextPostingId++, _backendId: p.id, _live: true,
+      title: p.title, department: p.department || '', seniority: p.seniority || '',
+      locationType: p.location_type || 'Remote', city: p.city || '',
+      employmentType: p.employment_type || 'Full-time',
+      salaryMin: p.salary_min != null ? String(p.salary_min) : '',
+      salaryMax: p.salary_max != null ? String(p.salary_max) : '',
+      equity: !!p.equity, benefits: [],
+      responsibilities: p.responsibilities || [], qualifications: p.qualifications || [],
+      requestedPrompts: [], screeningQuestions: [],
+      status: p.status, tier: p.tier || 'free', views: p.views || 0,
+      invites: [], superInvites: [], _liveInterest: 0,
+    };
+  }
+  async function loadBackendRecruiterPostings(){
+    const API = window.GigCuteAPI;
+    if(!API || !API.enabled) return;
+    let user = null; try{ user = await API.auth.currentUser(); }catch(e){}
+    if(!user) return;
+    let mine = [];
+    try{ mine = await API.postings.mine(); }catch(e){ return; }
+    // Drop previously-injected live postings, then re-add fresh.
+    for(let i = postings.length - 1; i >= 0; i--){ if(postings[i]._live) postings.splice(i,1); }
+    for(const p of mine){
+      const demo = backendPostingToDemo(p);
+      try{ const s = await API.interest.seekersWhoLiked(p.id); demo._liveInterest = (s || []).length; }catch(e){}
+      postings.push(demo);
+    }
+  }
+  // Map edited form data → backend columns and persist a live posting update.
+  async function gcUpdateLivePosting(backendId, data){
+    const API = window.GigCuteAPI;
+    if(!API || !API.enabled) return;
+    const toInt = v => { const n = parseInt(String(v).replace(/[^0-9]/g,''),10); return Number.isFinite(n) ? n : null; };
+    try{
+      await API.postings.update(backendId, {
+        title: data.title, department: data.department || null, seniority: data.seniority || null,
+        location_type: data.locationType || null, city: data.city || null,
+        employment_type: data.employmentType || null,
+        salary_min: data.shareSalary === false ? null : toInt(data.salaryMin),
+        salary_max: data.shareSalary === false ? null : toInt(data.salaryMax),
+        equity: !!data.equity,
+        responsibilities: data.responsibilities || [], qualifications: data.qualifications || [],
+        status: 'active',
+      });
+    }catch(e){ showToast('Saved locally, but server update failed: ' + (e.message||'')); }
+  }
 
   // ---- Posting detail: likes + recommended ----
   function openPostingDetail(posting){
@@ -8509,6 +8576,7 @@
       showHireView('postings');
       renderRecruiterPostingsGrid();
       renderLiveCandidatesPanel();
+      loadBackendRecruiterPostings().then(() => renderRecruiterPostingsGrid());
       refreshRecruiterVerifyBanner();
     }
     // sync URL when on the app screen: /search (candidate) or /postings (recruiter)
