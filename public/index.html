@@ -9732,12 +9732,16 @@
                 }).join('');
               }
             }catch(e){ /* ignore invite load errors */ }
-            const convs = await api.chat.listConversations();
+            let convs = [];
+            try{ convs = await api.chat.myConversations(); }catch(e){ convs = await api.chat.listConversations(); }
             if(convs && convs.length){
               html += '<div class="chat-group-label">Chats</div>';
               html += convs.map(c => {
-                const title = (c.postings && c.postings.companies && c.postings.companies.name) || (c.postings && c.postings.title) || 'Conversation';
-                const sub = (c.postings && c.postings.title) || '';
+                // Title with the OTHER party: seeker name (recruiter side) or company name (seeker side).
+                const title = c.i_am_recruiter
+                  ? (c.seeker_name || 'Candidate')
+                  : (c.company_name || (c.postings && c.postings.companies && c.postings.companies.name) || 'Conversation');
+                const sub = c.posting_title || (c.postings && c.postings.title) || '';
                 return `<div class="chat-conv" data-conv="${c.id}" data-title="${escapeHtml(title)}"><div class="chat-conv-av">${escapeHtml((title[0]||'?').toUpperCase())}</div><div class="chat-conv-main"><div class="chat-conv-name">${escapeHtml(title)}</div><div class="chat-conv-sub">${escapeHtml(sub)}</div></div></div>`;
               }).join('');
             }

@@ -491,6 +491,13 @@ const chat = {
     if (error) throw error;
     return data;
   },
+  // Conversations with the PEER's display name resolved server-side (see
+  // migration 0011). `i_am_recruiter` tells the UI which name to title with.
+  async myConversations() {
+    const { data, error } = await requireClient().rpc('my_conversations');
+    if (error) throw error;
+    return data || [];
+  },
   // Open (or fetch) the conversation for a posting+seeker. Requires an open
   // connection (match or accepted invite) — enforced by RLS.
   async openConversation(postingId, seekerId) {
