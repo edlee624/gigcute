@@ -5310,8 +5310,150 @@
     both: ['Connecting to LinkedIn…','Reading your resume…','Cross-referencing your work history…','Drafting profile prompts…']
   };
 
-  sk2Next.onclick = () => {
-    runParsing(parseStepsBySource.resume, 'resume');
+  // ---- Real resume parsing (client-side, heuristic) ----
+  function loadScriptOnce(src){
+    return new Promise((resolve, reject) => {
+      if(document.querySelector(`script[data-src="${src}"]`)){ resolve(); return; }
+      const s = document.createElement('script');
+      s.src = src; s.dataset.src = src; s.onload = resolve; s.onerror = () => reject(new Error('load failed'));
+      document.head.appendChild(s);
+    });
+  }
+  async function ensurePdfJs(){
+    if(window.pdfjsLib) return;
+    await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+  async function ensureMammoth(){
+    if(window.mammoth) return;
+    await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js');
+  }
+  // Extract raw text from a resume file. Returns '' for unsupported (.doc / scans).
+  async function extractResumeText(file){
+    if(!file) return '';
+    const name = (file.name || '').toLowerCase();
+    if(name.endsWith('.pdf') || file.type === 'application/pdf'){
+      await ensurePdfJs();
+      const data = new Uint8Array(await file.arrayBuffer());
+      const pdf = await window.pdfjsLib.getDocument({ data }).promise;
+      let out = '';
+      for(let p = 1; p <= pdf.numPages; p++){
+        const page = await pdf.getPage(p);
+        const tc = await page.getTextContent();
+        // Rebuild line breaks from glyph Y-positions (pdf.js returns positioned
+        // runs, not lines). A jump in Y (or an explicit EOL) starts a new line.
+        let lastY = null;
+        for(const it of tc.items){
+          const y = it.transform ? it.transform[5] : null;
+          if(lastY !== null && y !== null && Math.abs(y - lastY) > 3) out += '\n';
+          else if(out && !out.endsWith('\n')) out += ' ';
+          out += it.str;
+          if(it.hasEOL) out += '\n';
+          lastY = y;
+        }
+        out += '\n';
+      }
+      return out;
+    }
+    if(name.endsWith('.docx')){
+      await ensureMammoth();
+      const r = await window.mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+      return r.value || '';
+    }
+    return ''; // legacy .doc or unknown — heuristics can't read it
+  }
+  // Heuristically pull a name, headline, and work history out of resume text.
+  function parseResumeText(raw){
+    const text = (raw || '').replace(/\r/g, '').replace(/ /g, ' ');
+    const lines = text.split(/\n+/).map(l => l.trim()).filter(Boolean);
+    const yr = '(?:[A-Za-z]{3,9}\\.?\\s+)?((?:19|20)\\d{2})';
+    const rangeRe = new RegExp('\\b' + yr + '\\s*(?:[\\u2013\\u2014\\-]{1,2}|to)\\s*(?:' + yr + '|present|current|now)\\b', 'i');
+    const titleWords = /(engineer|designer|manager|developer|analyst|scientist|lead|director|consultant|architect|specialist|coordinator|market|writer|product|software|data|sales|account|recruiter|founder|head of|\bvp\b|officer|nurse|teacher|attorney|accountant|operations|support|intern)/i;
+    const sectionRe = /^(education|skills|projects|certifications|awards|interests|references|summary|objective|experience|work experience|employment history|employment)\b/i;
+
+    let name = '';
+    for(const l of lines.slice(0, 5)){
+      if(/^[A-Za-z][A-Za-z'.\-]+(\s+[A-Za-z][A-Za-z'.\-]+){1,3}$/.test(l)
+         && !/(resume|curriculum vitae|^cv$|experience|education|email|phone)/i.test(l)
+         && l.length <= 40){ name = l; break; }
+    }
+
+    // A header candidate is a short, non-bullet, non-contact line near a date.
+    function headerCand(idx){
+      let s = (lines[idx] || '').replace(rangeRe, '').replace(/[|·•]+/g, ' ').trim();
+      if(!s || /^[•\-\*]/.test(s) || s.length > 60 || /@/.test(s) || sectionRe.test(s)) return null;
+      return s;
+    }
+    const entries = [];
+    for(let i = 0; i < lines.length; i++){
+      const m = lines[i].match(rangeRe);
+      if(!m) continue;
+      const start = m[1];
+      let end = m[2] || 'Present';
+      // Header lines sit just above the date (Title then Company, top to bottom).
+      const ordered = [];
+      for(const idx of [i-2, i-1, i]){ const s = headerCand(idx); if(s && !ordered.includes(s)) ordered.push(s); }
+      let title = '', company = '';
+      for(const s of ordered){   // same-line "Title, Company" / "Title at Company"
+        const parts = s.split(/\s+(?:at|@)\s+|\s*[–—|]\s*|,\s+/);
+        if(parts.length >= 2 && titleWords.test(parts[0])){ title = parts[0].trim(); company = parts.slice(1).join(' ').trim(); break; }
+      }
+      if(!title){
+        const ti = ordered.findIndex(s => titleWords.test(s));
+        if(ti >= 0){ title = ordered[ti]; company = ordered.find((s,k) => k !== ti) || ''; }
+        else { title = ordered[0] || ''; company = ordered[1] || ''; }
+      }
+      const desc = [];
+      for(let j = i + 1; j < lines.length && j < i + 8; j++){
+        if(rangeRe.test(lines[j]) || sectionRe.test(lines[j])) break;
+        if(lines[j] === company || lines[j] === title) continue;
+        if(/^[•\-\*]/.test(lines[j]) || lines[j].length > 25) desc.push(lines[j].replace(/^[•\-\*]\s?/, ''));
+        if(desc.length >= 4) break;
+      }
+      title = title.slice(0, 80); company = company.slice(0, 80);
+      if(title || company) entries.push({ title, company, start, end, description: desc.join('\n') });
+    }
+    const seen = new Set(); const workHistory = [];
+    for(const e of entries){
+      const k = (e.title + '|' + e.company + '|' + e.start).toLowerCase();
+      if(seen.has(k)) continue; seen.add(k); workHistory.push(e);
+      if(workHistory.length >= 6) break;
+    }
+    return { name, headline: workHistory[0] ? workHistory[0].title : '', workHistory };
+  }
+  function applyResumeParse(parsed, hadError){
+    const banner = document.getElementById('importedBanner');
+    if(parsed && parsed.workHistory && parsed.workHistory.length){
+      banner.style.display = 'flex';
+      document.getElementById('importedBannerText').textContent = 'Imported from your resume — review the details below';
+      renderWorkHistoryEntries(parsed.workHistory);
+      if(parsed.name){ const n = document.getElementById('sk-name'); if(n && !n.value) n.value = parsed.name; }
+      if(parsed.headline){ const r = document.getElementById('sk-role'); if(r && !r.value) r.value = parsed.headline; }
+      seedSeekerPrompts({});   // prompts are answered by the user, never fabricated
+    } else {
+      banner.style.display = 'none';
+      renderWorkHistoryEntries([]);   // clean manual form (no fake data)
+      seedSeekerPrompts({});
+      showToast(hadError
+        ? "We couldn't read that file automatically — add your roles below."
+        : "We couldn't find work history in your resume — add your roles below.");
+    }
+  }
+
+  sk2Next.onclick = async () => {
+    const file = resumeFile.files[0];
+    showScreen('screen-seeker-parsing');
+    const stepEl = document.getElementById('parseStepText');
+    const steps = parseStepsBySource.resume;
+    let i = 0; if(stepEl) stepEl.textContent = steps[0];
+    const anim = setInterval(() => { i++; if(stepEl && i < steps.length) stepEl.textContent = steps[i]; }, 700);
+    let parsed = null, hadError = false;
+    try{ parsed = parseResumeText(await extractResumeText(file)); }
+    catch(e){ hadError = true; console.warn('[gigcute] resume parse failed:', e && e.message); }
+    await new Promise(r => setTimeout(r, 450));   // let the animation breathe
+    clearInterval(anim);
+    applyResumeParse(parsed, hadError);
+    showScreen('screen-seeker-work');
   };
 
   function runParsing(steps, source){
