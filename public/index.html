@@ -4156,8 +4156,53 @@
     showEl('navProfileBtn',''); showEl('navViewProfileBtn','');
     document.querySelectorAll('.ds-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === 'candidate'));
   }
-  // No swipe dashboard in the seeker-only build.
-  function renderDashboard(){ /* no-op: dashboard/deck removed */ }
+  // Search dashboard (/search): hydrate the sidebar from the logged-in seeker's
+  // real profile. Matches/invites/open-roles/tracker need the recruiter+postings
+  // backend (not in this seeker-only build) so they show honest empty states.
+  async function renderDashboard(){
+    const API = window.GigCuteAPI;
+    const setText = (id,v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+    let user = null, me = null;
+    try{ user = await (API && API.enabled && API.auth.currentUser()); }catch(e){}
+    if(user){ try{ await gcLoadSeekerProfile(API); }catch(e){} try{ me = await API.profiles.me(); }catch(e){} }
+    const p = user ? (seekerProfile || {}) : {};   // ignore demo defaults when logged out
+    const fullName = (me && me.full_name) || p.name || '';
+    const parts = fullName.trim().split(/\s+/).filter(Boolean);
+    const first = parts[0] || '';
+    const lastInit = parts[1] ? parts[1].charAt(0) + '.' : '';
+    setText('sidebarName', user ? ((first ? (first + (lastInit ? ' ' + lastInit : '')) : 'Your profile')) : 'Your profile');
+    setText('sidebarTitle', p.title || '');
+    setText('sidebarAvatar', (first.charAt(0) || '?').toUpperCase());
+
+    // Profile strength from real completeness.
+    let s = 0;
+    if(fullName) s += 15;
+    if(p.title) s += 15;
+    if(p.photo) s += 10;
+    if(p.resumeUrl) s += 15;
+    if(p.linkedinUrl) s += 10;
+    if((p.workHistory || []).length) s += 15;
+    if((p.favoritePrompts || []).length >= 3) s += 20;
+    if(!user) s = 0;
+    const bar = document.getElementById('profileStrengthBar'); if(bar) bar.style.width = s + '%';
+    const lbl = document.querySelector('.cs-progress-label span'); if(lbl) lbl.textContent = s + '% complete';
+    setText('sidebarSetup', '—');
+
+    // Stats: no postings/matching backend yet, so these are real zeros.
+    setText('statMatches', '0'); setText('statViews', '0'); setText('statSaved', '0');
+    setText('insightViews', '0'); setText('insightReplies', '0');
+
+    // Honest empty states for the recruiter-powered sections.
+    const emptyStyle = 'padding:22px;text-align:center;color:rgba(251,247,240,0.5);font-size:14px;background:var(--ink-soft);border:1px solid var(--line-light);border-radius:14px;';
+    const setEmpty = (id, msg) => { const el = document.getElementById(id); if(el) el.innerHTML = '<div style="' + emptyStyle + '">' + msg + '</div>'; };
+    setEmpty('matchStrip', 'Your matches will appear here once roles are posted. Recruiting on GigCute is launching soon.');
+    setEmpty('inviteInboxList', 'No invites yet — recruiters can’t reach out until GigCute-Recruit launches.');
+    setEmpty('jobList', 'No open roles to browse yet. GigCute for recruiters is coming soon.');
+    const tb = document.getElementById('trackerBody');
+    if(tb) tb.innerHTML = '<tr><td colspan="4" style="padding:18px;text-align:center;color:rgba(251,247,240,0.5);font-size:14px;">Nothing tracked yet.</td></tr>';
+    const badge = document.getElementById('superInviteBadge'); if(badge) badge.style.display = 'none';
+    const rbadge = document.getElementById('regularInviteBadge'); if(rbadge) rbadge.style.display = 'none';
+  }
   // Nav buttons: edit/view profile (swipe-deck profileBtn is gone).
   { const b = document.getElementById('navViewProfileBtn'); if(b) b.onclick = () => { if(typeof openProfileView==='function') openProfileView(); }; }
   { const b = document.getElementById('navProfileBtn'); if(b) b.onclick = () => { if(typeof openProfileView==='function') openProfileView(); }; }
@@ -5165,7 +5210,7 @@
       const pm = path.match(/^\/profile\/([^/]+)\/?$/);
       if(pm){ showScreen('screen-app'); showProfilePage(decodeURIComponent(pm[1])); }
       else if(path === '/main'){ openProfileView(); }
-      else if(path === '/search'){ showScreen('screen-app'); setMode('candidate'); const ov = document.getElementById('profileViewOverlay'); if(ov) ov.classList.remove('open'); }
+      else if(path === '/search'){ showScreen('screen-app'); setMode('candidate'); const ov = document.getElementById('profileViewOverlay'); if(ov) ov.classList.remove('open'); if(typeof renderDashboard === 'function') renderDashboard(); }
       else if(SCREEN_BY_PATH[path]){ showScreen(SCREEN_BY_PATH[path]); }
       else { showScreen('screen-landing'); }
     } finally { __applyingRoute = false; }
