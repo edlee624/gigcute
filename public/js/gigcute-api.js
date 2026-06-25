@@ -292,6 +292,22 @@ const admin = {
     const { error } = await c.from('support_tickets').update(patch).eq('id', id);
     if (error) throw error;
   },
+  // Reported content (admin reads all via RLS).
+  async listReports(status = null) {
+    let q = requireClient()
+      .from('reports')
+      .select('*, profiles(full_name, email)')
+      .order('created_at', { ascending: false });
+    if (status) q = q.eq('status', status);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data;
+  },
+  // Resolve / escalate / reopen a report. status: 'resolved'|'escalated'|'open'
+  async setReportStatus(id, status) {
+    const { error } = await requireClient().from('reports').update({ status }).eq('id', id);
+    if (error) throw error;
+  },
   // End-of-chat feedback (admin reads all via RLS).
   async listChatFeedback() {
     const { data, error } = await requireClient()
@@ -362,6 +378,13 @@ const postings = {
     const { data, error } = await requireClient().from('screening_questions').insert(q).select().single();
     if (error) throw error;
     return data;
+  },
+  // "We'd love to know" prompt labels attached to a posting.
+  async addRequestedPrompts(postingId, labels) {
+    if (!labels || !labels.length) return;
+    const rows = labels.map((label, i) => ({ posting_id: postingId, prompt_label: label, sort_order: i }));
+    const { error } = await requireClient().from('posting_requested_prompts').insert(rows);
+    if (error) throw error;
   },
 };
 

@@ -1872,6 +1872,7 @@
   .lc-headline{ font-size:12px; color:rgba(251,247,240,0.5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .lc-btn{ background:var(--coral); color:var(--paper); border:none; border-radius:9px; padding:8px 14px; font-size:12.5px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0; }
   .lc-btn.open{ background:var(--sage); }
+  .lc-btn.super{ background:linear-gradient(135deg,#d4a017,#e8c848); color:var(--ink); margin-left:6px; }
   .lc-btn:disabled{ opacity:0.6; cursor:default; }
 
   /* ---- Postings landing ---- */
@@ -6439,7 +6440,43 @@
     showScreen('screen-posting-review');
   };
 
-  document.getElementById('publishPosting').onclick = () => {
+  // Persist a newly published posting to the backend (when a recruiter is signed
+  // in). Best-effort: failures are surfaced but never block the local/demo flow.
+  // Editing live postings isn't supported yet (the demo posting has no backend id).
+  async function gcPublishLivePosting(data, tier){
+    const API = window.GigCuteAPI;
+    if(!API || !API.enabled) return null;
+    let user = null; try{ user = await API.auth.currentUser(); }catch(e){}
+    if(!user) return null;
+    let companyId = null;
+    try{ const status = await API.companies.myStatus(); companyId = status && status.id; }catch(e){}
+    if(!companyId) return null;
+    const toInt = v => { const n = parseInt(String(v).replace(/[^0-9]/g,''),10); return Number.isFinite(n) ? n : null; };
+    try{
+      const row = await API.postings.create({
+        company_id: companyId, created_by: user.id,
+        title: data.title, department: data.department || null, seniority: data.seniority || null,
+        location_type: data.locationType || null, city: data.city || null,
+        employment_type: data.employmentType || null,
+        salary_min: data.shareSalary === false ? null : toInt(data.salaryMin),
+        salary_max: data.shareSalary === false ? null : toInt(data.salaryMax),
+        equity: !!data.equity,
+        responsibilities: data.responsibilities || [], qualifications: data.qualifications || [],
+        tier: tier || 'free', status: 'active', published_at: new Date().toISOString(),
+      });
+      try{ await API.postings.addRequestedPrompts(row.id, data.requestedPrompts || []); }catch(e){ console.warn('requested prompts:', e.message); }
+      for(const sq of (data.screeningQuestions || [])){
+        try{ await API.postings.addScreeningQuestion({
+          posting_id: row.id, template_id: sq.templateId || null, fill_value: sq.fillValue || null,
+          min_years: toInt(sq.minYears), degree_level: sq.degreeLevel || null,
+          proficiency: sq.proficiency || null, essential: !!sq.essential, is_voluntary: !!sq.isVoluntary,
+        }); }catch(e){ console.warn('screening question skipped:', e.message); }
+      }
+      return row;
+    }catch(e){ showToast('Posting published locally, but saving to the server failed: ' + (e.message||'')); return null; }
+  }
+
+  document.getElementById('publishPosting').onclick = async () => {
     const data = readPostingForm();
     const wasEdit = wizardMode === 'edit' && editingId;
     if(wasEdit){
@@ -6454,6 +6491,8 @@
       );
       postings.push(newPosting);
       syncPostingIntoDeck(newPosting);
+      // Mirror to the backend for real recruiters (live posting candidates can like).
+      if(!wasEdit) gcPublishLivePosting(data, pendingNewPostingTier).then(row => { if(row) newPosting._backendId = row.id; });
     }
     renderPostingsDashboard();
     editingId = null;
@@ -7729,7 +7768,9 @@
             <div class="lc-row" data-posting="${escapeHtml(b.posting.id)}" data-seeker="${escapeHtml(s.seeker_id)}" data-name="${escapeHtml(s.full_name||'Candidate')}">
               <div class="lc-av" ${s.photo_url?`style="background-image:url('${escapeHtml(s.photo_url)}')"`:''}>${s.photo_url?'':escapeHtml((s.full_name||'?').charAt(0).toUpperCase())}</div>
               <div class="lc-main"><div class="lc-name">${escapeHtml(s.full_name||'Candidate')}</div><div class="lc-headline">${escapeHtml(s.headline||'Job seeker')}</div></div>
-              <button class="lc-btn ${s.mutual?'open':''}" data-action="${s.mutual?'open':'like'}" type="button">${s.mutual?'Open chat':"I'm interested → chat"}</button>
+              ${s.mutual
+                ? `<button class="lc-btn open" data-action="open" type="button">Open chat</button>`
+                : `<button class="lc-btn" data-action="like" type="button">I'm interested</button><button class="lc-btn super" data-action="invite" type="button">⭐ Super Invite</button>`}
             </div>`).join('')}
         </div>`).join('');
     panel.querySelectorAll('.lc-btn').forEach(btn => btn.onclick = async () => {
@@ -7737,6 +7778,13 @@
       const postingId = row.dataset.posting, seekerId = row.dataset.seeker, name = row.dataset.name;
       btn.disabled = true; const prev = btn.textContent; btn.textContent = '…';
       try{
+        if(btn.dataset.action === 'invite'){
+          // Send a live Super Invite (seeker accepts it from their Messages to open the chat).
+          await API.invites.send({ postingId, seekerId, type:'super', note:`We'd love to talk — your profile really stood out for this role!` });
+          showToast(`⭐ Super Invite sent to ${name}. They'll see it in their messages.`);
+          btn.textContent = 'Invited ✓';
+          return;
+        }
         if(btn.dataset.action === 'like') await API.interest.recruiterLike(postingId, seekerId);
         const convId = await API.chat.openConversation(postingId, seekerId);
         if(window.openConversation) window.openConversation(convId, name);
@@ -8740,6 +8788,12 @@
       reason, details, date:'Today', status:'pending'
     });
     track('report_filed', {target:reportTarget, reason, type:reportTargetType});
+    // Persist to the backend when signed in (admins review it in the dashboard).
+    const __api = window.GigCuteAPI;
+    if(__api && __api.enabled){
+      __api.reports.file({ targetType: reportTargetType === 'posting' ? 'posting' : 'candidate', targetId: reportTarget || '', reason, details })
+        .catch(e => console.warn('report save failed:', e.message));
+    }
     closeReportModal();
     // Toast
     const t = document.createElement('div');
@@ -8939,20 +8993,40 @@
     ).join('');
   }
 
-  function renderAdminReports(){
-    document.getElementById('adminReportsBody').innerHTML = reports.map(r=>
+  // Normalize demo + live reports to one shape. Live rows (from the backend)
+  // replace the demo list when available, else demo is shown as a fallback.
+  async function getReportRows(){
+    const demo = reports.map(r => ({ id:r.id, live:false, filedBy:r.filedBy, type:r.type, target:r.target, reason:r.reason, details:r.details, date:r.date, status:r.status, isOpen:r.status==='pending' }));
+    const API = window.GigCuteAPI;
+    if(API && API.enabled){
+      try{
+        const rows = await API.admin.listReports();
+        return rows.map(r => ({
+          id:r.id, live:true,
+          filedBy:(r.profiles && (r.profiles.full_name || r.profiles.email)) || 'User',
+          type: r.target_type === 'posting' ? 'Posting' : 'Profile',
+          target: r.target_id || '—', reason: r.reason, details: r.details,
+          date:(r.created_at||'').slice(0,10), status:r.status, isOpen: r.status==='open',
+        }));
+      }catch(e){ /* fall back to demo */ }
+    }
+    return demo;
+  }
+  async function renderAdminReports(){
+    const rows = await getReportRows();
+    document.getElementById('adminReportsBody').innerHTML = rows.map(r=>
       `<tr>
         <td style="font-size:12px;">${escapeHtml(r.filedBy)}</td>
         <td style="font-size:12px;">${r.type}</td>
-        <td style="font-size:12px;">${escapeHtml(r.target.slice(0,30))}</td>
+        <td style="font-size:12px;">${escapeHtml(String(r.target).slice(0,30))}</td>
         <td><span class="flag-badge ${r.reason}">${r.reason}</span></td>
         <td style="font-size:11.5px;color:rgba(251,247,240,0.45);max-width:180px;">${escapeHtml((r.details||'').slice(0,60))}${r.details?.length>60?'…':''}</td>
         <td style="font-size:11.5px;color:rgba(251,247,240,0.35);">${r.date}</td>
         <td>
-          ${r.status==='pending'?`<button class="admin-action-btn success" onclick="resolveReport(${r.id})">Resolve</button><button class="admin-action-btn danger" onclick="escalateReport(${r.id})">Escalate</button>`:`<span class="flag-badge clear">${r.status}</span>`}
+          ${r.isOpen?`<button class="admin-action-btn success" onclick="resolveReport('${r.id}',${r.live})">Resolve</button><button class="admin-action-btn danger" onclick="escalateReport('${r.id}',${r.live})">Escalate</button>`:`<span class="flag-badge clear">${r.status}</span>`}
         </td></tr>`
     ).join('');
-    document.getElementById('adminReportsBadge').textContent = reports.filter(r=>r.status==='pending').length;
+    document.getElementById('adminReportsBadge').textContent = rows.filter(r=>r.isOpen).length;
   }
 
   // ----- Recruiter ID-verification review queue -----
@@ -9132,14 +9206,18 @@
   }
 
   // Admin actions
-  function resolveReport(id){
-    const r = reports.find(x=>x.id===id);
-    if(r){ r.status='resolved'; renderAdminReports(); renderAdminOverview(); track('report_resolved',{id}); }
+  async function setReportStatus(id, live, status){
+    const API = window.GigCuteAPI;
+    if(live === true || live === 'true'){
+      try{ await API.admin.setReportStatus(id, status); }catch(e){ showToast(e.message||'Failed'); return; }
+    } else {
+      const r = reports.find(x=>String(x.id)===String(id));
+      if(r) r.status = (status==='resolved') ? 'resolved' : status;
+    }
+    renderAdminReports(); renderAdminOverview(); track('report_'+status,{id});
   }
-  function escalateReport(id){
-    const r = reports.find(x=>x.id===id);
-    if(r){ r.status='escalated'; renderAdminReports(); renderAdminOverview(); track('report_escalated',{id}); }
-  }
+  function resolveReport(id, live){ setReportStatus(id, live, 'resolved'); }
+  function escalateReport(id, live){ setReportStatus(id, live, 'escalated'); }
   function suspendUser(email){
     const u = adminUsers.find(x=>x.email===email);
     if(u){ u.status='suspended'; renderAdminUsers(); renderAdminOverview(); track('user_suspended',{email}); }
@@ -9552,6 +9630,18 @@
         try{
           const u = await api.auth.currentUser(); myId = u && u.id;
           if(myId){
+            // ---- Live invitations (real recruiter invites awaiting your response) ----
+            try{
+              const liveInvites = await api.invites.inbox();
+              if(liveInvites && liveInvites.length){
+                html += '<div class="chat-group-label">Invitations</div>';
+                html += liveInvites.map(iv => {
+                  const co = (iv.postings && iv.postings.companies && iv.postings.companies.name) || 'A company';
+                  const role = (iv.postings && iv.postings.title) || '';
+                  return `<div class="chat-conv" data-live-invite="${iv.id}" data-posting="${escapeHtml(iv.posting_id)}" data-seeker="${escapeHtml(iv.seeker_id)}" data-title="${escapeHtml(co)}"><div class="chat-conv-av">${iv.type==='super'?'★':'✉'}</div><div class="chat-conv-main"><div class="chat-conv-name">${escapeHtml(co)}</div><div class="chat-conv-sub">${escapeHtml(role)} · tap to accept</div></div></div>`;
+                }).join('');
+              }
+            }catch(e){ /* ignore invite load errors */ }
             const convs = await api.chat.listConversations();
             if(convs && convs.length){
               html += '<div class="chat-group-label">Chats</div>';
@@ -9583,6 +9673,15 @@
       listEl.querySelectorAll('[data-invite]').forEach(row => row.onclick = () => {
         const inv = (typeof candidateInvites !== 'undefined') ? candidateInvites.find(x => x.id === Number(row.dataset.invite)) : null;
         if(inv) openInviteChat(inv);
+      });
+      // Live invite → accept it, which opens the real conversation.
+      listEl.querySelectorAll('[data-live-invite]').forEach(row => row.onclick = async () => {
+        const api = API(); if(!api) return;
+        try{
+          await api.invites.respond(row.dataset.liveInvite, 'accepted');
+          const convId = await api.chat.openConversation(row.dataset.posting, row.dataset.seeker);
+          openConv(convId, row.dataset.title);
+        }catch(e){ showToast(e.message || 'Could not open the conversation'); }
       });
     }
 
