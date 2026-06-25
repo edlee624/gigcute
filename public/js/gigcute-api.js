@@ -111,6 +111,12 @@ const profiles = {
     if (error) throw error;
     return data;
   },
+  // Public shareable profile by id (any visible seeker) — for /profile/<id>.
+  async publicProfile(id) {
+    const { data, error } = await requireClient().rpc('public_profile', { p_id: id });
+    if (error) throw error;
+    return data; // jsonb object, or null if not found/visible
+  },
 };
 
 // ---- Storage --------------------------------------------------------------
