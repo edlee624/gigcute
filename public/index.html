@@ -4794,6 +4794,9 @@
     activityLog.unshift({event,data,ts});
     if(activityLog.length>200) activityLog.pop();
     eventCounts[event]=(eventCounts[event]||0)+1;
+    // Persist to the backend (fire-and-forget) so admins see real usage data.
+    const __api = window.GigCuteAPI;
+    if(__api && __api.enabled && __api.events) __api.events.log(event, data || {});
   }
 
   // ================= SCREEN ROUTER + URL =================
@@ -9248,17 +9251,36 @@
       </tr>`).join('') : `<tr><td colspan="6" style="text-align:center;color:rgba(251,247,240,0.35);padding:24px;font-size:13px;">No feedback yet.</td></tr>`;
   }
 
-  function renderAdminAnalytics(){
-    const totalEvents = Object.values(eventCounts).reduce((a,b)=>a+b,0);
+  async function renderAdminAnalytics(){
+    // Prefer real events from the backend (last 500); fall back to in-memory.
+    let counts = {...eventCounts};
+    let log = activityLog.slice(0,20).map(e => ({ ts:e.ts, event:e.event }));
+    let live = false;
+    const API = window.GigCuteAPI;
+    if(API && API.enabled && API.events){
+      try{
+        const rows = await API.events.recent(500);
+        if(rows){
+          live = true;
+          counts = {};
+          rows.forEach(r => { counts[r.type] = (counts[r.type]||0) + 1; });
+          log = rows.slice(0,20).map(r => ({
+            ts: new Date(r.created_at).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+            event: r.type,
+          }));
+        }
+      }catch(e){ /* fall back to in-memory */ }
+    }
+    const totalEvents = Object.values(counts).reduce((a,b)=>a+b,0);
     document.getElementById('adminAnalyticsStrip').innerHTML = [
-      {n:totalEvents,       l:'Total events tracked'},
-      {n:eventCounts['screen_view']||0, l:'Screen views'},
-      {n:eventCounts['report_filed']||0, l:'Reports filed'},
-      {n:eventCounts['legal_viewed']||0, l:'Legal docs viewed'},
-      {n:eventCounts['admin_accessed']||0, l:'Admin sessions'},
+      {n:totalEvents,       l:live?'Events (last 500)':'Total events tracked'},
+      {n:counts['screen_view']||0, l:'Screen views'},
+      {n:counts['report_filed']||0, l:'Reports filed'},
+      {n:counts['invite_sent']||0, l:'Invites sent'},
+      {n:counts['admin_accessed']||0, l:'Admin sessions'},
     ].map(s=>`<div class="admin-stat-card"><div class="n">${s.n}</div><div class="l">${s.l}</div></div>`).join('');
 
-    const topEvents = Object.entries(eventCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const topEvents = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
     const maxVal = topEvents[0]?.[1]||1;
     document.getElementById('analyticsEventBars').innerHTML = topEvents.map(([evt,cnt])=>
       `<div class="analytics-row">
@@ -9268,7 +9290,7 @@
       </div>`
     ).join('') || '<div style="color:rgba(251,247,240,0.3);font-size:13px;">No events logged yet. Use the app to generate data.</div>';
 
-    document.getElementById('analyticsLog').innerHTML = activityLog.slice(0,20).map(e=>
+    document.getElementById('analyticsLog').innerHTML = log.map(e=>
       `<div>${e.ts} &nbsp;<span style="color:rgba(251,247,240,0.7);">${e.event}</span></div>`
     ).join('') || '<div style="color:rgba(251,247,240,0.3);">No events yet.</div>';
   }

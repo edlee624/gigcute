@@ -25,6 +25,14 @@ function requireClient() {
   return supabase;
 }
 
+// Cache the current user id so fire-and-forget event logging stays synchronous
+// (no getUser() round-trip per tracked event).
+let _uid = null;
+if (supabase) {
+  supabase.auth.getUser().then(({ data }) => { _uid = data?.user?.id || null; }).catch(() => {});
+  supabase.auth.onAuthStateChange((_e, session) => { _uid = session?.user?.id || null; });
+}
+
 // ---- Auth -----------------------------------------------------------------
 const auth = {
   // role: 'seeker' | 'recruiter'. full_name flows into the profiles row via the
@@ -553,6 +561,23 @@ const support = {
   },
 };
 
+// ---- Analytics events (write-any; admin-read) -----------------------------
+const events = {
+  // Fire-and-forget: log an analytics event. Never throws to the caller.
+  log(type, data = {}) {
+    if (!supabase) return;
+    supabase.from('events').insert({ user_id: _uid, type, data }).then(() => {}, () => {});
+  },
+  // Admin: recent events (newest first) for the analytics dashboard.
+  async recent(limit = 500) {
+    const { data, error } = await requireClient()
+      .from('events').select('type, data, created_at')
+      .order('created_at', { ascending: false }).limit(limit);
+    if (error) throw error;
+    return data || [];
+  },
+};
+
 const reports = {
   async file({ targetType, targetId, reason, details }) {
     const c = requireClient();
@@ -566,7 +591,7 @@ const reports = {
 window.GigCuteAPI = {
   enabled,
   supabase,
-  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat, support,
+  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat, support, events,
   isFreeEmailDomain,
 };
 
