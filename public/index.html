@@ -3085,7 +3085,7 @@
     text-transform:uppercase; letter-spacing:0.05em; color:#e05a3a;
     margin-bottom:6px;
   }
-  .pv-prompt-answer{ font-family:'Georgia',serif; font-size:15px; color:#222; line-height:1.5; }
+  .pv-prompt-answer{ font-family:'Georgia',serif; font-size:15px; color:#222; line-height:1.5; white-space:pre-wrap; }
 
   /* print mode */
   @media print {
@@ -4776,7 +4776,7 @@
     const title = p.title || '';
     const exp = p.workHistory?.length
       ? Math.max(...p.workHistory.map(w => {
-          const m = (w.years||'').match(/(\d{4})/g);
+          const m = (w.years || w.start || '').match(/(\d{4})/g);
           return m ? (new Date().getFullYear() - parseInt(m[0])) : 0;
         }))
       : 0;
@@ -4833,10 +4833,12 @@
             <div class="pv-work-entry">
               <div class="pv-work-top">
                 <div class="pv-work-title">${escapeHtml(w.title||'')}</div>
-                <div class="pv-work-years">${escapeHtml(w.years||'')}</div>
+                <div class="pv-work-years">${escapeHtml(w.years || [w.start, w.end].filter(Boolean).join(' – '))}</div>
               </div>
               <div class="pv-work-company">${escapeHtml(w.company||'')}</div>
-              ${(w.bullets||[]).length ? `<ul class="pv-work-bullets">${w.bullets.map(b=>`<li>${escapeHtml(b)}</li>`).join('')}</ul>` : ''}
+              ${(w.bullets||[]).length
+                ? `<ul class="pv-work-bullets">${w.bullets.map(b=>`<li>${escapeHtml(b)}</li>`).join('')}</ul>`
+                : (w.description ? `<ul class="pv-work-bullets">${w.description.split('\n').map(s=>s.trim()).filter(Boolean).map(b=>`<li>${escapeHtml(b.replace(/^[•\-\*]\s?/,''))}</li>`).join('')}</ul>` : '')}
             </div>`).join('')}
         </div>` : ''}
 
