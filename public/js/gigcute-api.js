@@ -334,6 +334,19 @@ const postings = {
     if (error) throw error;
     return data;
   },
+  // The current recruiter's own postings (across their companies).
+  async mine() {
+    const c = requireClient();
+    const { data: u } = await c.auth.getUser();
+    if (!u?.user) return [];
+    const cos = await c.from('companies').select('id').eq('owner_id', u.user.id);
+    if (cos.error) throw cos.error;
+    const ids = (cos.data || []).map(r => r.id);
+    if (!ids.length) return [];
+    const { data, error } = await c.from('postings').select('*').in('company_id', ids).order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  },
   async create(posting) {
     const { data, error } = await requireClient().from('postings').insert(posting).select().single();
     if (error) throw error;
@@ -371,6 +384,15 @@ const interest = {
     const { data, error } = await requireClient().from('matches').select('*');
     if (error) throw error;
     return data;
+  },
+  // Seekers who liked a posting the caller owns. Returns SAFE fields only
+  // (name, headline, photo — never email), via a security-definer RPC gated by
+  // owns_posting (see migration 0010). Each row also flags whether the recruiter
+  // already liked back (mutual = a match exists) and the conversation id if open.
+  async seekersWhoLiked(postingId) {
+    const { data, error } = await requireClient().rpc('seekers_who_liked', { p_posting: postingId });
+    if (error) throw error;
+    return data || [];
   },
 };
 

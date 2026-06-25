@@ -1859,6 +1859,20 @@
   /* ---- Recruiter sub-views (postings list vs posting detail vs candidate browse) ---- */
   .hire-view{ display:none; width:100%; }
   .hire-view.active{ display:flex; flex:1; min-height:0; }
+  /* Live interested-candidates panel (real backend seekers who liked a posting) */
+  .lc-head{ font-family:'Fraunces',serif; font-size:18px; color:var(--paper); margin:0 0 12px; }
+  .lc-head .lc-sub{ font-family:'Inter',sans-serif; font-size:12.5px; color:rgba(251,247,240,0.45); font-weight:400; }
+  .lc-block{ background:var(--ink-soft); border:1px solid var(--line-light); border-radius:14px; padding:14px 16px; margin-bottom:12px; }
+  .lc-role{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--coral); margin-bottom:10px; }
+  .lc-row{ display:flex; align-items:center; gap:12px; padding:8px 0; border-top:1px solid rgba(251,247,240,0.06); }
+  .lc-row:first-of-type{ border-top:none; }
+  .lc-av{ width:38px; height:38px; border-radius:50%; background:var(--ink) center/cover no-repeat; display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--paper); flex-shrink:0; }
+  .lc-main{ flex:1; min-width:0; }
+  .lc-name{ font-size:14px; font-weight:600; color:var(--paper); }
+  .lc-headline{ font-size:12px; color:rgba(251,247,240,0.5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lc-btn{ background:var(--coral); color:var(--paper); border:none; border-radius:9px; padding:8px 14px; font-size:12.5px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+  .lc-btn.open{ background:var(--sage); }
+  .lc-btn:disabled{ opacity:0.6; cursor:default; }
 
   /* ---- Postings landing ---- */
   .postings-landing{
@@ -4375,6 +4389,7 @@
           <h1>Your <em>postings</em></h1>
           <button class="ds-nav-btn" id="browseAllCandidatesBtn" type="button">Browse all candidates →</button>
         </div>
+        <div id="liveCandidatesPanel" style="display:none;margin:0 0 22px;"></div>
         <div class="postings-grid" id="recruiterPostingsGrid"></div>
       </div>
     </div>
@@ -7687,6 +7702,49 @@
     updateTierNav();
   }
 
+  // ---- Live interested candidates: real seekers who liked your live postings ----
+  // Mutual interest → match → conversation, all against the Supabase backend.
+  async function renderLiveCandidatesPanel(){
+    const panel = document.getElementById('liveCandidatesPanel');
+    if(!panel) return;
+    const API = window.GigCuteAPI;
+    if(!API || !API.enabled || mode !== 'recruiter'){ panel.style.display = 'none'; return; }
+    let user = null; try{ user = await API.auth.currentUser(); }catch(e){}
+    if(!user){ panel.style.display = 'none'; return; }
+    let mine = [];
+    try{ mine = (await API.postings.mine()).filter(p => p.status === 'active'); }
+    catch(e){ panel.style.display = 'none'; return; }
+    const blocks = [];
+    for(const p of mine){
+      try{ const seekers = await API.interest.seekersWhoLiked(p.id); if(seekers.length) blocks.push({ posting:p, seekers }); }
+      catch(e){ /* skip this posting */ }
+    }
+    if(!blocks.length){ panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+    panel.innerHTML = `<div class="lc-head">💬 Interested candidates <span class="lc-sub">— real people who liked your live postings</span></div>` +
+      blocks.map(b => `
+        <div class="lc-block">
+          <div class="lc-role">${escapeHtml(b.posting.title)}</div>
+          ${b.seekers.map(s => `
+            <div class="lc-row" data-posting="${escapeHtml(b.posting.id)}" data-seeker="${escapeHtml(s.seeker_id)}" data-name="${escapeHtml(s.full_name||'Candidate')}">
+              <div class="lc-av" ${s.photo_url?`style="background-image:url('${escapeHtml(s.photo_url)}')"`:''}>${s.photo_url?'':escapeHtml((s.full_name||'?').charAt(0).toUpperCase())}</div>
+              <div class="lc-main"><div class="lc-name">${escapeHtml(s.full_name||'Candidate')}</div><div class="lc-headline">${escapeHtml(s.headline||'Job seeker')}</div></div>
+              <button class="lc-btn ${s.mutual?'open':''}" data-action="${s.mutual?'open':'like'}" type="button">${s.mutual?'Open chat':"I'm interested → chat"}</button>
+            </div>`).join('')}
+        </div>`).join('');
+    panel.querySelectorAll('.lc-btn').forEach(btn => btn.onclick = async () => {
+      const row = btn.closest('.lc-row');
+      const postingId = row.dataset.posting, seekerId = row.dataset.seeker, name = row.dataset.name;
+      btn.disabled = true; const prev = btn.textContent; btn.textContent = '…';
+      try{
+        if(btn.dataset.action === 'like') await API.interest.recruiterLike(postingId, seekerId);
+        const convId = await API.chat.openConversation(postingId, seekerId);
+        if(window.openConversation) window.openConversation(convId, name);
+        renderLiveCandidatesPanel();
+      }catch(e){ showToast(e.message || 'Could not start chat'); btn.disabled = false; btn.textContent = prev; }
+    });
+  }
+
   document.getElementById('recruiterPostingsGrid').addEventListener('click', e => {
     const btn = e.target.closest('[data-action]');
     if(!btn) return;
@@ -8402,6 +8460,7 @@
       document.getElementById('navViewProfileBtn').style.display = 'none';
       showHireView('postings');
       renderRecruiterPostingsGrid();
+      renderLiveCandidatesPanel();
       refreshRecruiterVerifyBanner();
     }
     // sync URL when on the app screen: /search (candidate) or /postings (recruiter)

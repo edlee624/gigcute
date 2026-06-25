@@ -955,3 +955,28 @@ create policy "tickets: admin update" on public.support_tickets for update using
 grant select, insert, update on public.chat_feedback   to authenticated;
 grant select, insert, update on public.support_tickets to authenticated;
 
+-- ============================================================================
+-- 0010 — seekers_who_liked RPC: posting owners see real seekers who liked a
+-- posting, returning SAFE fields only (name/headline/photo — never email).
+-- ============================================================================
+create or replace function public.seekers_who_liked(p_posting uuid)
+returns table(seeker_id uuid, full_name text, headline text, photo_url text, mutual boolean)
+language sql stable security definer set search_path = public as $$
+  select p.id,
+         p.full_name,
+         sp.headline,
+         sp.photo_url,
+         exists(
+           select 1 from public.recruiter_interest ri
+           where ri.posting_id = p_posting and ri.seeker_id = p.id
+         ) as mutual
+  from public.seeker_interest si
+  join public.profiles p on p.id = si.seeker_id
+  left join public.seeker_profiles sp on sp.profile_id = si.seeker_id
+  where si.posting_id = p_posting
+    and public.owns_posting(p_posting)
+  order by si.created_at desc;
+$$;
+
+grant execute on function public.seekers_who_liked(uuid) to authenticated;
+
