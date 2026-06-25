@@ -9507,12 +9507,22 @@
     if(__inRecovery) enterRecovery();
     API.auth.onPasswordRecovery(() => enterRecovery());
 
+    // Hide the GigCute new-user intro for accounts that have already seen it.
+    function gcHideIntroLocal(){ const intro = (typeof candidateInvites !== 'undefined') && candidateInvites.find(i=>i.intro); if(intro) intro.status = 'accepted'; }
+    async function gcSyncIntro(){
+      try{ const me = await API.profiles.me(); if(me && me.intro_seen) gcHideIntroLocal(); }catch(e){}
+    }
+    window.gcMarkIntroSeen = () => {                       // called when the intro chat is opened
+      gcHideIntroLocal();
+      try{ if(API.profiles.update) API.profiles.update({ intro_seen: true }).catch(()=>{}); }catch(e){}
+    };
+
     // Restore an existing session (returning user / OAuth redirect) and route in.
     API.auth.currentUser().then(async (user) => {
       if(!user || __inRecovery) return;   // recovery flow handles its own screen
       await gcCompletePending(API);
       let role = 'seeker';
-      try{ const me = await API.profiles.me(); if(me && me.role) role = me.role; }catch(e){}
+      try{ const me = await API.profiles.me(); if(me){ if(me.role) role = me.role; if(me.intro_seen) gcHideIntroLocal(); } }catch(e){}
       if(sessionStorage.getItem('gc_oauth_role') === 'recruiter') role = 'recruiter';
       enterApp(role === 'recruiter' ? 'recruiter' : 'candidate');
     }).catch(()=>{});
@@ -9545,14 +9555,14 @@
       const email = document.getElementById('seeker-login-email').value.trim();
       const pw = document.getElementById('seeker-login-pw').value;
       document.getElementById('seekerLoginError').classList.remove('show');
-      try{ await API.auth.signIn({ email, password: pw }); await gcCompletePending(API); enterApp('candidate'); }
+      try{ await API.auth.signIn({ email, password: pw }); await gcCompletePending(API); enterApp('candidate'); gcSyncIntro(); }
       catch(e){ gcAuthError('seekerLoginError', e.message || 'Login failed.'); }
     };
     document.getElementById('recruiterLoginBtn').onclick = async () => {
       const email = document.getElementById('recruiter-login-email').value.trim();
       const pw = document.getElementById('recruiter-login-pw').value;
       document.getElementById('recruiterLoginError').classList.remove('show');
-      try{ await API.auth.signIn({ email, password: pw }); await gcCompletePending(API); enterApp('recruiter'); }
+      try{ await API.auth.signIn({ email, password: pw }); await gcCompletePending(API); enterApp('recruiter'); gcSyncIntro(); }
       catch(e){ gcAuthError('recruiterLoginError', e.message || 'Login failed.'); }
     };
 
@@ -9775,6 +9785,8 @@
     ]; }
     function openInviteChat(invite){
       if(typeof respondToInvite === 'function') respondToInvite(invite.id, 'accepted');
+      // Persist that this account has seen the GigCute new-user intro.
+      if(invite.intro && window.gcMarkIntroSeen) window.gcMarkIntroSeen();
       demoConv = { invite };
       enterThread(invite.company || 'Chat');
       if(invite.intro) introMessages().forEach(t => renderLocal(t, false));
