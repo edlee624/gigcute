@@ -1195,8 +1195,11 @@
     font-size:14.5px;
     resize:none;
     min-height:50px;
+    overflow:hidden;
     outline:none;
   }
+  .prompt-row .pr-count{ font-family:'JetBrains Mono',monospace; font-size:10.5px; color:rgba(251,247,240,0.35); text-align:right; margin-top:5px; }
+  .prompt-row .pr-count.over{ color:var(--coral); }
 
   /* ================= PROFILE PREVIEW ================= */
   .preview-header{ text-align:center; padding:6px 0 4px; }
@@ -4336,6 +4339,7 @@
         </div>
         <div class="pr-helper">${escapeHtml(p.helper)}</div>
         <textarea data-idx="${idx}" placeholder="Write your answer (optional)…"></textarea>
+        <div class="pr-count">0 / 150 words</div>
       </div>
     `).join('');
     document.querySelectorAll('#seekerPromptsList .pr-star').forEach(btn => {
@@ -4344,6 +4348,25 @@
         toggleSeekerFavorite(Number(btn.dataset.idx));
       });
     });
+    // 150-word cap + live counter + auto-grow, applied to every answer textarea.
+    document.getElementById('seekerPromptsList').addEventListener('input', (e) => {
+      const ta = e.target.closest('textarea'); if(ta) promptAnswerInput(ta);
+    });
+  }
+  const PROMPT_WORD_LIMIT = 150;
+  function promptAnswerInput(ta){
+    let words = ta.value.trim().split(/\s+/).filter(Boolean);
+    if(words.length > PROMPT_WORD_LIMIT){
+      const sel = ta.selectionStart;
+      ta.value = words.slice(0, PROMPT_WORD_LIMIT).join(' ');
+      words = ta.value.trim().split(/\s+/).filter(Boolean);
+      try{ ta.setSelectionRange(Math.min(sel, ta.value.length), Math.min(sel, ta.value.length)); }catch(_){}
+    }
+    const row = ta.closest('.prompt-row');
+    const counter = row && row.querySelector('.pr-count');
+    if(counter){ counter.textContent = `${words.length} / ${PROMPT_WORD_LIMIT} words`; counter.classList.toggle('over', words.length >= PROMPT_WORD_LIMIT); }
+    ta.style.height = 'auto';
+    ta.style.height = ta.scrollHeight + 'px';
   }
   renderSeekerPromptRows();
 
@@ -4368,13 +4391,13 @@
     selectedSeekerFavorites.clear();
     document.querySelectorAll('#seekerPromptsList .prompt-row').forEach(row => {
       row.classList.remove('favorited');
-      row.querySelector('textarea').value = '';
+      const ta = row.querySelector('textarea'); ta.value = ''; promptAnswerInput(ta);
     });
     Object.keys(answerMap).forEach(idxStr => {
       const idx = Number(idxStr);
       const row = document.querySelector(`#seekerPromptsList .prompt-row[data-idx="${idx}"]`);
       if(row){
-        row.querySelector('textarea').value = answerMap[idx];
+        const ta = row.querySelector('textarea'); ta.value = answerMap[idx]; promptAnswerInput(ta);
         if(selectedSeekerFavorites.size < 3){
           selectedSeekerFavorites.add(idx);
           row.classList.add('favorited');
@@ -4684,7 +4707,7 @@
     selectedSeekerFavorites.clear();
     document.querySelectorAll('#seekerPromptsList .prompt-row').forEach(row => {
       row.classList.remove('favorited');
-      row.querySelector('textarea').value = '';
+      const ta = row.querySelector('textarea'); ta.value = ''; promptAnswerInput(ta);
     });
     seekerProfile.favoritePrompts.forEach(fp => {
       const idx = SEEKER_PROMPT_BANK.findIndex(b => b.label === fp.label);
@@ -4692,7 +4715,7 @@
         selectedSeekerFavorites.add(idx);
         const row = document.querySelector(`#seekerPromptsList .prompt-row[data-idx="${idx}"]`);
         row.classList.add('favorited');
-        row.querySelector('textarea').value = fp.answer || '';
+        const ta = row.querySelector('textarea'); ta.value = fp.answer || ''; promptAnswerInput(ta);
       }
     });
     updateSeekerPromptCounter();
