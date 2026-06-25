@@ -2971,17 +2971,15 @@
   /* ===== PROFILE VIEW OVERLAY ===== */
   .profile-view-overlay{
     display:none; position:fixed; inset:0;
-    background:rgba(10,10,12,0.85); z-index:800;
+    background:var(--ink); z-index:800;
     overflow-y:auto;
-    backdrop-filter:blur(6px);
   }
   .profile-view-overlay.open{ display:block; }
   .profile-view-page{
-    max-width:780px; margin:32px auto 60px;
+    max-width:820px; margin:0 auto;
+    min-height:100vh;
     background:#fff;
-    border-radius:18px;
     overflow:hidden;
-    box-shadow:0 40px 80px -20px rgba(0,0,0,0.6);
     font-family:'Inter',sans-serif;
     color:#1a1a1a;
   }
@@ -3976,7 +3974,7 @@
     'screen-landing':'/',
     'screen-login-seeker':'/login',
     'screen-seeker-1':'/signup',
-    'screen-recruit':'/recruit',
+    'screen-recruit':'/search',
   };
   const SCREEN_BY_PATH = Object.fromEntries(Object.entries(PATH_BY_SCREEN).map(([s,p]) => [p,s]));
 
@@ -4158,12 +4156,6 @@
     showEl('hiringModeBtn','none'); showEl('lookingModeBtn','');
     showEl('navProfileBtn',''); showEl('navViewProfileBtn','');
     document.querySelectorAll('.ds-mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === 'candidate'));
-    if(!__applyingRoute){
-      const active = document.querySelector('.screen.active');
-      if(active && active.id === 'screen-app' && location.pathname !== '/search'){
-        window.history.pushState({}, '', '/search');
-      }
-    }
   }
   // No swipe dashboard in the seeker-only build.
   function renderDashboard(){ /* no-op: dashboard/deck removed */ }
@@ -4752,13 +4744,21 @@
 
   // ===== PROFILE VIEW =====
   let __shownProfileId = null;   // id of the profile currently displayed
-  // Open the logged-in user's own profile (data already in seekerProfile).
+  // The logged-in seeker's own profile = the /main home page (not an overlay-modal).
   async function openProfileView(){
+    let API = window.GigCuteAPI;
+    if(!API){ try{ await new Promise(res => window.addEventListener('gigcute-api-ready', res, { once:true })); }catch(e){} API = window.GigCuteAPI; }
+    let user = null; try{ user = await (API && API.enabled && API.auth.currentUser()); }catch(e){}
+    if(!user){ showScreen('screen-landing'); if(location.pathname !== '/') window.history.replaceState({}, '', '/'); return; }
+    showScreen('screen-app');
+    try{ await gcLoadSeekerProfile(API); }catch(e){}
     renderProfileView();
     const eb = document.getElementById('pvEditBtn'); if(eb) eb.style.display = '';
+    const cb = document.getElementById('pvCloseBtn'); if(cb) cb.style.display = 'none';  // this is home — no "back"
+    __shownProfileId = user.id;
     document.getElementById('profileViewOverlay').classList.add('open');
-    track('profile_viewed', {});
-    try{ const u = await window.GigCuteAPI.auth.currentUser(); if(u){ __shownProfileId = u.id; if(location.pathname !== '/profile/'+u.id) window.history.pushState({}, '', '/profile/'+u.id); } }catch(e){}
+    if(location.pathname !== '/main') window.history.pushState({}, '', '/main');
+    track('profile_viewed', { own:true });
   }
   // Open any seeker's shareable profile by id (public), e.g. /profile/<id>.
   async function showProfilePage(id){
@@ -4777,6 +4777,7 @@
     let own = false; try{ const u = await API.auth.currentUser(); own = !!(u && u.id === id); }catch(e){}
     renderProfileView(prof);
     const eb = document.getElementById('pvEditBtn'); if(eb) eb.style.display = own ? '' : 'none';
+    const cb = document.getElementById('pvCloseBtn'); if(cb) cb.style.display = '';
     __shownProfileId = id;
     document.getElementById('profileViewOverlay').classList.add('open');
     if(location.pathname !== '/profile/'+id) window.history.pushState({}, '', '/profile/'+id);
@@ -4784,7 +4785,7 @@
   }
   function closeProfileView(){
     document.getElementById('profileViewOverlay').classList.remove('open');
-    if(/^\/profile\//.test(location.pathname)) window.history.pushState({}, '', '/');
+    if(/^\/(profile|main)\b/.test(location.pathname)) window.history.pushState({}, '', '/');
   }
   document.getElementById('pvCloseBtn').onclick = closeProfileView;
   { const b = document.getElementById('pvEditBtn'); if(b) b.onclick = () => { closeProfileView(); openProfileEdit(); }; }
@@ -4996,12 +4997,9 @@
   }
   async function enterApp(mode){
     demoMode = false;        // real, single-role account (seeker-only build)
-    showScreen('screen-app');
     setMode('candidate');
-    const API = window.GigCuteAPI;
-    if(API && API.enabled){ await gcLoadSeekerProfile(API); }
-    // Seeker lands on their profile view rather than a swipe deck.
-    if(typeof openProfileView === 'function') openProfileView();
+    // Seeker's home is their own profile page at /main.
+    if(typeof openProfileView === 'function') await openProfileView();
   }
   function gcPendingSet(o){ try{ localStorage.setItem('gc_pending', JSON.stringify(o)); }catch(e){} }
   function gcPendingGet(){ try{ return JSON.parse(localStorage.getItem('gc_pending')||'null'); }catch(e){ return null; } }
@@ -5167,7 +5165,7 @@
     try{
       const pm = path.match(/^\/profile\/([^/]+)\/?$/);
       if(pm){ showScreen('screen-app'); showProfilePage(decodeURIComponent(pm[1])); }
-      else if(path === '/search'){ showScreen('screen-app'); setMode('candidate'); }
+      else if(path === '/main'){ openProfileView(); }
       else if(SCREEN_BY_PATH[path]){ showScreen(SCREEN_BY_PATH[path]); }
       else { showScreen('screen-landing'); }
     } finally { __applyingRoute = false; }
@@ -5261,8 +5259,8 @@
   (function(){
     const path = location.pathname;
     if(path && path !== '/'){
-      const isAppPage = (path === '/search' || path === '/postings' || path === '/new-posting');
-      if(isAppPage && window.GigCuteAPI && window.GigCuteAPI.enabled) return;
+      // /main is the logged-in seeker's home — let the auth session-restore route there.
+      if(path === '/main' && window.GigCuteAPI && window.GigCuteAPI.enabled) return;
       applyRoute(path);
     }
   })();
