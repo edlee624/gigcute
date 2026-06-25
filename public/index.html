@@ -4800,6 +4800,7 @@
     if(!user){ showScreen('screen-landing'); if(location.pathname !== '/') window.history.replaceState({}, '', '/'); return; }
     showScreen('screen-app');
     setMode('candidate');                 // activate the seek pane so the left sidebar shows
+    const nr = document.querySelector('.ds-nav-right'); if(nr) nr.style.display = 'none';  // profile toolbar replaces nav-right on /main
     try{ await gcLoadSeekerProfile(API); }catch(e){}
     if(typeof renderDashboard === 'function') renderDashboard();   // hydrate the sidebar from the real profile
     renderProfileView();
@@ -4832,12 +4833,14 @@
     __shownProfileId = id;
     const ov = document.getElementById('profileViewOverlay');
     ov.classList.add('open'); ov.classList.remove('as-main');   // public profile is full-screen
+    const nr = document.querySelector('.ds-nav-right'); if(nr) nr.style.display = '';
     if(location.pathname !== '/profile/'+id) window.history.pushState({}, '', '/profile/'+id);
     track('profile_viewed', { shared: !own });
   }
   function closeProfileView(){
     const ov = document.getElementById('profileViewOverlay');
     ov.classList.remove('open'); ov.classList.remove('as-main');
+    const nr = document.querySelector('.ds-nav-right'); if(nr) nr.style.display = '';
     if(/^\/(profile|main)\b/.test(location.pathname)) window.history.pushState({}, '', '/');
   }
   document.getElementById('pvCloseBtn').onclick = closeProfileView;
@@ -5219,7 +5222,7 @@
       const pm = path.match(/^\/profile\/([^/]+)\/?$/);
       if(pm){ showScreen('screen-app'); showProfilePage(decodeURIComponent(pm[1])); }
       else if(path === '/main'){ openProfileView(); }
-      else if(path === '/search'){ showScreen('screen-app'); setMode('candidate'); const ov = document.getElementById('profileViewOverlay'); if(ov) ov.classList.remove('open'); if(typeof renderDashboard === 'function') renderDashboard(); }
+      else if(path === '/search'){ showScreen('screen-app'); setMode('candidate'); const nr = document.querySelector('.ds-nav-right'); if(nr) nr.style.display = ''; const ov = document.getElementById('profileViewOverlay'); if(ov){ ov.classList.remove('open'); ov.classList.remove('as-main'); } if(typeof renderDashboard === 'function') renderDashboard(); }
       else if(SCREEN_BY_PATH[path]){ showScreen(SCREEN_BY_PATH[path]); }
       else { showScreen('screen-landing'); }
     } finally { __applyingRoute = false; }
