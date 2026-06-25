@@ -3239,6 +3239,19 @@
        (e.g. the wide comparison table keeps its own internal scroll) ---- */
     .screen.flow-screen{ padding:20px 12px; overflow-x:hidden; }
   }
+
+  /* ---- /recruit "coming soon" diagonal overlay ---- */
+  .recruit-overlay{
+    position:fixed; inset:0; z-index:50; pointer-events:none; overflow:hidden;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:34px;
+    background:rgba(110,110,115,0.34); backdrop-filter:saturate(0.7);
+  }
+  .recruit-overlay span{
+    font-family:'Fraunces',serif; font-weight:700; font-style:italic;
+    font-size:clamp(34px,9vw,84px); color:rgba(255,255,255,0.72);
+    transform:rotate(-26deg); white-space:nowrap; letter-spacing:-0.01em;
+    text-shadow:0 6px 30px rgba(0,0,0,0.45);
+  }
 </style>
 </head>
 <body>
@@ -3263,11 +3276,23 @@
 <!-- ============ SCREEN: LANDING / ROLE PICKER ============ -->
 <div class="screen flow-screen active" id="screen-landing">
   <div class="ob-shell">
-    <div class="ob-top" style="justify-content:center;">
-      <img src="logo.png" class="hero-logo" alt="GigCute">
+    <div style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:12px;">
+      <img src="logo.png" class="hero-logo" style="width:200px;" alt="GigCute">
+      <button id="goRecruit" type="button" style="background:var(--ink-soft); border:1px solid var(--line-light); color:rgba(251,247,240,0.7); border-radius:10px; font-family:'Inter',sans-serif; font-size:13px; font-weight:600; padding:9px 15px; cursor:pointer; white-space:nowrap;">Preview GigCute →</button>
     </div>
+    <div style="text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:var(--coral); margin-top:24px;">Launching soon</div>
+    <h1 class="ob-h1" style="text-align:center; font-size:30px; line-height:1.15; margin:14px auto 14px; max-width:460px;">You're more than a <em>resume</em>. Build a profile that proves it.</h1>
+    <p style="text-align:center; font-size:15px; color:rgba(251,247,240,0.6); line-height:1.55; max-width:420px; margin:0 auto 28px;">Answer prompts that show how you actually think, then share your GigCute profile anywhere.</p>
+    <button class="lm-cta-btn" id="lmSeekerCta" type="button" style="display:block; margin:0 auto;">Create a profile now</button>
+    <div style="text-align:center; font-size:13px; color:rgba(251,247,240,0.45); margin-top:14px;">Already have an account? <button id="loginSeeker" type="button" style="background:none; border:none; color:var(--coral); font:inherit; font-weight:700; cursor:pointer; padding:0;">Log in</button></div>
+  </div>
+</div>
 
-    <div style="text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:var(--coral); margin-top:10px;">Launching soon</div>
+<!-- ============ /recruit — full preview (coming soon) ============ -->
+<div class="screen flow-screen" id="screen-recruit">
+  <div class="recruit-overlay" aria-hidden="true"><span>Maybe coming soon...</span><span>Maybe coming soon...</span><span>Maybe coming soon...</span></div>
+  <div style="width:100%; max-width:1080px; margin:0 auto; padding:4px 22px 0;">
+    <button id="recruitBack" class="ob-back" type="button" style="position:relative; z-index:60;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
   </div>
 
   <!-- ============ FOR JOB SEEKERS ============ -->
@@ -3309,8 +3334,7 @@
         </div>
       </div>
       <div class="lm-cta-row">
-        <button class="lm-cta-btn" id="lmSeekerCta">Create a profile now</button>
-        <div class="lm-cta-sub">Free — takes about 5 minutes. &nbsp;&middot;&nbsp; <button id="loginSeeker" style="background:none;border:none;color:var(--coral);font:inherit;font-weight:700;cursor:pointer;padding:0;">Already have an account? Log in</button></div>
+        <button class="lm-cta-btn" type="button">Create a profile now</button>
       </div>
     </div>
   </div>
@@ -3949,6 +3973,7 @@
     'screen-landing':'/',
     'screen-login-seeker':'/login',
     'screen-seeker-1':'/signup',
+    'screen-recruit':'/recruit',
   };
   const SCREEN_BY_PATH = Object.fromEntries(Object.entries(PATH_BY_SCREEN).map(([s,p]) => [p,s]));
 
@@ -3976,6 +4001,8 @@
 
   // ---- Landing: login shortcuts ----
   document.getElementById('loginSeeker').onclick = () => showScreen('screen-login-seeker');
+  { const a=document.getElementById('goRecruit'); if(a) a.onclick = () => showScreen('screen-recruit'); }
+  { const a=document.getElementById('recruitBack'); if(a) a.onclick = () => showScreen('screen-landing'); }
 
   // ---- Password show/hide toggles ----
   document.querySelectorAll('.pw-toggle').forEach(btn => {
