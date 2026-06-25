@@ -3671,7 +3671,7 @@
     <h1 class="ob-h1">Let's get your <em>account</em> started.</h1>
     <p class="ob-sub">Just the basics — you'll build your real profile next.</p>
 
-    <div class="field"><label for="sk-name">Full name</label><input type="text" id="sk-name" placeholder="Maya Okafor"></div>
+    <div class="field"><label for="sk-name">Full name</label><input type="text" id="sk-name" placeholder="Your full name"></div>
     <div class="field"><label for="sk-email">Email</label><input type="email" id="sk-email" placeholder="maya@email.com" autocomplete="email"></div>
     <div class="field password-field">
       <label for="sk-password">Create a password</label>
@@ -3680,7 +3680,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
     </div>
-    <div class="field"><label for="sk-role">Current or most recent title</label><input type="text" id="sk-role" placeholder="Senior Product Designer"></div>
+    <div class="field"><label for="sk-role">Current or most recent title</label><input type="text" id="sk-role" placeholder="Your job title"></div>
     <label class="accept-row"><input type="checkbox" id="sk1Terms"><span>I agree to GigCute's <a onclick="openLegal('tos')">Terms of Service</a> and <a onclick="openLegal('privacy')">Privacy Policy</a>.</span></label>
     <button class="ob-primary" id="sk1Next" type="button">Continue</button>
   </div>
@@ -3876,7 +3876,7 @@
       <span id="companyAutofillText">We found your company in our database — details pre-filled below.</span>
     </div>
 
-    <div class="field"><label for="em-company">Company name</label><input type="text" id="em-company" placeholder="Render Studio"></div>
+    <div class="field"><label for="em-company">Company name</label><input type="text" id="em-company" placeholder="Your company name"></div>
     <div class="field">
       <label for="em-logo">Logo</label>
       <div class="logo-drop" id="logoDrop">
@@ -3978,7 +3978,7 @@
     <h1 class="ob-h1">What's the <em>role</em>?</h1>
     <p class="ob-sub">The basics. You'll add compensation and details next.</p>
 
-    <div class="field"><label for="post-title">Job title</label><input type="text" id="post-title" placeholder="Senior Product Designer"></div>
+    <div class="field"><label for="post-title">Job title</label><input type="text" id="post-title" placeholder="e.g. Senior Product Designer"></div>
     <div class="field"><label for="post-company-name">Company</label><input type="text" id="post-company-name" readonly style="opacity:0.8;"></div>
     <div class="field">
       <label>Location <span class="tip" title="Add one or more office locations — city, state, or ZIP. Adding a ZIP enables more precise distance matching to candidates near each office. You can add multiple offices.">&#9432;</span></label>
@@ -5176,11 +5176,11 @@
   function workEntryHTML(w, id){
     return `
       <div class="work-entry" data-id="${id}">
-        <div class="field"><label>Job title</label><input type="text" class="wh-title" value="${escapeHtml(w.title||'')}" placeholder="Senior Product Designer"></div>
-        <div class="field"><label>Company</label><input type="text" class="wh-company" value="${escapeHtml(w.company||'')}" placeholder="Render Studio"></div>
+        <div class="field"><label>Job title</label><input type="text" class="wh-title" value="${escapeHtml(w.title||'')}" placeholder="Job title"></div>
+        <div class="field"><label>Company</label><input type="text" class="wh-company" value="${escapeHtml(w.company||'')}" placeholder="Company name"></div>
         <div class="field" style="display:flex; gap:12px;">
-          <div style="flex:1;"><label>Start year</label><input type="text" class="wh-start" value="${escapeHtml(w.start||'')}" placeholder="2022"></div>
-          <div style="flex:1;"><label>End year</label><input type="text" class="wh-end" value="${escapeHtml(w.end||'')}" placeholder="Present"></div>
+          <div style="flex:1;"><label>Start year</label><input type="text" class="wh-start" value="${escapeHtml(w.start||'')}" placeholder="Year"></div>
+          <div style="flex:1;"><label>End year</label><input type="text" class="wh-end" value="${escapeHtml(w.end||'')}" placeholder="Year or Present"></div>
         </div>
         <div class="field"><label>What did you do here?</label><textarea class="wh-desc" placeholder="One line per highlight…">${escapeHtml(w.description||'')}</textarea></div>
         <button class="btn-sm danger" type="button" data-remove-work="${id}">Remove role</button>
@@ -5368,56 +5368,73 @@
     const lines = text.split(/\n+/).map(l => l.trim()).filter(Boolean);
     const yr = '(?:[A-Za-z]{3,9}\\.?\\s+)?((?:19|20)\\d{2})';
     const rangeRe = new RegExp('\\b' + yr + '\\s*(?:[\\u2013\\u2014\\-]{1,2}|to)\\s*(?:' + yr + '|present|current|now)\\b', 'i');
-    const titleWords = /(engineer|designer|manager|developer|analyst|scientist|lead|director|consultant|architect|specialist|coordinator|market|writer|product|software|data|sales|account|recruiter|founder|head of|\bvp\b|officer|nurse|teacher|attorney|accountant|operations|support|intern)/i;
-    const sectionRe = /^(education|skills|projects|certifications|awards|interests|references|summary|objective|experience|work experience|employment history|employment)\b/i;
+    const titleWords = /(engineer|designer|manager|developer|analyst|scientist|lead|director|consultant|architect|specialist|coordinator|market|writer|product|software|\bdata\b|sales|account|recruiter|founder|head of|\bvp\b|\bavp\b|officer|nurse|teacher|attorney|accountant|operations|support|intern|practitioner|principal)/i;
+    const sectionRe = /^(education|skills|technical skills|core competencies|projects|certifications|awards|interests|references|summary|objective|experience|professional experience|work experience|employment history|employment|other prior roles|independent ai)\b/i;
+    const bulletRe = /^[•·\*]/;
 
     let name = '';
     for(const l of lines.slice(0, 5)){
-      if(/^[A-Za-z][A-Za-z'.\-]+(\s+[A-Za-z][A-Za-z'.\-]+){1,3}$/.test(l)
-         && !/(resume|curriculum vitae|^cv$|experience|education|email|phone)/i.test(l)
-         && l.length <= 40){ name = l; break; }
+      if(/^[A-Za-z][A-Za-z'.()\- ]{3,38}$/.test(l) && /\s/.test(l) && !/\d/.test(l)
+         && !/(resume|^cv$|summary|experience|education|email|phone|competenc|profile|skills)/i.test(l)){ name = l; break; }
     }
 
-    // A header candidate is a short, non-bullet, non-contact line near a date.
-    function headerCand(idx){
-      let s = (lines[idx] || '').replace(rangeRe, '').replace(/[|·•]+/g, ' ').trim();
-      if(!s || /^[•\-\*]/.test(s) || s.length > 60 || /@/.test(s) || sectionRe.test(s)) return null;
+    // Clean a line near a date down to a "Title/Company" header candidate.
+    function clean(idx){
+      let s = (lines[idx] || '').replace(rangeRe, '').replace(/[•·|]+/g, ' ').replace(/\s{2,}/g, ' ').replace(/[|–—\-\s]+$/, '').trim();
+      if(!s || bulletRe.test(s) || s.length > 75 || /@/.test(s) || sectionRe.test(s)) return null;
       return s;
     }
+    // Split "Company – Title" / "Title | Company" / "Title, Company" into parts.
+    function splitHeader(s){
+      let parts = s.split(/\s*[–—|]\s*|\s+-\s+/).map(x => x.trim()).filter(Boolean);
+      if(parts.length === 1 && /,\s+/.test(s)){ const c = s.split(/,\s+/); if(titleWords.test(c[0])) parts = c.map(x => x.trim()); }
+      return parts;
+    }
+
     const entries = [];
     for(let i = 0; i < lines.length; i++){
       const m = lines[i].match(rangeRe);
       if(!m) continue;
-      const start = m[1];
-      let end = m[2] || 'Present';
-      // Header lines sit just above the date (Title then Company, top to bottom).
-      const ordered = [];
-      for(const idx of [i-2, i-1, i]){ const s = headerCand(idx); if(s && !ordered.includes(s)) ordered.push(s); }
+      const start = m[1]; let end = m[2] || 'Present';
+      const onLine = clean(i), above = clean(i-1), above2 = clean(i-2), below = clean(i+1);
       let title = '', company = '';
-      for(const s of ordered){   // same-line "Title, Company" / "Title at Company"
-        const parts = s.split(/\s+(?:at|@)\s+|\s*[–—|]\s*|,\s+/);
-        if(parts.length >= 2 && titleWords.test(parts[0])){ title = parts[0].trim(); company = parts.slice(1).join(' ').trim(); break; }
+      function fromParts(parts){
+        if(parts.length >= 2){
+          const ti = parts.findIndex(p => titleWords.test(p));
+          if(ti >= 0){ title = parts[ti]; company = parts[ti === 0 ? 1 : 0] || ''; }
+          else { company = parts[0]; title = parts[1]; }
+          return true;
+        }
+        return false;
       }
-      if(!title){
-        const ti = ordered.findIndex(s => titleWords.test(s));
-        if(ti >= 0){ title = ordered[ti]; company = ordered.find((s,k) => k !== ti) || ''; }
-        else { title = ordered[0] || ''; company = ordered[1] || ''; }
+      if(onLine){
+        if(!fromParts(splitHeader(onLine))){
+          // single token on the date line = the company; title is on an adjacent line
+          company = onLine;
+          title = (below && titleWords.test(below)) ? below : (above && titleWords.test(above)) ? above : (below || above || '');
+        }
+      } else if(!fromParts(splitHeader(above || ''))){
+        const cands = [above2, above].filter(Boolean);   // top-to-bottom: Title then Company
+        const ti = cands.findIndex(s => titleWords.test(s));
+        if(ti >= 0){ title = cands[ti]; company = cands.find((s,k) => k !== ti) || ''; }
+        else { title = cands[0] || ''; company = cands[1] || ''; }
       }
       const desc = [];
       for(let j = i + 1; j < lines.length && j < i + 8; j++){
         if(rangeRe.test(lines[j]) || sectionRe.test(lines[j])) break;
-        if(lines[j] === company || lines[j] === title) continue;
-        if(/^[•\-\*]/.test(lines[j]) || lines[j].length > 25) desc.push(lines[j].replace(/^[•\-\*]\s?/, ''));
+        const cj = clean(j);
+        if(lines[j] === company || lines[j] === title || (cj && (cj === title || cj === company))) continue;
+        if(bulletRe.test(lines[j]) || lines[j].length > 25) desc.push(lines[j].replace(/^[•\*\-]\s?/, ''));
         if(desc.length >= 4) break;
       }
-      title = title.slice(0, 80); company = company.slice(0, 80);
+      title = (title || '').slice(0, 80); company = (company || '').slice(0, 80);
       if(title || company) entries.push({ title, company, start, end, description: desc.join('\n') });
     }
     const seen = new Set(); const workHistory = [];
     for(const e of entries){
-      const k = (e.title + '|' + e.company + '|' + e.start).toLowerCase();
+      const k = (e.company + '|' + e.start).toLowerCase();
       if(seen.has(k)) continue; seen.add(k); workHistory.push(e);
-      if(workHistory.length >= 6) break;
+      if(workHistory.length >= 8) break;
     }
     return { name, headline: workHistory[0] ? workHistory[0].title : '', workHistory };
   }
