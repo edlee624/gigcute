@@ -4212,16 +4212,25 @@
     sk2Next.disabled = !resumeUploaded;
   }
 
+  let currentResumeFile = null;   // actual File, uploaded to Storage on finish
+  const MAX_RESUME_BYTES = 3 * 1024 * 1024; // 3 MB
   upCard.onclick = () => resumeFile.click();
   resumeFile.addEventListener('change', () => {
-    if(resumeFile.files.length){
-      fileChosenName.textContent = resumeFile.files[0].name;
-      fileChosen.classList.add('show');
-      resumeUploaded = true;
-      upCard.classList.add('selected');
-      upStatus.textContent = 'Resume uploaded';
-      updateSk2Continue();
+    if(!resumeFile.files.length) return;
+    const f = resumeFile.files[0];
+    if(f.size > MAX_RESUME_BYTES){
+      resumeFile.value = '';
+      upStatus.textContent = `That file is ${(f.size/1048576).toFixed(1)} MB — please upload a resume under 3 MB.`;
+      if(typeof showToast === 'function') showToast('Resume must be under 3 MB.');
+      return;
     }
+    currentResumeFile = f;
+    fileChosenName.textContent = f.name;
+    fileChosen.classList.add('show');
+    resumeUploaded = true;
+    upCard.classList.add('selected');
+    upStatus.textContent = 'Resume uploaded';
+    updateSk2Continue();
   });
 
   // ---- work history seeds + render/read ----
@@ -4777,6 +4786,7 @@
             <span class="pv-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>${escapeHtml(setup)}</span>
             ${p.email ? `<span class="pv-meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>${escapeHtml(p.email)}</span>` : ''}
             ${p.linkedinUrl ? `<a class="pv-meta-item" href="${escapeHtml(/^https?:\/\//i.test(p.linkedinUrl) ? p.linkedinUrl : 'https://'+p.linkedinUrl)}" target="_blank" rel="noopener noreferrer nofollow" style="color:inherit;text-decoration:none;"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 0h-14c-2.76 0-5 2.24-5 5v14c0 2.76 2.24 5 5 5h14c2.76 0 5-2.24 5-5v-14c0-2.76-2.24-5-5-5zm-11 19h-3v-9h3v9zm-1.5-10.3c-1 0-1.7-.7-1.7-1.6s.7-1.6 1.7-1.6c1 0 1.7.7 1.7 1.6s-.7 1.6-1.7 1.6zm13.5 10.3h-3v-4.7c0-1.3-.5-2.2-1.7-2.2-.9 0-1.4.6-1.7 1.2-.1.2-.1.5-.1.8v4.9h-3v-9h3v1.3c.4-.6 1.2-1.5 2.8-1.5 2 0 3.7 1.3 3.7 4.2v5z"/></svg>View LinkedIn</a>` : ''}
+            ${p.resumeUrl ? `<a class="pv-meta-item" href="${escapeHtml(p.resumeUrl)}" target="_blank" rel="noopener noreferrer" download style="color:inherit;text-decoration:none;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download resume</a>` : ''}
           </div>
         </div>
       </div>
@@ -4922,6 +4932,7 @@
         seekerProfile.title = sp.headline || '';
         if(sp.photo_url) seekerProfile.photo = sp.photo_url;
         seekerProfile.linkedinUrl = sp.linkedin_url || '';
+        seekerProfile.resumeUrl = sp.resume_url || '';
         const wh = (sp.work_history || []).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
         seekerProfile.workHistory = wh.map(w=>({ title:w.title||'', company:w.company||'', start:w.start_label||'', end:w.end_label||'', description:w.description||'' }));
         const pa = (sp.seeker_prompt_answers || []).filter(p=>p.is_favorite).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
@@ -5062,6 +5073,7 @@
       if(user){
         try{
           if(currentPhotoFile){ try{ payload.profile.photo_url = await API.seeker.uploadPhoto(currentPhotoFile); }catch(e){ console.warn('photo upload failed', e.message); } }
+          if(currentResumeFile){ try{ payload.profile.resume_url = await API.seeker.uploadResume(currentResumeFile); }catch(e){ console.warn('resume upload failed', e.message); } }
           if(seekerProfile.name){ try{ await API.profiles.update({ full_name: seekerProfile.name }); }catch(e){} }
           await API.seeker.saveFull(payload);
           showSuccess({ headline:"Profile saved.", sub:"Your profile is up to date.", primaryText:"View my profile", primaryAction:()=>enterApp('candidate') });
@@ -5075,6 +5087,7 @@
         if(res.session){
           // session available: upload the photo File now, then persist everything.
           if(currentPhotoFile){ try{ payload.profile.photo_url = await API.seeker.uploadPhoto(currentPhotoFile); }catch(e){ console.warn('photo upload failed', e.message); } }
+          if(currentResumeFile){ try{ payload.profile.resume_url = await API.seeker.uploadResume(currentResumeFile); }catch(e){ console.warn('resume upload failed', e.message); } }
           gcPendingSet({ kind:'seeker', payload });
           await gcCompletePending(API);
           showSuccess({ headline:"You're all set.", sub:"Your profile is live.", primaryText:"View my profile", primaryAction:()=>enterApp('candidate') });

@@ -141,6 +141,13 @@ const seeker = {
     return uploadPublic(`avatars/${u.user.id}/${Date.now()}_${safeName(file.name)}`, file);
   },
 
+  // Upload the resume file for the current user; returns the public URL.
+  async uploadResume(file) {
+    const c = requireClient();
+    const { data: u } = await c.auth.getUser();
+    return uploadPublic(`resumes/${u.user.id}/${Date.now()}_${safeName(file.name)}`, file);
+  },
+
   // Persist the full seeker profile: the main row plus work history, education,
   // and prompt answers. Child collections are replaced wholesale (fine for the
   // small sizes here). Pass already-uploaded photo_url in `profile`.
