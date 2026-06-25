@@ -3875,8 +3875,12 @@
     <div class="pv-toolbar">
       <div class="pv-toolbar-left">
         <button class="pv-close-btn" id="pvCloseBtn">← Back</button>
-        <span style="font-family:'Fraunces',serif;font-size:15px;color:rgba(251,247,240,0.5);font-style:italic;">Profile preview</span>
+        <span style="font-family:'Fraunces',serif;font-size:15px;color:rgba(251,247,240,0.5);font-style:italic;">Your profile</span>
       </div>
+      <button id="pvEditBtn" style="display:inline-flex;align-items:center;gap:7px;background:var(--coral);color:var(--paper);border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:700;padding:9px 16px;cursor:pointer;margin-right:auto;margin-left:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Edit profile / answer more prompts
+      </button>
       <button class="pv-share-btn" id="pvShareBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         Copy link
@@ -4696,6 +4700,7 @@
     document.getElementById('profileViewOverlay').classList.remove('open');
   }
   document.getElementById('pvCloseBtn').onclick = closeProfileView;
+  { const b = document.getElementById('pvEditBtn'); if(b) b.onclick = () => { closeProfileView(); openProfileEdit(); }; }
   document.getElementById('pvPrintBtn').onclick = () => window.print();
   document.getElementById('pvShareBtn').onclick = () => {
     const url = window.location.href;
@@ -5023,6 +5028,21 @@
         education: [],
         promptAnswers: (seekerProfile.favoritePrompts || []).map(fp => ({ label: fp.label, answer: fp.answer, isFavorite: true })),
       };
+
+      // Already signed in? This is an edit (or finishing setup after email
+      // confirmation) — save straight to the backend, no signUp.
+      let user = null; try{ user = await API.auth.currentUser(); }catch(e){}
+      if(user){
+        try{
+          if(currentPhotoFile){ try{ payload.profile.photo_url = await API.seeker.uploadPhoto(currentPhotoFile); }catch(e){ console.warn('photo upload failed', e.message); } }
+          if(seekerProfile.name){ try{ await API.profiles.update({ full_name: seekerProfile.name }); }catch(e){} }
+          await API.seeker.saveFull(payload);
+          showSuccess({ headline:"Profile saved.", sub:"Your profile is up to date.", primaryText:"View my profile", primaryAction:()=>enterApp('candidate') });
+        }catch(e){ showToast(e.message || 'Could not save your profile.'); }
+        return;
+      }
+
+      // New registration.
       try{
         const res = await API.auth.signUp({ email, password: pw, role:'seeker', fullName: seekerProfile.name });
         if(res.session){
@@ -5030,9 +5050,9 @@
           if(currentPhotoFile){ try{ payload.profile.photo_url = await API.seeker.uploadPhoto(currentPhotoFile); }catch(e){ console.warn('photo upload failed', e.message); } }
           gcPendingSet({ kind:'seeker', payload });
           await gcCompletePending(API);
-          showSuccess({ headline:"You're all set.", sub:"Your profile is live. Time to start swiping on open roles.", primaryText:"Enter the app", primaryAction:()=>enterApp('candidate') });
+          showSuccess({ headline:"You're all set.", sub:"Your profile is live.", primaryText:"View my profile", primaryAction:()=>enterApp('candidate') });
         } else {
-          // email confirmation pending: stash text data; photo can be added later from profile edit.
+          // email confirmation pending: stash text data; it's saved on your first login.
           gcPendingSet({ kind:'seeker', payload });
           showSuccess({ headline:"Check your email.", sub:`We sent a verification link to ${email}. Confirm it, then log in to finish setting up your profile.`, primaryText:"Back to login", primaryAction:()=>showScreen('screen-login-seeker') });
         }
