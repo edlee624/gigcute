@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GigCute — launching soon</title>
-<meta name="description" content="GigCute — where the dream candidate meets their dream job. A new way to get hired: you're more than a résumé, and it's mutual interest only. Launching soon.">
-<meta property="og:title" content="GigCute — launching soon">
-<meta property="og:description" content="Where the dream candidate meets their dream job. More than a résumé. Mutual interest only.">
+<title>GigCute — for job seekers</title>
+<meta name="description" content="GigCute — you're more than a résumé. Answer prompts that show how you actually think, match only on mutual interest, and get invited directly. Launching soon.">
+<meta property="og:title" content="GigCute — for job seekers">
+<meta property="og:description" content="You're more than a résumé. Mutual interest only. Get invited directly.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,83 +15,147 @@
   :root{
     --ink:#15171C; --ink-soft:#23262E; --paper:#FBF7F0;
     --coral:#FF5A3C; --coral-dim:#E64A2D; --sage:#3D5A4C;
-    --line:rgba(251,247,240,0.14);
+    --line-light:rgba(251,247,240,0.14);
   }
   *{ box-sizing:border-box; margin:0; padding:0; }
-  html,body{ height:100%; }
   body{
     background:
-      radial-gradient(1100px 600px at 50% -10%, rgba(255,90,60,0.10), transparent 60%),
+      radial-gradient(1100px 600px at 50% -10%, rgba(255,90,60,0.09), transparent 60%),
       var(--ink);
-    color:var(--paper); font-family:'Inter',sans-serif;
-    min-height:100vh; display:flex; flex-direction:column;
-    -webkit-font-smoothing:antialiased;
+    color:var(--paper); font-family:'Inter',sans-serif; min-height:100vh;
+    display:flex; flex-direction:column; -webkit-font-smoothing:antialiased;
   }
-  a{ color:inherit; }
-  .wrap{
-    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; padding:56px 22px; max-width:720px; margin:0 auto; width:100%;
-  }
-  .logo{ width:300px; max-width:78vw; height:auto; margin-bottom:30px; }
-  .eyebrow{
-    font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:700;
-    letter-spacing:0.2em; text-transform:uppercase; color:var(--coral); margin-bottom:18px;
+
+  .site-header{ text-align:center; padding:40px 22px 8px; }
+  .site-header img{ width:230px; max-width:64vw; height:auto; }
+  .site-eyebrow{
+    font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.2em;
+    text-transform:uppercase; color:var(--coral); margin-top:14px;
     display:inline-flex; align-items:center; gap:8px;
   }
-  .eyebrow .dot{ width:7px; height:7px; border-radius:50%; background:var(--coral); box-shadow:0 0 0 0 rgba(255,90,60,0.6); animation:pulse 2.2s infinite; }
+  .site-eyebrow .dot{ width:7px; height:7px; border-radius:50%; background:var(--coral); animation:pulse 2.2s infinite; }
   @keyframes pulse{ 0%{box-shadow:0 0 0 0 rgba(255,90,60,0.55);} 70%{box-shadow:0 0 0 9px rgba(255,90,60,0);} 100%{box-shadow:0 0 0 0 rgba(255,90,60,0);} }
-  h1{
-    font-family:'Fraunces',serif; font-weight:600; font-size:clamp(31px,7.4vw,54px);
-    line-height:1.1; letter-spacing:-0.01em; margin-bottom:20px;
-  }
-  h1 em{ color:var(--coral); font-style:italic; }
-  .sub{
-    font-size:clamp(15px,2.6vw,18px); color:rgba(251,247,240,0.62); line-height:1.55;
-    max-width:540px; margin:0 auto;
-  }
-  .pills{ display:flex; flex-wrap:wrap; gap:9px; justify-content:center; margin:30px 0 36px; }
-  .pill{
-    font-size:13px; color:rgba(251,247,240,0.72); background:var(--ink-soft);
-    border:1px solid var(--line); border-radius:999px; padding:9px 17px;
-  }
-  .cta{
-    display:inline-flex; align-items:center; gap:11px; background:var(--coral); color:var(--paper);
-    text-decoration:none; font-weight:700; font-size:16px; padding:16px 30px; border-radius:14px;
-    transition:background .15s ease, transform .15s ease;
-    box-shadow:0 18px 44px -18px rgba(255,90,60,0.65);
-  }
-  .cta:hover{ background:var(--coral-dim); transform:translateY(-1px); }
-  .cta svg{ width:18px; height:18px; flex-shrink:0; }
-  .note{ font-size:13px; color:rgba(251,247,240,0.4); margin-top:16px; }
-  footer{
-    text-align:center; padding:24px 22px; font-size:12.5px; color:rgba(251,247,240,0.32);
-    border-top:1px solid var(--line);
+
+  /* ===== "For job seekers" value-prop section ===== */
+  .lm-wide{ max-width:1080px; margin:0 auto; padding:0 24px; }
+  .lm-section{ padding:40px 0 64px; }
+  .lm-eyebrow{ font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--coral); text-align:center; margin-bottom:14px; }
+  .lm-h2{ font-family:'Fraunces',serif; font-size:34px; font-weight:600; line-height:1.15; text-align:center; color:var(--paper); margin:0 auto 16px; max-width:640px; }
+  .lm-h2 em{ color:var(--coral); font-style:italic; }
+  .lm-sub{ font-size:16px; color:rgba(251,247,240,0.6); line-height:1.55; text-align:center; margin:0 auto 48px; max-width:560px; }
+  .lm-value-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+  .lm-value-card{ background:var(--ink-soft); border:1px solid var(--line-light); border-radius:18px; padding:28px 26px; }
+  .lm-value-card .lm-vc-icon{ width:44px;height:44px;border-radius:12px; background:rgba(255,90,60,0.12); border:1px solid rgba(255,90,60,0.3); display:flex;align-items:center;justify-content:center; margin-bottom:16px; }
+  .lm-value-card .lm-vc-icon svg{ width:22px;height:22px;color:var(--coral); }
+  .lm-value-card h3{ font-family:'Fraunces',serif; font-size:19px; margin:0 0 8px; color:var(--paper); }
+  .lm-value-card p{ font-size:14px; color:rgba(251,247,240,0.55); line-height:1.55; margin:0; }
+  .lm-shots{ display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:center; margin-top:8px; }
+  .lm-shot-text h3{ font-family:'Fraunces',serif; font-size:24px; margin:0 0 12px; color:var(--paper); line-height:1.2; }
+  .lm-shot-text h3 em{ color:var(--coral); font-style:italic; }
+  .lm-shot-text p{ font-size:15px; color:rgba(251,247,240,0.6); line-height:1.6; margin:0 0 14px; }
+  .lm-shot-list{ list-style:none; padding:0; margin:0; }
+  .lm-shot-list li{ display:flex; align-items:flex-start; gap:10px; font-size:14px; color:rgba(251,247,240,0.7); margin-bottom:9px; line-height:1.45; }
+  .lm-shot-list li svg{ width:16px;height:16px;color:var(--coral);flex-shrink:0;margin-top:2px; }
+  .lm-frame{ background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px; overflow:hidden; box-shadow:0 30px 60px -25px rgba(0,0,0,0.6); }
+  .lm-frame-bar{ height:34px; background:rgba(10,10,12,0.5); border-bottom:1px solid var(--line-light); display:flex; align-items:center; gap:6px; padding:0 13px; }
+  .lm-frame-bar .dot{ width:10px;height:10px;border-radius:50%; }
+  .lm-frame-bar .dot.r{ background:#ff5f57; } .lm-frame-bar .dot.y{ background:#febc2e; } .lm-frame-bar .dot.g{ background:#28c840; }
+  .lm-frame-body{ padding:20px; }
+  .mock-prompt{ background:var(--ink); border:1px solid var(--line-light); border-radius:13px; padding:15px 17px; margin-bottom:11px; }
+  .mock-prompt:last-child{ margin-bottom:0; }
+  .mock-prompt .mp-label{ font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--coral); margin-bottom:7px; }
+  .mock-prompt .mp-answer{ font-family:'Fraunces',serif; font-size:15px; color:var(--paper); line-height:1.4; font-style:italic; }
+  .mock-prompt .mp-rate{ display:flex; gap:7px; margin-top:11px; align-items:center; }
+  .mock-prompt .mp-rate span{ font-size:11px; color:rgba(251,247,240,0.4); margin-right:auto; }
+  .mock-rate-btn{ width:28px;height:28px;border-radius:8px; border:1px solid var(--line-light); background:var(--ink-soft); display:flex;align-items:center;justify-content:center; }
+  .mock-rate-btn svg{ width:14px;height:14px;color:rgba(251,247,240,0.5); }
+  .mock-rate-btn.up{ border-color:rgba(87,116,99,0.5); } .mock-rate-btn.up svg{ color:#9fc2ad; }
+  .lm-cta-row{ text-align:center; margin-top:44px; }
+  .lm-cta-btn{ display:inline-block; background:var(--coral); border:none; border-radius:12px; color:var(--paper); text-decoration:none; font-family:'Inter',sans-serif; font-size:15px; font-weight:700; padding:15px 34px; cursor:pointer; transition:background .15s; }
+  .lm-cta-btn:hover{ background:var(--coral-dim); }
+  .lm-cta-sub{ font-size:13px; color:rgba(251,247,240,0.4); margin-top:12px; }
+
+  main{ flex:1; }
+  footer{ text-align:center; padding:24px 22px; font-size:12.5px; color:rgba(251,247,240,0.32); border-top:1px solid var(--line-light); }
+
+  @media (max-width:760px){
+    .lm-value-grid{ grid-template-columns:1fr; }
+    .lm-shots{ grid-template-columns:1fr; }
   }
   @media (max-width:600px){
-    .wrap{ padding:40px 18px; }
-    .cta{ width:100%; max-width:340px; justify-content:center; }
+    .lm-h2{ font-size:27px; }
+    .lm-cta-btn{ width:100%; max-width:340px; }
   }
 </style>
 </head>
 <body>
-  <main class="wrap">
-    <img src="logo.png" class="logo" alt="GigCute" width="300">
-    <div class="eyebrow"><span class="dot"></span> Launching soon</div>
-    <h1>Where the <em>dream candidate</em> meets their <em>dream job</em>.</h1>
-    <p class="sub">GigCute is a new way to get hired — you're more than a résumé, and it's mutual interest only. No black holes, no one-sided applications. Every role is managed by a real person.</p>
+  <header class="site-header">
+    <img src="logo.png" alt="GigCute">
+    <div class="site-eyebrow"><span class="dot"></span> Launching soon</div>
+  </header>
 
-    <div class="pills">
-      <span class="pill">More than a résumé</span>
-      <span class="pill">Mutual interest only</span>
-      <span class="pill">Real people, not an ATS</span>
+  <main>
+    <!-- ============ FOR JOB SEEKERS ============ -->
+    <div class="lm-section" style="width:100%;">
+      <div class="lm-wide">
+        <div class="lm-eyebrow">For job seekers</div>
+        <h2 class="lm-h2">You're more than a <em>resume</em>. We built a profile that proves it.</h2>
+        <p class="lm-sub">Resumes flatten you into bullet points and buzzwords. GigCute lets you answer prompts that show how you actually think — so recruiters meet the real you before they ever see a match.</p>
+        <div class="lm-shots">
+          <div class="lm-shot-text">
+            <h3>Answer prompts that <em>show who you are</em></h3>
+            <p>Pick from dozens of prompts and answer in your own voice. Your answers sit right alongside your work history — the first thing a recruiter reads.</p>
+            <ul class="lm-shot-list">
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Stand out with substance, not keyword stuffing</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Recruiters rate your answers, training better matches</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>Your last name stays private until you both opt in</li>
+            </ul>
+          </div>
+          <div class="lm-frame">
+            <div class="lm-frame-bar"><div class="dot r"></div><div class="dot y"></div><div class="dot g"></div></div>
+            <div class="lm-frame-body">
+              <div class="mock-prompt">
+                <div class="mp-label">My superpower at work</div>
+                <div class="mp-answer">"Turning messy, ambiguous problems into something a whole team can rally around."</div>
+                <div class="mp-rate"><span>Did you like this answer?</span>
+                  <div class="mock-rate-btn up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg></div>
+                  <div class="mock-rate-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zm7-13h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/></svg></div>
+                </div>
+              </div>
+              <div class="mock-prompt">
+                <div class="mp-label">I'm proudest of</div>
+                <div class="mp-answer">"The redesign that moved our core metric 23 points in six weeks."</div>
+                <div class="mp-rate"><span>Did you like this answer?</span>
+                  <div class="mock-rate-btn up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg></div>
+                  <div class="mock-rate-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zm7-13h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/></svg></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="lm-value-grid" style="margin-top:56px;">
+          <div class="lm-value-card">
+            <div class="lm-vc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg></div>
+            <h3>No more black holes</h3>
+            <p>Every posting on GigCute is actively managed by a real recruiter. No applications vanishing into an ATS, ever.</p>
+          </div>
+          <div class="lm-value-card">
+            <div class="lm-vc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></div>
+            <h3>Mutual interest only</h3>
+            <p>You only match when a company is interested too. No rejection letters, no one-sided applications — just genuine two-way interest.</p>
+          </div>
+          <div class="lm-value-card">
+            <div class="lm-vc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
+            <h3>Get invited directly</h3>
+            <p>Recruiters can invite you to chat — and a ⭐ Super Invite means a company is seriously excited to talk to you.</p>
+          </div>
+        </div>
+        <div class="lm-cta-row">
+          <a class="lm-cta-btn" href="https://forms.gle/w63jhrFDBy44x4SEA" target="_blank" rel="noopener noreferrer">Get early access — free</a>
+          <div class="lm-cta-sub">Join the waitlist — be first in when we launch. Your last name stays private.</div>
+        </div>
+      </div>
     </div>
-
-    <a class="cta" href="https://forms.gle/w63jhrFDBy44x4SEA" target="_blank" rel="noopener noreferrer">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
-      Get early access &amp; launch updates
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-    </a>
-    <p class="note">Be the first to know when we open the doors.</p>
   </main>
 
   <footer>© 2026 GigCute. All rights reserved.</footer>
