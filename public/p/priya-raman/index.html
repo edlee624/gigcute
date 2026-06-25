@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Priya Raman — GigCute profile</title>
+<meta name="description" content="Priya Raman · Staff Software Engineer, distributed systems & platform. 10 years experience. A GigCute profile — more than a résumé.">
+<meta property="og:title" content="Priya Raman — Staff Software Engineer">
+<meta property="og:description" content="10 years in distributed systems & platform. See how she thinks, not just where she worked — on GigCute.">
+<meta property="og:type" content="profile">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#15171C; --ink-soft:#23262E; --paper:#FBF7F0;
+    --coral:#FF5A3C; --coral-dim:#E64A2D; --sage:#3D5A4C; --sage-soft:#9fc2ad;
+    --line-light:rgba(251,247,240,0.14);
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{
+    background:
+      radial-gradient(900px 500px at 50% -8%, rgba(255,90,60,0.08), transparent 60%),
+      var(--ink);
+    color:var(--paper); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+  }
+  a{ color:inherit; }
+  .wrap{ max-width:780px; margin:0 auto; padding:22px 20px 64px; }
+
+  /* top bar */
+  .topbar{ display:flex; align-items:center; justify-content:space-between; padding:6px 0 26px; }
+  .brand{ font-family:'Fraunces',serif; font-style:italic; font-weight:600; font-size:21px; }
+  .brand span{ color:var(--coral); font-style:normal; }
+  .verified{ font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--sage-soft); display:inline-flex; align-items:center; gap:6px; background:rgba(61,90,76,0.18); border:1px solid rgba(87,116,99,0.4); border-radius:999px; padding:6px 12px; }
+  .verified svg{ width:13px; height:13px; }
+
+  /* hero */
+  .hero{ display:flex; gap:22px; align-items:center; flex-wrap:wrap; padding-bottom:8px; }
+  .avatar{ width:104px; height:104px; border-radius:50%; background-size:cover; background-position:center; border:3px solid var(--coral); flex-shrink:0; }
+  .hero-main{ flex:1; min-width:220px; }
+  .hero h1{ font-family:'Fraunces',serif; font-weight:600; font-size:32px; line-height:1.1; }
+  .hero .role{ font-size:16px; color:rgba(251,247,240,0.72); margin-top:4px; }
+  .pills{ display:flex; flex-wrap:wrap; gap:7px; margin-top:14px; }
+  .pill{ font-size:12.5px; color:rgba(251,247,240,0.7); background:var(--ink-soft); border:1px solid var(--line-light); border-radius:999px; padding:6px 13px; }
+  .pill.open{ color:var(--coral); border-color:rgba(255,90,60,0.4); background:rgba(255,90,60,0.07); }
+
+  .section{ margin-top:40px; }
+  .section-label{ font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--coral); margin-bottom:16px; }
+  .section-note{ font-size:13.5px; color:rgba(251,247,240,0.45); margin:-10px 0 16px; }
+
+  /* prompt cards */
+  .prompt{ background:var(--ink-soft); border:1px solid var(--line-light); border-radius:15px; padding:18px 20px; margin-bottom:13px; }
+  .prompt.starred{ border-color:rgba(255,90,60,0.4); background:linear-gradient(180deg, rgba(255,90,60,0.06), var(--ink-soft)); }
+  .prompt .p-label{ font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--coral); margin-bottom:9px; display:flex; align-items:center; gap:7px; }
+  .prompt .p-label .star{ color:#e8c848; font-size:12px; }
+  .prompt .p-answer{ font-family:'Fraunces',serif; font-size:17px; line-height:1.5; color:var(--paper); font-style:italic; }
+
+  /* work history */
+  .job{ border-left:2px solid var(--line-light); padding:2px 0 22px 20px; position:relative; }
+  .job:last-child{ padding-bottom:2px; }
+  .job::before{ content:''; position:absolute; left:-6px; top:5px; width:10px; height:10px; border-radius:50%; background:var(--coral); }
+  .job .j-title{ font-family:'Fraunces',serif; font-size:18px; color:var(--paper); }
+  .job .j-meta{ font-size:13px; color:rgba(251,247,240,0.5); margin:2px 0 9px; }
+  .job ul{ list-style:none; padding:0; margin:0; }
+  .job li{ font-size:14px; color:rgba(251,247,240,0.68); line-height:1.5; margin-bottom:6px; padding-left:16px; position:relative; }
+  .job li::before{ content:''; position:absolute; left:0; top:9px; width:5px; height:5px; border-radius:50%; background:rgba(255,90,60,0.6); }
+
+  .skills{ display:flex; flex-wrap:wrap; gap:8px; }
+  .skill{ font-size:13px; color:rgba(251,247,240,0.78); background:var(--ink-soft); border:1px solid var(--line-light); border-radius:8px; padding:7px 13px; }
+
+  /* footer CTA */
+  .cta-card{ margin-top:48px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:18px; padding:28px 26px; text-align:center; }
+  .cta-card h3{ font-family:'Fraunces',serif; font-size:21px; margin-bottom:8px; }
+  .cta-card p{ font-size:14px; color:rgba(251,247,240,0.55); max-width:420px; margin:0 auto 18px; }
+  .cta-btn{ display:inline-block; background:var(--coral); color:var(--paper); text-decoration:none; font-weight:700; font-size:15px; padding:14px 30px; border-radius:12px; transition:background .15s; }
+  .cta-btn:hover{ background:var(--coral-dim); }
+  .foot{ text-align:center; font-size:12px; color:rgba(251,247,240,0.3); margin-top:26px; }
+
+  @media (max-width:560px){
+    .hero h1{ font-size:27px; }
+    .avatar{ width:84px; height:84px; }
+    .prompt .p-answer{ font-size:16px; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">GigCute<span>.</span></div>
+      <div class="verified">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        GigCute profile
+      </div>
+    </div>
+
+    <header class="hero">
+      <div class="avatar" style="background-image:url('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=320&q=80')"></div>
+      <div class="hero-main">
+        <h1>Priya Raman</h1>
+        <div class="role">Staff Software Engineer · Distributed Systems &amp; Platform</div>
+        <div class="pills">
+          <span class="pill">📍 Austin, TX</span>
+          <span class="pill">Remote-first</span>
+          <span class="pill">10 years experience</span>
+          <span class="pill open">Open to Staff / Eng Lead</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- How I think -->
+    <section class="section">
+      <div class="section-label">How I think</div>
+      <p class="section-note">The prompts say more than a résumé. ⭐ marks my starred answers.</p>
+
+      <div class="prompt starred">
+        <div class="p-label"><span class="star">★</span> My superpower at work</div>
+        <div class="p-answer">"Taking a vague, scary problem — 'our pipeline keeps falling over and nobody knows why' — and turning it into a sequenced plan a whole team can execute. I find the one bottleneck quietly causing eight downstream symptoms."</div>
+      </div>
+      <div class="prompt starred">
+        <div class="p-label"><span class="star">★</span> I'm proudest of</div>
+        <div class="p-answer">"Leading the re-architecture of our event pipeline from a monolith to event-driven services. The win wasn't elegant code — it was pulling it off with zero customer-facing downtime over six months while the business kept shipping on top of it."</div>
+      </div>
+      <div class="prompt starred">
+        <div class="p-label"><span class="star">★</span> The hardest thing I've shipped</div>
+        <div class="p-answer">"A multi-region failover for our payments service. The happy path was easy; the hard part was the dozen ways partial failures cascade. I spent more time on chaos tests and runbooks than on the feature — which is exactly why it held when we actually lost a region."</div>
+      </div>
+      <div class="prompt">
+        <div class="p-label">A mistake that taught me the most</div>
+        <div class="p-answer">"Early on I rewrote a 'messy' legacy service over a weekend, sure I understood it. I'd missed three edge cases the mess was quietly handling. Rough Monday. Now I treat old code as load-bearing until I can prove otherwise."</div>
+      </div>
+      <div class="prompt">
+        <div class="p-label">I'm the person people come to for</div>
+        <div class="p-answer">"Untangling production incidents calmly, and for honest design feedback. Teammates know I'll tell them if an approach will hurt in six months — kindly, but I won't rubber-stamp it."</div>
+      </div>
+      <div class="prompt">
+        <div class="p-label">Looking for a team that</div>
+        <div class="p-answer">"Treats reliability as a feature, not a chore — where 'it works on the happy path' isn't done. I do my best work with people who care about the boring 20% that keeps systems alive at 3am."</div>
+      </div>
+      <div class="prompt">
+        <div class="p-label">The skill I'm still building</div>
+        <div class="p-answer">"Saying no gracefully. I can scope and prioritize on paper, but I'm still learning to push back on a well-intentioned ask from a VP without caving or being too blunt."</div>
+      </div>
+      <div class="prompt">
+        <div class="p-label">I geek out about</div>
+        <div class="p-answer">"Database internals — query planners, write-ahead logs, how Postgres decides on an index. I'll happily spend an evening on a storage-engine paper, then bore my friends about it."</div>
+      </div>
+      <div class="prompt">
+        <div class="p-label">The kind of problems I want to solve next</div>
+        <div class="p-answer">"Scaling problems with real constraints — latency budgets, cost ceilings, correctness that can't bend. Less greenfield CRUD, more 'this has to handle 10x next year without falling over or bankrupting us.'"</div>
+      </div>
+      <div class="prompt">
+        <div class="p-label">What success looks like to me</div>
+        <div class="p-answer">"The systems I build get quietly boring — they just work and the team stops thinking about them. And the engineers I mentor outgrow me; if someone I coached makes a call I'd never have thought of, that's the win."</div>
+      </div>
+    </section>
+
+    <!-- Experience -->
+    <section class="section">
+      <div class="section-label">Experience · 10 years</div>
+      <div class="job">
+        <div class="j-title">Staff Software Engineer · Lattice Cloud</div>
+        <div class="j-meta">2022 – Present</div>
+        <ul>
+          <li>Lead the platform team owning a multi-region data pipeline (40+ services, ~2B events/day).</li>
+          <li>Drove the monolith → event-driven migration with zero customer-facing downtime, cutting p99 latency 45%.</li>
+          <li>Mentor 5 engineers and run the weekly architecture-review forum.</li>
+        </ul>
+      </div>
+      <div class="job">
+        <div class="j-title">Senior Software Engineer · Northwind Systems</div>
+        <div class="j-meta">2019 – 2022</div>
+        <ul>
+          <li>Built the real-time notifications platform serving 12M users.</li>
+          <li>Owned on-call for payments; cut incident MTTR from ~50 min to 12 min.</li>
+        </ul>
+      </div>
+      <div class="job">
+        <div class="j-title">Software Engineer II · Brightloom</div>
+        <div class="j-meta">2017 – 2019</div>
+        <ul>
+          <li>Shipped the core public API used by 200+ integration partners.</li>
+          <li>Stood up the team's first end-to-end test suite, reducing regressions ~60%.</li>
+        </ul>
+      </div>
+      <div class="job">
+        <div class="j-title">Software Engineer · Cobalt Labs</div>
+        <div class="j-meta">2015 – 2017</div>
+        <ul>
+          <li>First engineering hire after the founders; built the MVP backend in Python/Postgres.</li>
+          <li>Wore every hat — infra, on-call, even customer support.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Skills -->
+    <section class="section">
+      <div class="section-label">Skills</div>
+      <div class="skills">
+        <span class="skill">Go</span><span class="skill">Python</span><span class="skill">PostgreSQL</span>
+        <span class="skill">Kafka</span><span class="skill">Kubernetes</span><span class="skill">AWS</span>
+        <span class="skill">Distributed systems</span><span class="skill">Observability</span><span class="skill">Mentoring</span>
+      </div>
+    </section>
+
+    <div class="cta-card">
+      <h3>This is a GigCute profile.</h3>
+      <p>More than a résumé — answers that show how someone actually thinks. GigCute is launching soon.</p>
+      <a class="cta-btn" href="https://forms.gle/w63jhrFDBy44x4SEA" target="_blank" rel="noopener noreferrer">Get early access</a>
+    </div>
+    <div class="foot">Sample profile · © 2026 GigCute</div>
+  </div>
+</body>
+</html>
