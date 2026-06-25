@@ -3279,23 +3279,15 @@
 <!-- ============ SCREEN: LANDING / ROLE PICKER ============ -->
 <div class="screen flow-screen active" id="screen-landing">
   <div class="ob-shell">
-    <div style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:12px;">
+    <div class="ob-top" style="justify-content:center;">
       <img src="logo.png" class="hero-logo" style="width:200px;" alt="GigCute">
-      <button id="goRecruit" type="button" style="background:var(--ink-soft); border:1px solid var(--line-light); color:rgba(251,247,240,0.7); border-radius:10px; font-family:'Inter',sans-serif; font-size:13px; font-weight:600; padding:9px 15px; cursor:pointer; white-space:nowrap;">Preview GigCute →</button>
     </div>
     <div style="text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:var(--coral); margin-top:24px;">Launching soon</div>
     <h1 class="ob-h1" style="text-align:center; font-size:30px; line-height:1.15; margin:14px auto 14px; max-width:460px;">You're more than a <em>resume</em>. Build a profile that proves it.</h1>
     <p style="text-align:center; font-size:15px; color:rgba(251,247,240,0.6); line-height:1.55; max-width:420px; margin:0 auto 28px;">Answer prompts that show how you actually think, then share your GigCute profile anywhere.</p>
     <button class="lm-cta-btn" id="lmSeekerCta" type="button" style="display:block; margin:0 auto;">Create a profile now</button>
+    <button id="seeSampleBtn" type="button" style="display:block; margin:12px auto 0; background:var(--ink-soft); border:1px solid var(--line-light); color:var(--paper); border-radius:12px; font-family:'Inter',sans-serif; font-size:14px; font-weight:600; padding:12px 26px; cursor:pointer;">See sample profile</button>
     <div style="text-align:center; font-size:13px; color:rgba(251,247,240,0.45); margin-top:14px;">Already have an account? <button id="loginSeeker" type="button" style="background:none; border:none; color:var(--coral); font:inherit; font-weight:700; cursor:pointer; padding:0;">Log in</button></div>
-  </div>
-</div>
-
-<!-- ============ /recruit — full preview (coming soon) ============ -->
-<div class="screen flow-screen" id="screen-recruit">
-  <div class="recruit-overlay" aria-hidden="true"><span>Maybe coming soon...</span><span>Maybe coming soon...</span><span>Maybe coming soon...</span></div>
-  <div style="width:100%; max-width:1080px; margin:0 auto; padding:4px 22px 0;">
-    <button id="recruitBack" class="ob-back" type="button" style="position:relative; z-index:60;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
   </div>
 
   <!-- ============ FOR JOB SEEKERS ============ -->
@@ -3336,10 +3328,22 @@
           </div>
         </div>
       </div>
-      <div class="lm-cta-row">
-        <button class="lm-cta-btn" type="button">Create a profile now</button>
-      </div>
     </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div style="width:100%; border-top:1px solid var(--line-light); padding:32px 14px 40px;">
+    <div class="landing-footer">
+      <div>By signing up you agree to our <button onclick="openLegal('tos')">Terms of Service</button> and <button onclick="openLegal('privacy')">Privacy Policy</button>.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ /recruit — recruiter preview (coming soon) ============ -->
+<div class="screen flow-screen" id="screen-recruit">
+  <div class="recruit-overlay" aria-hidden="true"><span>Maybe coming soon...</span><span>Maybe coming soon...</span><span>Maybe coming soon...</span></div>
+  <div style="width:100%; max-width:1080px; margin:0 auto; padding:4px 22px 0;">
+    <button id="recruitBack" class="ob-back" type="button" style="position:relative; z-index:60;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
   </div>
 
   <!-- ============ GIGCUTE-RECRUIT (coming soon) ============ -->
@@ -3351,13 +3355,6 @@
       <div class="lm-cta-row" style="margin-top:8px;">
         <a class="lm-cta-btn sage" href="https://forms.gle/w63jhrFDBy44x4SEA" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">Stay informed</a>
       </div>
-    </div>
-  </div>
-
-  <!-- FOOTER -->
-  <div style="width:100%; border-top:1px solid var(--line-light); padding:32px 14px 40px;">
-    <div class="landing-footer">
-      <div>By signing up you agree to our <button onclick="openLegal('tos')">Terms of Service</button> and <button onclick="openLegal('privacy')">Privacy Policy</button>.</div>
     </div>
   </div>
 </div>
@@ -3566,7 +3563,7 @@
     <h1 class="ob-h1">Answer a few <em>prompts</em>.</h1>
     <div class="prompts-banner">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-      <span>Recruiters can see every answer you give here, so it's worth answering as many as you can. Then star up to 3 to feature at the top of your profile.</span>
+      <span><strong style="display:block; color:var(--coral); letter-spacing:0.03em; margin-bottom:6px;">REMEMBER!!</strong>Recruiters and hiring managers can see the answers you give here. This is your chance to shine and show more of yourself, so they can spot the candidate who's the best fit for their team.<br><br>Connect your answers to your past work and personalize them as much as you can — if you're invited to interview, they'll likely want to hear more about what you wrote here.<br><br>Wordsmith where you can, but the goal is to be genuine and personal — not to lean on AI for canned answers. Star up to 3 to feature at the top of your profile.</span>
     </div>
     <div class="pp-counter" id="skPpCounter">0 of 3 featured</div>
 
@@ -4009,6 +4006,7 @@
   document.getElementById('loginSeeker').onclick = () => showScreen('screen-login-seeker');
   { const a=document.getElementById('goRecruit'); if(a) a.onclick = () => showScreen('screen-recruit'); }
   { const a=document.getElementById('recruitBack'); if(a) a.onclick = () => showScreen('screen-landing'); }
+  { const a=document.getElementById('seeSampleBtn'); if(a) a.onclick = () => { window.location.href = '/p/priya-raman'; }; }
 
   // ---- Password show/hide toggles ----
   document.querySelectorAll('.pw-toggle').forEach(btn => {
