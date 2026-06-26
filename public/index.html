@@ -3089,6 +3089,18 @@
   }
   .pv-prompt-answer{ font-family:'Georgia',serif; font-size:15px; color:#222; line-height:1.5; white-space:pre-wrap; }
 
+  /* profile loading + not-found states */
+  #profileLoading{ position:fixed; inset:0; z-index:850; background:var(--ink); display:none; align-items:center; justify-content:center; }
+  #profileLoading.show{ display:flex; }
+  .gc-spinner{ width:38px; height:38px; border-radius:50%; border:3px solid rgba(251,247,240,0.15); border-top-color:var(--coral); animation:gc-spin 0.7s linear infinite; }
+  @keyframes gc-spin{ to{ transform:rotate(360deg); } }
+  #profileNotFound{ position:fixed; inset:0; z-index:850; background:var(--ink); display:none; align-items:center; justify-content:center; padding:24px; }
+  #profileNotFound.show{ display:flex; }
+  .gc-nf-card{ text-align:center; max-width:380px; }
+  .gc-nf-card h2{ font-family:'Fraunces',serif; font-size:24px; margin:16px 0 8px; color:var(--paper); }
+  .gc-nf-card p{ font-size:14px; color:rgba(251,247,240,0.6); margin:0 0 22px; line-height:1.5; }
+  .gc-nf-card button{ background:var(--coral); color:var(--paper); border:none; border-radius:10px; font-family:'Inter',sans-serif; font-size:14px; font-weight:700; padding:12px 26px; cursor:pointer; }
+
   /* print mode — show only the profile card, wherever it currently lives in
      the DOM (own profile lives inside #candMain, shared lives in <body>). */
   @media print {
@@ -3965,6 +3977,17 @@
     <div id="pvContent"></div>
   </div>
 </div>
+
+<!-- Profile loading + not-found states -->
+<div id="profileLoading"><div class="gc-spinner" aria-label="Loading"></div></div>
+<div id="profileNotFound">
+  <div class="gc-nf-card">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:42px;height:42px;color:var(--coral);"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/><path d="M11 8v3M11 14h.01"/></svg>
+    <h2>Profile not available</h2>
+    <p>This GigCute profile doesn’t exist or isn’t public yet.</p>
+    <button type="button" onclick="GigCuteNavigate('/')">Go to GigCute</button>
+  </div>
+</div>
 <!-- ============ LEGAL MODALS ============ -->
 <div class="legal-overlay" id="legalOverlay">
   <div class="legal-modal">
@@ -4030,6 +4053,8 @@
     // Leaving for a real screen always dismisses the in-flow profile page.
     const __pv = document.getElementById('profileViewOverlay'); if(__pv) __pv.classList.remove('open');
     const __cs = document.getElementById('searchComingSoon'); if(__cs) __cs.style.display = 'none';
+    const __pl = document.getElementById('profileLoading'); if(__pl) __pl.classList.remove('show');
+    const __nf = document.getElementById('profileNotFound'); if(__nf) __nf.classList.remove('show');
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     window.scrollTo(0,0);
@@ -4953,18 +4978,23 @@
   // shared one). Renders as the whole page, not an overlay over the dashboard.
   async function showProfilePage(id){
     // Hide the landing/other screens up front so the home page doesn't flash
-    // while the profile (and the API/CDN) loads on a cold page load.
+    // while the profile (and the API) loads on a cold page load.
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const loadEl = document.getElementById('profileLoading');
+    const nfEl = document.getElementById('profileNotFound');
+    if(nfEl) nfEl.classList.remove('show');
+    const notFound = () => { if(loadEl) loadEl.classList.remove('show'); document.getElementById('profileViewOverlay').classList.remove('open'); if(nfEl) nfEl.classList.add('show'); };
     let prof, own = false, shareId = id;
     if(id === 'sample'){
       prof = SAMPLE_PROFILE;            // built-in demo, rendered by the real component
     } else {
+      if(loadEl) loadEl.classList.add('show');   // spinner while we fetch
       const API = await gcAwaitAPI();
-      if(!API || !API.enabled){ showToast('Profile unavailable.'); navigate('/'); return; }
+      if(!API || !API.enabled){ notFound(); return; }
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
       let data = null;
       try{ data = isUuid ? await API.profiles.publicProfile(id) : await API.profiles.publicProfileByCode(id); }catch(e){ console.warn('profile load:', e && e.message); }
-      if(!data){ showToast('That profile isn’t available.'); navigate('/'); return; }
+      if(!data){ notFound(); return; }
       prof = {
         name: data.name || '', title: data.headline || '', photo: data.photo_url || null,
         resumeUrl: data.resume_url || '', linkedinUrl: data.linkedin_url || '',
@@ -4974,6 +5004,7 @@
       shareId = data.code || id;        // share/Copy-link uses the short code
       try{ const u = await API.auth.currentUser(); own = !!(u && data.id && u.id === data.id); }catch(e){}
     }
+    if(loadEl) loadEl.classList.remove('show');   // data is in; drop the spinner
     const ov = document.getElementById('profileViewOverlay');
     const cm = document.getElementById('candMain');
     const dash = document.getElementById('dashView');
