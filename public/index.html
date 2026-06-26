@@ -2982,9 +2982,11 @@
     font-family:'Inter',sans-serif;
     color:#1a1a1a;
   }
-  /* Own profile: lives inside the app content area, beside the sidebar. */
+  /* Own profile: lives inside the app content area, beside the sidebar.
+     Keep the same capped, centered reading column as the shared view so the
+     card doesn't stretch and reflow as the window resizes. */
   .profile-view-overlay.as-main{ background:transparent; min-height:0; }
-  .profile-view-overlay.as-main .profile-view-page{ max-width:100%; margin:0; min-height:calc(100vh - 60px); }
+  .profile-view-overlay.as-main .profile-view-page{ max-width:820px; margin:0 auto; min-height:calc(100vh - 60px); }
   .pv-toolbar{
     display:flex; align-items:center; gap:10px;
     padding:14px 20px;
