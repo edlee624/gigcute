@@ -4910,19 +4910,22 @@
     const API = await gcAwaitAPI();
     let user = null; try{ user = await (API && API.enabled && API.auth.currentUser()); }catch(e){}
     if(!user){ showScreen('screen-landing'); if(location.pathname !== '/') window.history.replaceState({}, '', '/'); return; }
-    navigate('/profile/' + user.id);
+    // Prefer the short shareable code; fall back to the UUID if not available yet.
+    let code = null; try{ const s = await API.seeker.get(user.id); code = s && s.public_code; }catch(e){}
+    navigate('/profile/' + (code || user.id));
   }
   // The profile page at /profile/<id> — a standalone page (own profile or a
   // shared one). Renders as the whole page, not an overlay over the dashboard.
   async function showProfilePage(id){
-    let prof, own = false;
+    let prof, own = false, shareId = id;
     if(id === 'sample'){
       prof = SAMPLE_PROFILE;            // built-in demo, rendered by the real component
     } else {
       const API = await gcAwaitAPI();
       if(!API || !API.enabled){ showToast('Profile unavailable.'); return; }
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
       let data = null;
-      try{ data = await API.profiles.publicProfile(id); }catch(e){ console.warn('profile load:', e && e.message); }
+      try{ data = isUuid ? await API.profiles.publicProfile(id) : await API.profiles.publicProfileByCode(id); }catch(e){ console.warn('profile load:', e && e.message); }
       if(!data){ showToast('That profile isn’t available.'); navigate('/'); return; }
       prof = {
         name: data.name || '', title: data.headline || '', photo: data.photo_url || null,
@@ -4930,7 +4933,8 @@
         workHistory: (data.work || []).map(w => ({ title:w.title||'', company:w.company||'', start:w.start||'', end:w.end||'', description:w.description||'' })),
         favoritePrompts: (data.prompts || []).map(p => ({ label:p.label, answer:p.answer||'' })),
       };
-      try{ const u = await API.auth.currentUser(); own = !!(u && u.id === id); }catch(e){}
+      shareId = data.code || id;        // share/Copy-link uses the short code
+      try{ const u = await API.auth.currentUser(); own = !!(u && data.id && u.id === data.id); }catch(e){}
     }
     const ov = document.getElementById('profileViewOverlay');
     const cm = document.getElementById('candMain');
@@ -4958,10 +4962,10 @@
     // The sample is a preview only: no search / copy-link / print actions.
     const isSample = id === 'sample';
     ['pvSearchBtn','pvShareBtn','pvPrintBtn'].forEach(bid => { const b = document.getElementById(bid); if(b) b.style.display = isSample ? 'none' : ''; });
-    __shownProfileId = id;
+    __shownProfileId = shareId;
     ov.classList.add('open');
     window.scrollTo(0,0);
-    if(location.pathname !== '/profile/'+id) window.history.pushState({}, '', '/profile/'+id);
+    if(location.pathname !== '/profile/'+shareId) window.history.pushState({}, '', '/profile/'+shareId);
     track('profile_viewed', { own:own, shared: !own });
   }
   function closeProfileView(){

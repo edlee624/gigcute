@@ -117,6 +117,12 @@ const profiles = {
     if (error) throw error;
     return data; // jsonb object, or null if not found/visible
   },
+  // Public shareable profile by short code — for /profile/<code> (migration 0015).
+  async publicProfileByCode(code) {
+    const { data, error } = await requireClient().rpc('public_profile_by_code', { p_code: code });
+    if (error) throw error;
+    return data; // jsonb object, or null if not found/visible
+  },
 };
 
 // ---- Storage --------------------------------------------------------------
