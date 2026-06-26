@@ -3998,7 +3998,16 @@
   <div style="max-width:940px; margin:0 auto; padding:28px 22px 60px;">
     <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px;">
       <div class="wordmark"><img src="/logo.png" class="brand-img" alt="GigCute" style="height:26px;"></div>
-      <button class="ds-nav-btn" id="adminRefresh" type="button">Refresh</button>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <select id="adminRange" class="ds-nav-btn" style="cursor:pointer;">
+          <option value="">All time</option>
+          <option value="7">Last 7 days</option>
+          <option value="30" selected>Last 30 days</option>
+          <option value="90">Last 90 days</option>
+        </select>
+        <button class="ds-nav-btn" id="adminRefresh" type="button">Refresh</button>
+        <button class="ds-nav-btn" id="adminReset" type="button" style="border-color:rgba(255,90,60,0.4); color:var(--coral);">Reset</button>
+      </div>
     </div>
     <h1 style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; margin:8px 0 2px;">Admin · <em style="font-style:italic; color:var(--coral);">Analytics</em></h1>
     <p style="color:rgba(251,247,240,0.55); font-size:14px; margin:0 0 24px;">Site activity captured from the events log.</p>
@@ -5136,8 +5145,10 @@
     const c = document.getElementById('adminContent');
     c.innerHTML = '<div style="color:rgba(251,247,240,0.5); padding:40px 0;">Loading…</div>';
     const API = await gcAwaitAPI();
+    const rangeEl = document.getElementById('adminRange');
+    const days = rangeEl && rangeEl.value ? parseInt(rangeEl.value, 10) : null;
     let data = null;
-    try{ if(API && API.enabled) data = await API.events.analytics(); }catch(e){ console.warn('admin analytics:', e && e.message); }
+    try{ if(API && API.enabled) data = await API.events.analytics(days); }catch(e){ console.warn('admin analytics:', e && e.message); }
     if(!data){
       c.innerHTML = '<div style="background:var(--ink-soft); border:1px solid var(--line-light); border-radius:14px; padding:28px; text-align:center; color:rgba(251,247,240,0.65);">Not authorized — this page is for GigCute admins.<div style="margin-top:14px;"><button class="ds-nav-btn" onclick="GigCuteNavigate(\'/\')">Go home</button></div></div>';
       return;
@@ -5152,13 +5163,27 @@
     const topScreens = (d.top_screens||[]).map(s=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;"><div style="flex:0 0 150px;font-size:13px;color:rgba(251,247,240,0.8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(s.screen)}</div><div style="flex:1;background:var(--ink);border-radius:5px;overflow:hidden;"><div style="height:16px;width:${Math.round(s.count/maxScreen*100)}%;background:var(--coral);min-width:2px;"></div></div><div style="flex:0 0 46px;text-align:right;font-size:12.5px;color:rgba(251,247,240,0.6);">${s.count}</div></div>`).join('') || '<div style="color:rgba(251,247,240,0.4);">No data yet.</div>';
     const maxDay = Math.max(1, ...(d.by_day||[]).map(x=>x.count));
     const byDay = (d.by_day||[]).map(x=>`<div title="${escapeHtml(x.day)}: ${x.count}" style="flex:1;min-width:5px;display:flex;flex-direction:column;justify-content:flex-end;"><div style="height:${Math.round(x.count/maxDay*120)}px;background:var(--sage);border-radius:3px 3px 0 0;min-height:2px;"></div></div>`).join('');
-    const recent = (d.recent||[]).map(r=>{ let when=r.created_at; try{ when=new Date(r.created_at).toLocaleString(); }catch(e){} const detail = (r.data && (r.data.screen || (r.data.shared!==undefined ? (r.data.shared?'shared link':'own') : ''))) || ''; return `<tr><td style="padding:7px 10px;font-size:12px;color:rgba(251,247,240,0.55);white-space:nowrap;">${escapeHtml(when)}</td><td style="padding:7px 10px;font-size:12px;color:var(--coral);font-family:'JetBrains Mono',monospace;">${escapeHtml(r.type)}</td><td style="padding:7px 10px;font-size:12px;color:rgba(251,247,240,0.7);">${escapeHtml(detail)}</td></tr>`; }).join('') || '<tr><td style="padding:14px;color:rgba(251,247,240,0.4);">No recent activity.</td></tr>';
+    const browserOf = ua => { ua = ua||''; if(/edg/i.test(ua)) return 'Edge'; if(/(chrome|crios)/i.test(ua)) return 'Chrome'; if(/(firefox|fxios)/i.test(ua)) return 'Firefox'; if(/safari/i.test(ua)) return 'Safari'; return ua ? ua.slice(0,16) : '—'; };
+    const td = (v, extra) => `<td style="padding:7px 10px;font-size:12px;${extra||''}">${escapeHtml(v||'—')}</td>`;
+    const rows = (d.recent||[]).map(r=>{ let when=r.created_at; try{ when=new Date(r.created_at).toLocaleString(); }catch(e){}
+      const loc = [r.city, r.country].filter(Boolean).join(', ');
+      return `<tr>${td(when,'color:rgba(251,247,240,0.55);white-space:nowrap;')}${td(r.type,"color:var(--coral);font-family:'JetBrains Mono',monospace;")}${td(r.detail,'color:rgba(251,247,240,0.7);')}${td(r.account||'anonymous','color:rgba(251,247,240,0.7);')}${td(loc,'color:rgba(251,247,240,0.7);')}${td(browserOf(r.ua),'color:rgba(251,247,240,0.7);')}${td(r.ip,"color:rgba(251,247,240,0.45);font-family:'JetBrains Mono',monospace;")}</tr>`;
+    }).join('') || '<tr><td colspan="7" style="padding:14px;color:rgba(251,247,240,0.4);">No recent activity.</td></tr>';
+    const head = ['Time','Event','Detail','Account','Location','Browser','IP'].map(h=>`<th style="text-align:left;padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(251,247,240,0.4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${h}</th>`).join('');
+    const recentTable = `<table style="width:100%;border-collapse:collapse;"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
     return cards
-      + (byDay ? panel('Activity · last 30 days', `<div style="display:flex;align-items:flex-end;gap:3px;height:120px;">${byDay}</div>`) : '')
+      + (byDay ? panel('Activity', `<div style="display:flex;align-items:flex-end;gap:3px;height:120px;">${byDay}</div>`) : '')
       + panel('Top screens', topScreens)
-      + panel('Recent activity', `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">${recent}</table></div>`);
+      + panel('Recent activity', `<div style="overflow-x:auto;">${recentTable}</div>`);
   }
   { const b=document.getElementById('adminRefresh'); if(b) b.onclick = showAdmin; }
+  { const s=document.getElementById('adminRange'); if(s) s.onchange = showAdmin; }
+  { const b=document.getElementById('adminReset'); if(b) b.onclick = () => {
+      showConfirm('Reset analytics?', 'This permanently deletes all recorded events (visits, profile views, etc.). This cannot be undone.', 'Your profiles and accounts are not affected — only the analytics log.', 'Delete all events', 'danger', async () => {
+        try{ const n = await window.GigCuteAPI.events.resetAll(); showToast(n >= 0 ? (n + ' events cleared.') : 'Not authorized.'); }catch(e){ showToast('Could not reset.'); }
+        showAdmin();
+      });
+  }; }
   window.showAdmin = showAdmin;
 
   // ===== CONFIRM MODAL =====

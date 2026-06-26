@@ -631,11 +631,34 @@ const support = {
 };
 
 // ---- Analytics events (write-any; admin-read) -----------------------------
+// Per-session visitor meta (browser + referrer + best-effort IP/geo). Captured
+// once per browser session; the geo lookup is a third-party call (ipapi.co) and
+// is best-effort — events still log without it.
+let _meta = null;
+function sessionMeta() {
+  if (_meta) return _meta;
+  _meta = { ua: navigator.userAgent, ref: document.referrer || '' };
+  try {
+    const cached = sessionStorage.getItem('gc_geo');
+    if (cached) Object.assign(_meta, JSON.parse(cached));
+  } catch (e) {}
+  if (!_meta.country) {
+    try {
+      fetch('https://ipapi.co/json/').then(r => r.json()).then(g => {
+        const geo = { ip: g.ip || '', city: g.city || '', region: g.region || '', country: g.country_name || g.country || '' };
+        try { sessionStorage.setItem('gc_geo', JSON.stringify(geo)); } catch (e) {}
+        Object.assign(_meta, geo);
+      }).catch(() => {});
+    } catch (e) {}
+  }
+  return _meta;
+}
 const events = {
   // Fire-and-forget: log an analytics event. Never throws to the caller.
   log(type, data = {}) {
     if (!supabase) return;
-    supabase.from('events').insert({ user_id: _uid, type, data }).then(() => {}, () => {});
+    const meta = sessionMeta();
+    supabase.from('events').insert({ user_id: _uid, type, data: { ...data, ...meta } }).then(() => {}, () => {});
   },
   // Admin: recent events (newest first) for the analytics dashboard.
   async recent(limit = 500) {
@@ -646,10 +669,17 @@ const events = {
     return data || [];
   },
   // Admin: aggregated analytics (security-definer RPC; returns null for non-admins).
-  async analytics() {
-    const { data, error } = await requireClient().rpc('admin_analytics');
+  // days = null for all-time, or 7/30/90 for a window.
+  async analytics(days = null) {
+    const { data, error } = await requireClient().rpc('admin_analytics', { p_days: days });
     if (error) throw error;
     return data; // jsonb object, or null if not an admin
+  },
+  // Admin: clear the events log. Returns rows deleted (or -1 if not admin).
+  async resetAll() {
+    const { data, error } = await requireClient().rpc('admin_reset_events');
+    if (error) throw error;
+    return data;
   },
 };
 
