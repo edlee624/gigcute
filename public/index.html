@@ -3263,6 +3263,14 @@
 <!-- the landing, app and admin have their own clickable wordmark. -->
 <div class="home-logo" id="homeLogo" style="display:none;" title="Home"><img src="logo.png" class="brand-img" alt="GigCute"></div>
 
+<!-- ============ SEARCH "coming soon" blocker (over the /search preview) ============ -->
+<div class="recruit-overlay" id="searchComingSoon" style="display:none; pointer-events:auto; z-index:900;">
+  <button class="ob-back" id="searchCsBack" type="button" style="position:fixed; top:18px; left:18px; z-index:60; pointer-events:auto; background:rgba(21,23,28,0.65);">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </button>
+  <span>Maybe coming soon...</span><span>Maybe coming soon...</span><span>Maybe coming soon...</span>
+</div>
+
 <!-- ============ COMPANIES-VIEWED PAGE (from sidebar insight) ============ -->
 <div class="cv-overlay" id="companiesViewedOverlay" hidden>
   <div class="cv-backdrop" id="cvBackdrop"></div>
@@ -3986,6 +3994,7 @@
     track('screen_view', {screen:id});
     // Leaving for a real screen always dismisses the in-flow profile page.
     const __pv = document.getElementById('profileViewOverlay'); if(__pv) __pv.classList.remove('open');
+    const __cs = document.getElementById('searchComingSoon'); if(__cs) __cs.style.display = 'none';
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     window.scrollTo(0,0);
@@ -4878,6 +4887,7 @@
     const ov = document.getElementById('profileViewOverlay');
     const cm = document.getElementById('candMain');
     const dash = document.getElementById('dashView');
+    const cs = document.getElementById('searchComingSoon'); if(cs) cs.style.display = 'none';
     if(own){
       // Own profile = the app page: nav + left sidebar + profile in the content area.
       showScreen('screen-app');                 // (clears ov.open; re-added below)
@@ -4914,6 +4924,7 @@
   document.getElementById('pvCloseBtn').onclick = closeProfileView;
   { const b = document.getElementById('pvEditBtn'); if(b) b.onclick = () => { openProfileEdit(); }; }
   { const b = document.getElementById('pvSearchBtn'); if(b) b.onclick = () => { navigate('/search'); }; }
+  { const b = document.getElementById('searchCsBack'); if(b) b.onclick = () => { if(typeof openProfileView==='function') openProfileView(); else navigate('/'); }; }
   document.getElementById('pvPrintBtn').onclick = () => window.print();
   document.getElementById('pvShareBtn').onclick = () => {
     const url = __shownProfileId ? (location.origin + '/profile/' + __shownProfileId) : window.location.href;
@@ -5287,7 +5298,7 @@
       const pm = path.match(/^\/profile\/([^/]+)\/?$/);
       if(pm){ showProfilePage(decodeURIComponent(pm[1])); }
       else if(path === '/main'){ openProfileView(); }
-      else if(path === '/search'){ showScreen('screen-app'); setMode('candidate'); const nr = document.querySelector('.ds-nav-right'); if(nr) nr.style.display = ''; gcResetAppLayout(); if(typeof renderDashboard === 'function') renderDashboard(); }
+      else if(path === '/search'){ showScreen('screen-app'); setMode('candidate'); const nr = document.querySelector('.ds-nav-right'); if(nr) nr.style.display = ''; gcResetAppLayout(); if(typeof renderDashboard === 'function') renderDashboard(); const cs = document.getElementById('searchComingSoon'); if(cs) cs.style.display = 'flex'; }   // search is gated behind "coming soon"
       else if(SCREEN_BY_PATH[path]){ showScreen(SCREEN_BY_PATH[path]); }
       else { showScreen('screen-landing'); }
     } finally { __applyingRoute = false; }
