@@ -4610,12 +4610,7 @@
       banner.style.display = 'flex';
       document.getElementById('importedBannerText').textContent = 'Imported from your resume — review the details below';
       renderWorkHistoryEntries(parsed.workHistory);
-      if(parsed.name){
-        const fEl = document.getElementById('sk-first'), lEl = document.getElementById('sk-last');
-        const np = parsed.name.trim().split(/\s+/);
-        if(fEl && !fEl.value) fEl.value = np[0] || '';
-        if(lEl && !lEl.value) lEl.value = np.slice(1).join(' ');
-      }
+      // Name comes from the First/Last fields on page 1 — never from the resume.
       if(parsed.headline){ const r = document.getElementById('sk-role'); if(r && !r.value) r.value = parsed.headline; }
       seedSeekerPrompts({});   // prompts are answered by the user, never fabricated
     } else {
