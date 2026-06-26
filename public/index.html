@@ -3217,6 +3217,21 @@
     .cand-main{ order:-1; padding:18px 14px; }
     .cand-sidebar{ width:100%; position:static; height:auto; border-right:none; border-top:1px solid var(--line-light); padding:18px 14px; }
 
+    /* ---- Profile page: tighten padding, wrap the toolbar, stack work meta ---- */
+    .pv-toolbar{ flex-wrap:wrap; padding:10px 14px; gap:8px; }
+    .pv-toolbar button{ font-size:12.5px !important; padding:8px 12px !important; }
+    .pv-header{ padding:26px 18px 22px; gap:16px; flex-wrap:wrap; }
+    .pv-photo{ width:64px !important; height:64px !important; font-size:22px; }
+    .pv-name{ font-size:23px; }
+    .pv-headline{ font-size:14px; }
+    .pv-meta-row{ gap:8px 14px; }
+    .pv-body{ padding:24px 18px; }
+    .pv-section{ margin-bottom:26px; }
+    .pv-work-top{ flex-direction:column; align-items:flex-start; }
+    .pv-work-years{ margin-left:0; margin-top:1px; }
+    /* On phones the own-profile card fills the width (no centered gutters). */
+    .profile-view-overlay.as-main .profile-view-page{ max-width:100%; }
+
     /* ---- Recruiter hire pane ---- */
     .hire-pane{ padding:18px 14px !important; }
     .postings-grid{ grid-template-columns:1fr !important; }
