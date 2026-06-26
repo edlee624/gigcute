@@ -3348,6 +3348,13 @@
   <div style="width:100%; border-top:1px solid var(--line-light); padding:32px 14px 40px;">
     <div class="landing-footer">
       <div>By signing up you agree to our <button onclick="openLegal('tos')">Terms of Service</button> and <button onclick="openLegal('privacy')">Privacy Policy</button>.</div>
+      <div style="margin-top:10px;">
+        <button onclick="openLegal('tos')">Terms</button> ·
+        <button onclick="openLegal('privacy')">Privacy</button> ·
+        <button onclick="openLegal('cookies')">Cookies</button> ·
+        <button onclick="openLegal('disclaimer')">Disclaimer</button>
+        <span style="display:block;margin-top:8px;opacity:0.6;">© 2026 GigCute. All rights reserved.</span>
+      </div>
     </div>
   </div>
 </div>
@@ -5112,66 +5119,222 @@
   const LEGAL_CONTENT = {
     tos: {
       title:'Terms of Service',
-      date:'Effective June 21, 2026',
+      date:'Last updated: June 26, 2026',
       body:`
-        <h3>1. Acceptance of Terms</h3>
-        <p>By accessing or using GigCute ("the Platform"), you agree to be bound by these Terms of Service. If you do not agree to these terms, you may not use the Platform.</p>
-        <h3>2. Platform Role & Limitations</h3>
-        <p>GigCute is a job-matching intermediary. We do not employ, endorse, or guarantee any job seeker, recruiter, or job posting on the Platform. GigCute is not a party to any employment agreement and bears no responsibility for hiring decisions, employment outcomes, or the conduct of any user.</p>
-        <h3>3. User Responsibilities</h3>
-        <p>Users are solely responsible for the accuracy of information they submit. Job seekers may not misrepresent their qualifications. Recruiters may not post fraudulent, discriminatory, or illegal job listings. Any attempt to deceive, harass, or defraud other users will result in immediate account suspension.</p>
-        <h3>4. Prohibited Conduct</h3>
+        <p><em>Please read these Terms carefully. They include an arbitration agreement and a class-action waiver (Section 18) that affect how disputes are resolved.</em></p>
+
+        <h3>1. Acceptance of These Terms</h3>
+        <p>These Terms of Service ("Terms") are a binding agreement between you and GigCute ("GigCute," "we," "us," or "our") governing your access to and use of the GigCute website, profiles, and related services (collectively, the "Platform"). By creating an account, accessing, or using the Platform, you agree to these Terms and to our <button onclick="openLegal('privacy')">Privacy Policy</button> and <button onclick="openLegal('cookies')">Cookie Policy</button>, which are incorporated by reference. If you do not agree, do not use the Platform.</p>
+
+        <h3>2. Who May Use GigCute</h3>
+        <p>You must be at least 16 years old (or the minimum age of digital consent in your country, whichever is higher) and able to form a legally binding contract to use the Platform. If you use the Platform on behalf of an organization, you represent that you are authorized to bind that organization, and "you" refers to that organization. You may not use the Platform if you are barred from doing so under applicable law or have previously been removed by us.</p>
+
+        <h3>3. What GigCute Is — and Is Not</h3>
+        <p>GigCute is a self-presentation platform that lets job seekers build a profile, answer prompts in their own words, upload a resume, and share a public profile link. GigCute is <strong>not</strong> an employer, recruiter, staffing agency, background-check provider, or party to any employment relationship. We do not guarantee employment, interviews, responses, or any other outcome. Some features (including recruiter and matching features) may be labeled "coming soon," in development, or offered as a beta, and may change or be withdrawn at any time.</p>
+
+        <h3>4. Your Account</h3>
         <ul>
-          <li>Posting spam, scam listings, or misleading information</li>
-          <li>Soliciting personal financial information from candidates</li>
-          <li>Harassment, discrimination, or hate speech of any kind</li>
-          <li>Scraping, data mining, or automated access to the Platform</li>
-          <li>Impersonating individuals, companies, or GigCute staff</li>
+          <li>You must provide accurate, current, and complete information and keep it up to date.</li>
+          <li>You are responsible for safeguarding your password and for all activity under your account. Notify us promptly at security@gigcute.com if you suspect unauthorized access.</li>
+          <li>One person may not maintain more than one account, and you may not share, sell, or transfer your account.</li>
+          <li>We may refuse, suspend, or terminate accounts at our discretion, including for violations of these Terms.</li>
         </ul>
-        <h3>5. Disclaimer of Warranties</h3>
-        <p>The Platform is provided "as is" without warranties of any kind. GigCute does not warrant that the Platform will be uninterrupted, error-free, or that any job posting or candidate profile is accurate or legitimate.</p>
-        <h3>6. Limitation of Liability</h3>
-        <p>GigCute shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Platform, including without limitation any hiring decisions, failed placements, or interactions between users. Our total liability shall not exceed the amount paid by you to GigCute in the preceding 12 months.</p>
-        <h3>7. Indemnification</h3>
-        <p>You agree to indemnify and hold harmless GigCute, its officers, directors, employees, and agents from any claim arising from your use of the Platform, your violation of these Terms, or your violation of any rights of another party.</p>
-        <h3>8. Governing Law</h3>
-        <p>These Terms shall be governed by the laws of the State of Delaware, without regard to its conflict of law provisions.</p>
-        <h3>9. Changes to Terms</h3>
-        <p>GigCute reserves the right to modify these Terms at any time. Continued use of the Platform after changes constitutes acceptance of the revised Terms.</p>`
+
+        <h3>5. Your Content and the License You Grant</h3>
+        <p>"Your Content" means everything you submit to the Platform — your name, profile details, prompt answers, resume, photo, links, and messages. You retain ownership of Your Content. You grant GigCute a worldwide, non-exclusive, royalty-free license to host, store, reproduce, display, adapt (e.g., for formatting and resumes), and — where you choose to make your profile public or share its link — publish and distribute Your Content for the purpose of operating and improving the Platform. This license ends when you delete Your Content or your account, except for content already shared with others, retained in backups for a limited period, or required to be kept by law. You represent that you own or have the rights to Your Content and that it does not infringe any third party's rights or violate any law.</p>
+
+        <h3>6. Public Profiles and Sharing</h3>
+        <p>Your GigCute profile is designed to be shared. When your profile is set to visible, anyone with your profile link can view the information you have chosen to include — without logging in. You control your profile's visibility and what you include. Do not put information in your profile that you are not comfortable making public. You are responsible for whom you share your link with.</p>
+
+        <h3>7. Acceptable Use</h3>
+        <p>You agree to use the Platform lawfully and respectfully, to provide truthful information about yourself, and to respect the rights and privacy of others.</p>
+
+        <h3>8. Prohibited Conduct</h3>
+        <p>You may not:</p>
+        <ul>
+          <li>Post false, misleading, fraudulent, or impersonating information, or misrepresent your identity or qualifications;</li>
+          <li>Post content that is unlawful, defamatory, obscene, harassing, hateful, or discriminatory, or that infringes intellectual property or privacy rights;</li>
+          <li>Upload viruses, malware, or any code designed to disrupt or harm the Platform;</li>
+          <li>Scrape, crawl, harvest, data-mine, or use bots or automated means to access or collect data from the Platform, except as expressly permitted in writing;</li>
+          <li>Reverse engineer, decompile, or attempt to access source code or non-public areas of the Platform;</li>
+          <li>Solicit money, financial-account details, or sensitive personal information from other users, or use the Platform for any fraud, phishing, or scam;</li>
+          <li>Use the Platform to send spam or unsolicited communications, or to discriminate unlawfully against any person;</li>
+          <li>Circumvent security, rate limits, or access controls, or interfere with the Platform's operation.</li>
+        </ul>
+
+        <h3>9. Recruiters and Employers</h3>
+        <p>If and when recruiter features become available, recruiters and employers are solely responsible for their use of candidate information and for compliance with all applicable laws, including equal-employment-opportunity and anti-discrimination laws (e.g., Title VII, the ADA, the ADEA, and state and local equivalents) and data-protection laws. Recruiters must use candidate data only for legitimate recruiting purposes, must not solicit prohibited information, and must not make decisions on unlawful bases. GigCute does not review postings, messages, or screening questions for legal compliance.</p>
+
+        <h3>10. Intellectual Property</h3>
+        <p>The Platform — including its software, design, text, graphics, logos, and the "GigCute" name and marks — is owned by GigCute or its licensors and is protected by intellectual-property laws. We grant you a limited, revocable, non-transferable license to use the Platform for its intended personal or internal business purpose. All rights not expressly granted are reserved. If you send us feedback or suggestions, you grant us a perpetual, royalty-free right to use them without obligation to you.</p>
+
+        <h3>11. Third-Party Services and Links</h3>
+        <p>The Platform may rely on or link to third-party services (for example, Google sign-in, our hosting and infrastructure providers, font and video providers, and any LinkedIn URL you choose to add). We do not control and are not responsible for third-party services or content, and your use of them is governed by their terms and policies. A LinkedIn URL you provide is stored only as a link you supply; we do not access or import data from LinkedIn.</p>
+
+        <h3>12. AI, Matching, and Automated Features</h3>
+        <p>Any match scores, recommendations, search results, parsed-resume output, or AI-generated insights are provided for convenience and informational purposes only, may be inaccurate, and should not be the sole basis for any decision. You are responsible for reviewing and verifying any automated output.</p>
+
+        <h3>13. Fees</h3>
+        <p>The Platform is currently free for job seekers. We may introduce paid features in the future. If we do, we will disclose pricing and terms before you incur any charge, and your continued use of a paid feature constitutes agreement to those terms.</p>
+
+        <h3>14. Termination and Suspension</h3>
+        <p>You may stop using the Platform and delete your account at any time. We may suspend or terminate your access at any time, with or without notice, including for violation of these Terms, suspected fraud or abuse, legal requirements, or discontinuation of the Platform. Upon termination, your right to use the Platform ends. Sections that by their nature should survive (including Sections 5, 10, 12, and 15–21) will survive termination.</p>
+
+        <h3>15. Disclaimer of Warranties</h3>
+        <p>THE PLATFORM IS PROVIDED "AS IS" AND "AS AVAILABLE," WITHOUT WARRANTIES OF ANY KIND, WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE PLATFORM WILL BE UNINTERRUPTED, SECURE, OR ERROR-FREE, THAT DEFECTS WILL BE CORRECTED, OR THAT ANY PROFILE, POSTING, OR INFORMATION IS ACCURATE OR LEGITIMATE. SOME JURISDICTIONS DO NOT ALLOW CERTAIN DISCLAIMERS, SO SOME OF THE ABOVE MAY NOT APPLY TO YOU.</p>
+
+        <h3>16. Limitation of Liability</h3>
+        <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, GIGCUTE AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS WILL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, OR FOR ANY LOSS OF PROFITS, DATA, GOODWILL, OR OPPORTUNITY, ARISING FROM OR RELATED TO YOUR USE OF (OR INABILITY TO USE) THE PLATFORM, ANY HIRING OR EMPLOYMENT OUTCOME, OR ANY INTERACTION BETWEEN USERS. OUR TOTAL LIABILITY FOR ALL CLAIMS WILL NOT EXCEED THE GREATER OF (A) THE AMOUNT YOU PAID US IN THE 12 MONTHS BEFORE THE CLAIM OR (B) USD $100. THESE LIMITS APPLY EVEN IF A REMEDY FAILS OF ITS ESSENTIAL PURPOSE.</p>
+
+        <h3>17. Indemnification</h3>
+        <p>You agree to defend, indemnify, and hold harmless GigCute and its officers, directors, employees, and agents from and against any claims, damages, liabilities, and expenses (including reasonable attorneys' fees) arising from Your Content, your use of the Platform, your violation of these Terms, or your violation of any law or any rights of a third party.</p>
+
+        <h3>18. Dispute Resolution; Binding Arbitration; Class-Action Waiver</h3>
+        <p><strong>Please read this section carefully — it affects your legal rights.</strong> Before filing a claim, you agree to first try to resolve the dispute informally by contacting legal@gigcute.com and allowing 30 days. If unresolved, you and GigCute agree that any dispute will be resolved by <strong>binding individual arbitration</strong> rather than in court, except that either party may bring claims in small-claims court or seek injunctive relief for intellectual-property misuse. <strong>You and GigCute waive any right to a jury trial and to participate in a class, collective, or representative action.</strong> You may opt out of this arbitration agreement within 30 days of first accepting these Terms by emailing legal@gigcute.com with your name and account email. This section is governed by the Federal Arbitration Act.</p>
+
+        <h3>19. Governing Law and Venue</h3>
+        <p>These Terms are governed by the laws of the State of Delaware, without regard to its conflict-of-law rules. Subject to Section 18, any disputes not subject to arbitration will be brought exclusively in the state or federal courts located in Delaware, and you consent to their jurisdiction. Nothing in these Terms limits mandatory consumer-protection rights you may have under the laws of your country of residence.</p>
+
+        <h3>20. Changes to These Terms</h3>
+        <p>We may update these Terms from time to time. If we make material changes, we will update the "Last updated" date and, where appropriate, provide additional notice. Your continued use of the Platform after changes take effect constitutes acceptance of the revised Terms.</p>
+
+        <h3>21. General</h3>
+        <p>These Terms (with the Privacy and Cookie Policies) are the entire agreement between you and GigCute regarding the Platform. If any provision is held unenforceable, the remaining provisions stay in effect. Our failure to enforce a provision is not a waiver. You may not assign these Terms without our consent; we may assign them in connection with a merger, acquisition, or sale of assets. We are not liable for delays or failures caused by events beyond our reasonable control. Headings are for convenience only.</p>
+
+        <h3>22. Contact</h3>
+        <p>Questions about these Terms: <strong>legal@gigcute.com</strong>.</p>`
     },
     privacy: {
       title:'Privacy Policy',
-      date:'Effective June 21, 2026',
+      date:'Last updated: June 26, 2026',
       body:`
-        <h3>1. Information We Collect</h3>
-        <p>We collect information you provide directly (name, email, work history, resume data), information generated by your use of the Platform (swipes, matches, profile views, messages), and technical data (IP address, browser type, device identifiers).</p>
-        <h3>2. How We Use Your Information</h3>
-        <p>We use your information to operate the matching platform, improve our AI recommendation algorithms, communicate with you about your account, detect and prevent fraud or abuse, and comply with legal obligations.</p>
-        <h3>3. Sharing of Information</h3>
-        <p>We share your profile information with other users as part of the matching function. We do not sell your personal data to third parties. We may share data with service providers acting on our behalf, and with law enforcement when required by law.</p>
-        <h3>4. Data Retention</h3>
-        <p>We retain your data as long as your account is active or as needed to provide services. You may request deletion of your account and associated data at any time.</p>
-        <h3>5. Your Rights</h3>
-        <p>You have the right to access, correct, and delete your personal data. Job seekers can control the visibility of their profile at any time. Contact privacy@gigcute.com to exercise these rights.</p>
-        <h3>6. Cookies & Tracking</h3>
-        <p>We use cookies and similar technologies to operate the Platform, remember preferences, and analyze usage. You may disable cookies in your browser settings, though this may affect Platform functionality.</p>
+        <h3>1. Introduction and Scope</h3>
+        <p>This Privacy Policy explains how GigCute ("we," "us," or "our") collects, uses, shares, and protects personal information when you use the GigCute Platform. For users in the European Economic Area ("EEA"), the United Kingdom, and Switzerland, GigCute is the "controller" of your personal information. By using the Platform, you acknowledge this Policy. Please also see our <button onclick="openLegal('cookies')">Cookie Policy</button>.</p>
+
+        <h3>2. Information We Collect</h3>
+        <p><strong>Information you provide:</strong> account details (name, email address, password); profile information (headline, work history, education, prompt answers, photo, and any links such as a LinkedIn URL you add); files you upload (such as a resume); and any messages or information you send to support.</p>
+        <p><strong>Information we collect automatically:</strong> usage and activity data (pages viewed, features used, actions taken, approximate counts such as profile views); device and log data (IP address, browser and device type, operating system, identifiers, timestamps, and referring pages); and information collected through cookies and similar technologies.</p>
+        <p><strong>Information from third parties:</strong> if you sign in with Google, we receive basic account information (such as your name and email) from that provider; and we receive limited information from our infrastructure, hosting, and security providers that help us operate the Platform. Resume parsing happens in your browser; we store the resume file and the structured fields you choose to save.</p>
+
+        <h3>3. How We Use Your Information</h3>
+        <ul>
+          <li>To create, host, and operate your account and your shareable profile;</li>
+          <li>To provide, personalize, maintain, and improve the Platform and develop new features;</li>
+          <li>To communicate with you about your account, security, updates, and support;</li>
+          <li>To promote safety and integrity — detecting, investigating, and preventing fraud, abuse, and security incidents;</li>
+          <li>To understand usage through analytics; and</li>
+          <li>To comply with legal obligations and enforce our Terms.</li>
+        </ul>
+        <p><strong>Legal bases (EEA/UK/Switzerland):</strong> we process personal information to perform our contract with you (providing the Platform), based on our legitimate interests (operating, securing, and improving the Platform), to comply with legal obligations, and — where required — with your consent (for example, certain cookies). You may withdraw consent at any time.</p>
+
+        <h3>4. How We Share Your Information</h3>
+        <ul>
+          <li><strong>Publicly / with people you share your profile with:</strong> when your profile is visible, the information in it is accessible to anyone with your profile link. When recruiter features launch, profile information may be made available to recruiters consistent with your settings.</li>
+          <li><strong>Service providers and sub-processors:</strong> companies that host our database and storage, provide authentication, send email, and provide analytics or security services, acting on our instructions and under confidentiality obligations.</li>
+          <li><strong>Legal and safety:</strong> when we believe disclosure is reasonably necessary to comply with law or legal process, enforce our Terms, or protect the rights, property, or safety of GigCute, our users, or the public.</li>
+          <li><strong>Business transfers:</strong> in connection with a merger, acquisition, financing, or sale of assets, subject to this Policy.</li>
+          <li><strong>With your consent:</strong> for any other purpose disclosed to you.</li>
+        </ul>
+        <p><strong>We do not sell your personal information</strong>, and we do not "share" it for cross-context behavioral advertising as those terms are defined under California law.</p>
+
+        <h3>5. Cookies and Similar Technologies</h3>
+        <p>We use strictly necessary cookies (for sign-in and security), preference cookies, and limited analytics. You can manage cookies through your browser, and we honor recognized opt-out signals where required. See our <button onclick="openLegal('cookies')">Cookie Policy</button> for details.</p>
+
+        <h3>6. Data Retention</h3>
+        <p>We keep personal information for as long as your account is active or as needed to provide the Platform, and afterward only as necessary to comply with legal obligations, resolve disputes, prevent abuse, and enforce our agreements. When you delete your account, we delete or de-identify your personal information within a reasonable period, except for limited data retained in backups or as required by law.</p>
+
         <h3>7. Security</h3>
-        <p>We implement industry-standard security measures to protect your data. However, no transmission over the internet is 100% secure. You assume the risk of unauthorized access to your data beyond our reasonable control.</p>`
+        <p>We use administrative, technical, and organizational measures designed to protect personal information, including encryption in transit and access controls. No method of transmission or storage is completely secure, and we cannot guarantee absolute security. Please use a strong, unique password and keep your credentials confidential.</p>
+
+        <h3>8. Your Privacy Rights and Choices</h3>
+        <p>Depending on where you live, you may have the right to access, correct, update, delete, or receive a copy of your personal information (portability), to object to or restrict certain processing, and to withdraw consent. You can edit your profile and control its visibility at any time, and you can delete your account. To exercise your rights, contact <strong>privacy@gigcute.com</strong>; we will respond as required by applicable law and will not discriminate against you for exercising your rights.</p>
+
+        <h3>9. Region-Specific Disclosures</h3>
+        <p><strong>EEA / UK / Switzerland:</strong> you have the GDPR rights described above and may lodge a complaint with your local supervisory authority. Where we transfer data internationally, we rely on appropriate safeguards such as Standard Contractual Clauses.</p>
+        <p><strong>California (CCPA/CPRA):</strong> in the past 12 months we have collected the categories of personal information described in Section 2 (identifiers, professional/employment information, internet activity, and limited geolocation derived from IP), from the sources and for the purposes described in this Policy. California residents may request to know, access, correct, and delete personal information, and to limit use of sensitive personal information; we do not sell or share personal information for cross-context behavioral advertising. You may use an authorized agent and exercise "Shine the Light" rights by contacting privacy@gigcute.com.</p>
+        <p><strong>Other U.S. states:</strong> residents of states with comprehensive privacy laws (such as Virginia, Colorado, Connecticut, and Utah) have similar rights to access, correct, delete, and obtain a copy of their personal information, and to opt out of targeted advertising or sale; contact us to exercise them.</p>
+
+        <h3>10. International Data Transfers</h3>
+        <p>We operate in the United States and may process and store information in the U.S. and other countries whose laws may differ from yours. Where required, we use appropriate safeguards for cross-border transfers.</p>
+
+        <h3>11. Children's Privacy</h3>
+        <p>The Platform is not directed to children under 16, and we do not knowingly collect personal information from them. If you believe a child has provided us personal information, contact privacy@gigcute.com and we will take appropriate steps to delete it.</p>
+
+        <h3>12. Automated Processing</h3>
+        <p>Some features (such as resume parsing, search, and any matching or recommendations) use automated processing. These are informational aids and are not used to make decisions that produce legal or similarly significant effects about you without human involvement.</p>
+
+        <h3>13. Third-Party Links</h3>
+        <p>The Platform may contain links to third-party sites and services that we do not control. Their privacy practices are governed by their own policies, and we encourage you to review them.</p>
+
+        <h3>14. Changes to This Policy</h3>
+        <p>We may update this Policy from time to time. We will update the "Last updated" date and, for material changes, provide additional notice where appropriate.</p>
+
+        <h3>15. How to Contact Us</h3>
+        <p>Privacy questions or requests: <strong>privacy@gigcute.com</strong>. General contact: <strong>support@gigcute.com</strong>.</p>`
+    },
+    cookies: {
+      title:'Cookie Policy',
+      date:'Last updated: June 26, 2026',
+      body:`
+        <h3>1. What Are Cookies?</h3>
+        <p>Cookies are small text files stored on your device when you visit a website. Similar technologies (such as local storage and pixels) work in comparable ways. We use these technologies to operate the Platform, remember your choices, and understand how the Platform is used.</p>
+
+        <h3>2. Types of Cookies We Use</h3>
+        <ul>
+          <li><strong>Strictly necessary:</strong> required for the Platform to function — for example, to keep you signed in and to protect against security risks. These cannot be switched off without breaking core features. Our authentication provider sets these to maintain your session.</li>
+          <li><strong>Preferences:</strong> remember choices you make to improve your experience.</li>
+          <li><strong>Analytics:</strong> help us understand aggregate usage so we can improve the Platform. Where required, we set these only with your consent.</li>
+        </ul>
+        <p>We do <strong>not</strong> currently use advertising or cross-site tracking cookies.</p>
+
+        <h3>3. Third-Party Technologies</h3>
+        <p>Some features rely on third parties that may set their own cookies or make requests, including our authentication and hosting provider, Google Fonts, and embedded video (we use a privacy-enhanced "no-cookie" video player on our home page). These third parties process data under their own policies.</p>
+
+        <h3>4. Managing Cookies</h3>
+        <p>Most browsers let you block or delete cookies through their settings, and you can clear local storage. Blocking strictly necessary cookies may prevent you from signing in or using core features. Where applicable, we honor recognized browser-based opt-out signals (such as Global Privacy Control).</p>
+
+        <h3>5. Changes</h3>
+        <p>We may update this Cookie Policy from time to time; the "Last updated" date reflects the latest version.</p>
+
+        <h3>6. Contact</h3>
+        <p>Questions about cookies: <strong>privacy@gigcute.com</strong>.</p>`
     },
     disclaimer: {
-      title:'General Disclaimer',
-      date:'Effective June 21, 2026',
+      title:'Disclaimer',
+      date:'Last updated: June 26, 2026',
       body:`
+        <h3>General — "As Is"</h3>
+        <p>The GigCute Platform and all information on it are provided "as is" and "as available," without warranties of any kind. Your use of the Platform is at your own risk. This Disclaimer supplements, and does not replace, our <button onclick="openLegal('tos')">Terms of Service</button>.</p>
+
         <h3>No Employment Guarantee</h3>
-        <p>GigCute makes no guarantee that use of the Platform will result in employment, hiring, or any other outcome. Matching and recommendations are algorithmic and for informational purposes only.</p>
-        <h3>Unverified Listings & Profiles</h3>
-        <p>GigCute does not independently verify the accuracy of job postings or candidate profiles. Users should exercise their own due diligence before entering into any employment relationship. GigCute is not responsible for fraudulent postings or misrepresented qualifications.</p>
-        <h3>AI Features</h3>
-        <p>Match scores, recommendations, and AI-generated insights are provided for convenience only. They should not be the sole basis for hiring or application decisions. GigCute disclaims all liability for outcomes resulting from reliance on AI-generated content.</p>
-        <h3>Screening Questions</h3>
-        <p>Recruiters are solely responsible for ensuring their screening questions comply with applicable employment laws, including anti-discrimination statutes. GigCute does not review screening questions for legal compliance.</p>
-        <h3>Third-Party Integrations</h3>
-        <p>Google and other OAuth integrations are provided by third parties. GigCute is not responsible for the accuracy of data imported from third-party services. Any LinkedIn profile URL you add is stored only as a link you provide; GigCute does not access or import data from LinkedIn.</p>`
+        <p>GigCute does not guarantee that using the Platform will result in interviews, responses, hiring, or any other outcome. GigCute is not an employer, recruiter, or staffing agency and is not a party to any employment relationship.</p>
+
+        <h3>No Professional, Legal, or Career Advice</h3>
+        <p>Content on the Platform is for general informational purposes only and is not legal, financial, or career advice. You should consult a qualified professional for advice specific to your situation.</p>
+
+        <h3>User Content and Unverified Information</h3>
+        <p>Profiles and other user content are created by users. GigCute does not independently verify the accuracy, completeness, or legitimacy of user content and is not responsible for it. Exercise your own judgment and due diligence before relying on any information or entering into any relationship with another user.</p>
+
+        <h3>AI, Matching, and Automated Output</h3>
+        <p>Resume parsing, search results, match scores, and any AI-generated insights may be inaccurate or incomplete and are provided for convenience only. They should not be the sole basis for any decision, and GigCute disclaims liability for outcomes resulting from reliance on them.</p>
+
+        <h3>Equal Opportunity and Screening</h3>
+        <p>Employers and recruiters are solely responsible for compliance with equal-employment-opportunity and anti-discrimination laws and for the lawfulness of any questions they ask. Any equal-opportunity or demographic information that may be collected in the future is intended to be kept separate from profiles shown to recruiters and is not used to make eligibility decisions. GigCute does not review user questions or postings for legal compliance.</p>
+
+        <h3>Public Profile Visibility</h3>
+        <p>Your profile is designed to be shared via a public link. You decide what to include and whether your profile is visible. Do not include information you are not comfortable making public.</p>
+
+        <h3>Beta and "Coming Soon" Features</h3>
+        <p>Some features are in development, labeled "coming soon," or offered as a beta. They may be incomplete, change, or be withdrawn at any time and are provided without warranty.</p>
+
+        <h3>Third-Party Services and Links</h3>
+        <p>The Platform integrates with or links to third-party services (such as Google sign-in, hosting and font providers, and any LinkedIn URL you add). GigCute does not control and is not responsible for third-party services or content. A LinkedIn URL you provide is stored only as a link; GigCute does not access or import data from LinkedIn.</p>
+
+        <h3>No Endorsement</h3>
+        <p>References to any company, role, or individual on the Platform do not constitute endorsement by GigCute.</p>
+
+        <h3>Contact</h3>
+        <p>Questions: <strong>legal@gigcute.com</strong>.</p>`
     }
   };
 
