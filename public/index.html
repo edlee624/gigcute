@@ -4897,6 +4897,9 @@
     renderProfileView(prof);
     const eb = document.getElementById('pvEditBtn'); if(eb) eb.style.display = own ? '' : 'none';
     const cb = document.getElementById('pvCloseBtn'); if(cb) cb.style.display = own ? 'none' : '';  // own profile is home — no "back"
+    // The sample is a preview only: no search / copy-link / print actions.
+    const isSample = id === 'sample';
+    ['pvSearchBtn','pvShareBtn','pvPrintBtn'].forEach(bid => { const b = document.getElementById(bid); if(b) b.style.display = isSample ? 'none' : ''; });
     __shownProfileId = id;
     ov.classList.add('open');
     window.scrollTo(0,0);
