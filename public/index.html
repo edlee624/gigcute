@@ -3268,7 +3268,7 @@
   <button class="ob-back" id="searchCsBack" type="button" style="position:fixed; top:18px; left:18px; z-index:60; pointer-events:auto; background:rgba(21,23,28,0.65);">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
   </button>
-  <span>Maybe coming soon...</span><span>Maybe coming soon...</span><span>Maybe coming soon...</span>
+  <span>Maybe coming soon...</span>
 </div>
 
 <!-- ============ COMPANIES-VIEWED PAGE (from sidebar insight) ============ -->
@@ -4217,20 +4217,68 @@
     const bar = document.getElementById('profileStrengthBar'); if(bar) bar.style.width = s + '%';
     const lbl = document.querySelector('.cs-progress-label span'); if(lbl) lbl.textContent = s + '% complete';
 
-    // Stats: no postings/matching backend yet, so these are real zeros.
-    setText('statMatches', '0'); setText('statViews', '0'); setText('statSaved', '0');
-    setText('insightViews', '0'); setText('insightReplies', '0');
+    // The /search dashboard (no preloaded profile) is a behind-the-overlay
+    // preview, so it's populated with lively demo activity. The profile sidebar
+    // (preloaded) stays real with honest zeros.
+    if(preloaded){
+      setText('statViews', '0'); setText('insightViews', '0'); setText('insightReplies', '0');
+    } else {
+      setText('statMatches', '3'); setText('statViews', '27'); setText('statSaved', '4');
+      setText('insightViews', '27'); setText('insightReplies', '2');
+      gcRenderPreviewActivity();
+    }
+  }
+  // Demo matches / invites / open roles / tracker for the /search preview.
+  function gcRenderPreviewActivity(){
+    const set = (id, html) => { const el = document.getElementById(id); if(el) el.innerHTML = html; };
+    const matches = [
+      { company:'Lumen Health', role:'Senior Product Designer', tags:['94% match','Remote','$170k+'], grad:'linear-gradient(135deg,#3D5A4C,#23262E)' },
+      { company:'Northbeam',    role:'Staff Product Designer',  tags:['91% match','Hybrid','Equity'], grad:'linear-gradient(135deg,#FF5A3C,#23262E)' },
+      { company:'Cedar',        role:'Design Lead',             tags:['88% match','Remote'],          grad:'linear-gradient(135deg,#5B6CB8,#23262E)' },
+    ];
+    set('matchStrip', matches.map(m => `
+      <div class="match-strip-card matched">
+        <div class="msc-photo" style="background:${m.grad}"><div class="msc-photo-inner"><div class="msc-company">${m.company}</div><div class="msc-role">${m.role}</div></div></div>
+        <div class="msc-body">
+          <div class="msc-tags">${m.tags.map(t => `<span class="msc-tag">${t}</span>`).join('')}</div>
+          <div class="msc-actions"><button class="msc-btn primary">View role</button><button class="msc-btn">Save</button></div>
+        </div>
+      </div>`).join(''));
 
-    // Honest empty states for the recruiter-powered sections.
-    const emptyStyle = 'padding:22px;text-align:center;color:rgba(251,247,240,0.5);font-size:14px;background:var(--ink-soft);border:1px solid var(--line-light);border-radius:14px;';
-    const setEmpty = (id, msg) => { const el = document.getElementById(id); if(el) el.innerHTML = '<div style="' + emptyStyle + '">' + msg + '</div>'; };
-    setEmpty('matchStrip', 'Your matches will appear here once roles are posted. Recruiting on GigCute is launching soon.');
-    setEmpty('inviteInboxList', 'No invites yet — recruiters can’t reach out until GigCute-Recruit launches.');
-    setEmpty('jobList', 'No open roles to browse yet. GigCute for recruiters is coming soon.');
-    const tb = document.getElementById('trackerBody');
-    if(tb) tb.innerHTML = '<tr><td colspan="4" style="padding:18px;text-align:center;color:rgba(251,247,240,0.5);font-size:14px;">Nothing tracked yet.</td></tr>';
-    const badge = document.getElementById('superInviteBadge'); if(badge) badge.style.display = 'none';
-    const rbadge = document.getElementById('regularInviteBadge'); if(rbadge) rbadge.style.display = 'none';
+    const invites = [
+      { who:'Maya Chen · Lumen Health', text:'invited you to apply — Senior Product Designer', grad:'linear-gradient(135deg,#3D5A4C,#23262E)' },
+      { who:'Recruiter · Northbeam',    text:'wants to connect about a Staff Designer role',   grad:'linear-gradient(135deg,#FF5A3C,#23262E)' },
+    ];
+    set('inviteInboxList', invites.map(i => `
+      <div style="display:flex;align-items:center;gap:12px;background:var(--ink-soft);border:1px solid var(--line-light);border-left:3px solid var(--coral);border-radius:12px;padding:13px 16px;margin-bottom:10px;">
+        <div style="width:38px;height:38px;border-radius:50%;background:${i.grad};flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:14px;">${i.who}</div><div style="font-size:13px;color:rgba(251,247,240,0.62);">${i.text}</div></div>
+        <button class="msc-btn primary" style="flex:0 0 auto;padding:8px 16px;">Respond</button>
+      </div>`).join(''));
+    const sb = document.getElementById('superInviteBadge'); if(sb){ sb.style.display = ''; sb.textContent = '⭐ 1 super'; }
+    const rb = document.getElementById('regularInviteBadge'); if(rb){ rb.style.display = ''; rb.textContent = '2 new'; }
+
+    const jobs = [
+      { company:'Vela', role:'Principal Product Designer', tags:['Remote','$190k+','Series C'], match:'92%', grad:'linear-gradient(135deg,#5B6CB8,#23262E)' },
+      { company:'Foundry Labs', role:'Senior UX Designer', tags:['Hybrid · NYC','$160k+'], match:'90%', grad:'linear-gradient(135deg,#3D5A4C,#23262E)' },
+      { company:'Brightwave', role:'Product Designer II', tags:['Remote','$140k+','Equity'], match:'86%', grad:'linear-gradient(135deg,#C9893E,#23262E)' },
+      { company:'Orbit', role:'Design Systems Lead', tags:['Remote','$175k+'], match:'84%', grad:'linear-gradient(135deg,#FF5A3C,#23262E)' },
+    ];
+    set('jobList', jobs.map(j => `
+      <div class="job-list-item">
+        <div class="job-logo" style="background:${j.grad}"></div>
+        <div><div class="jli-company">${j.company}</div><div class="jli-role">${j.role}</div><div class="jli-tags">${j.tags.map(t => `<span class="jli-tag">${t}</span>`).join('')}</div></div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:700;color:var(--sage-soft);white-space:nowrap;">${j.match} match</div>
+      </div>`).join(''));
+    const rc = document.getElementById('roleCount'); if(rc) rc.textContent = '48 open roles';
+
+    const pill = 'font-family:\'JetBrains Mono\',monospace;font-size:10.5px;font-weight:700;border-radius:5px;padding:3px 9px;';
+    const tracker = [
+      { role:'Senior Product Designer', company:'Lumen Health', status:'Interviewing', color:'color:var(--sage-soft);background:rgba(61,90,76,0.25);', date:'Jun 22' },
+      { role:'Staff Product Designer',  company:'Northbeam',    status:'Applied',      color:'color:rgba(251,247,240,0.7);background:var(--ink);',  date:'Jun 19' },
+    ];
+    set('trackerBody', tracker.map(r => `
+      <tr><td>${r.role}</td><td>${r.company}</td><td><span style="${pill}${r.color}">${r.status}</span></td><td style="color:rgba(251,247,240,0.55);">${r.date}</td></tr>`).join(''));
   }
   // Nav buttons: edit/view profile (swipe-deck profileBtn is gone).
   { const b = document.getElementById('navViewProfileBtn'); if(b) b.onclick = () => { if(typeof openProfileView==='function') openProfileView(); }; }
