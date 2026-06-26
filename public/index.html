@@ -3062,6 +3062,16 @@
   .pv-work-bullets{ margin:0; padding-left:18px; }
   .pv-work-bullets li{ font-size:13px; color:#444; margin-bottom:4px; line-height:1.55; }
 
+  /* portfolio & projects */
+  .pv-portfolio-entry{ border:1px solid #ebebeb; border-radius:12px; padding:14px 16px; margin-bottom:10px; background:#fafafa; }
+  .pv-portfolio-entry:last-child{ margin-bottom:0; }
+  .pv-portfolio-top{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
+  .pv-portfolio-title{ font-size:15px; font-weight:700; color:#1a1a1a; }
+  .pv-portfolio-link{ font-size:12.5px; font-weight:700; color:#e05a3a; text-decoration:none; white-space:nowrap; flex-shrink:0; }
+  .pv-portfolio-link:hover{ text-decoration:underline; }
+  .pv-portfolio-host{ font-family:'JetBrains Mono',monospace; font-size:11px; color:#999; margin-top:2px; word-break:break-all; }
+  .pv-portfolio-desc{ font-size:13.5px; color:#333; line-height:1.55; margin-top:8px; white-space:pre-wrap; }
+
   /* education */
   .pv-edu-entry{ display:flex; justify-content:space-between; margin-bottom:10px; }
   .pv-edu-degree{ font-size:13.5px; font-weight:600; color:#1a1a1a; }
@@ -3570,7 +3580,12 @@
     </div>
 
     <div id="workHistoryList"></div>
-    <button class="btn-sm" id="addWorkEntry" type="button" style="margin-bottom:22px;">+ Add another role</button>
+    <button class="btn-sm" id="addWorkEntry" type="button" style="margin-bottom:26px;">+ Add another role</button>
+
+    <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">Portfolio &amp; <em style="font-style:italic;color:var(--coral);">projects</em> <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.45);">(optional)</span></h2>
+    <p class="ob-sub" style="margin-bottom:14px;">Show off your work. Link out to the live site, video, repo, or gallery — then describe it in your own words.</p>
+    <div id="portfolioList"></div>
+    <button class="btn-sm" id="addPortfolioEntry" type="button" style="margin-bottom:22px;">+ Add a project</button>
 
     <button class="ob-primary" id="sk3Next" type="button">Continue</button>
   </div>
@@ -4170,7 +4185,8 @@
       {label:"My superpower at work", answer:"Turning ambiguous briefs into something the whole team can rally around."},
       {label:"I'm proudest of", answer:"Leading the redesign that measurably improved conversion last year."},
       {label:"Looking for a team that", answer:"Moves fast without losing sight of why the work matters."}
-    ]
+    ],
+    portfolio: []
   };
 
   // ================= SHARED HELPERS (seeker-only build) =================
@@ -4445,6 +4461,47 @@
       btn.closest('.work-entry').querySelectorAll('input, textarea').forEach(el => el.value = '');
     }
   });
+
+  // ---- Portfolio & projects editor (link out + describe) ----
+  let nextPortfolioId = 1;
+  function portfolioEntryHTML(p, id){
+    return `
+      <div class="work-entry" data-id="${id}">
+        <div class="field"><label>Project title</label><input type="text" class="pf-title" value="${escapeHtml(p.title||'')}" placeholder="e.g. Checkout redesign, Demo reel, Case study"></div>
+        <div class="field"><label>Link <span style="color:rgba(251,247,240,0.4);">(where the work lives — site, video, repo, gallery)</span></label><input type="url" class="pf-url" value="${escapeHtml(p.url||'')}" placeholder="https://…"></div>
+        <div class="field"><label>Describe it</label><textarea class="pf-desc" placeholder="What is it, your role, the impact, the tools…">${escapeHtml(p.description||'')}</textarea></div>
+        <button class="btn-sm danger" type="button" data-remove-portfolio="${id}">Remove project</button>
+      </div>`;
+  }
+  function renderPortfolioEntries(entries){
+    nextPortfolioId = 1;
+    const list = document.getElementById('portfolioList');
+    if(!list) return;
+    list.innerHTML = (entries && entries.length)
+      ? entries.map(p => portfolioEntryHTML(p, nextPortfolioId++)).join('')
+      : '';   // portfolio is optional — start empty
+  }
+  function normalizePortfolioUrl(raw){
+    let url = (raw || '').trim();
+    if(!url) return '';
+    if(/^https?:\/\//i.test(url)) return url;          // already http(s)
+    if(/^[a-z][a-z0-9+.-]*:/i.test(url)) return '';     // some other scheme (javascript:, data:, …) — drop it
+    return 'https://' + url;                            // bare domain → assume https
+  }
+  function readPortfolioForm(){
+    return [...document.querySelectorAll('#portfolioList .work-entry')].map(card => ({
+      title: card.querySelector('.pf-title').value.trim(),
+      url: normalizePortfolioUrl(card.querySelector('.pf-url').value),
+      description: card.querySelector('.pf-desc').value.trim()
+    })).filter(p => p.title || p.url || p.description);
+  }
+  { const b = document.getElementById('addPortfolioEntry'); if(b) b.onclick = () => {
+      document.getElementById('portfolioList').insertAdjacentHTML('beforeend', portfolioEntryHTML({}, nextPortfolioId++));
+  }; }
+  { const list = document.getElementById('portfolioList'); if(list) list.addEventListener('click', e => {
+      const btn = e.target.closest('[data-remove-portfolio]'); if(!btn) return;
+      btn.closest('.work-entry').remove();
+  }); }
 
   function computeTotalYears(entries){
     if(!entries || entries.length === 0) return '';
@@ -4751,9 +4808,11 @@
   // ---- navigation: work history -> prompts -> preview ----
   let pendingWorkHistory = [];
   let pendingFavoritePrompts = [];
+  let pendingPortfolio = [];
 
   document.getElementById('sk3Next').onclick = () => {
     pendingWorkHistory = readWorkHistoryForm();
+    pendingPortfolio = readPortfolioForm();
     showScreen('screen-seeker-prompts');
   };
 
@@ -4832,7 +4891,8 @@
       photo: currentPhotoUrl,
       linkedinUrl: document.getElementById('seekerLinkedInUrl').value.trim() || seekerProfile.linkedinUrl,
       workHistory: pendingWorkHistory,
-      favoritePrompts: pendingFavoritePrompts
+      favoritePrompts: pendingFavoritePrompts,
+      portfolio: pendingPortfolio
     };
     showSuccess({
       headline: "You're all set.",
@@ -4846,6 +4906,7 @@
   function openProfileEdit(){
     document.getElementById('importedBanner').style.display = 'none';
     renderWorkHistoryEntries(seekerProfile.workHistory);
+    renderPortfolioEntries(seekerProfile.portfolio);
     selectedSeekerFavorites.clear();
     document.querySelectorAll('#seekerPromptsList .prompt-row').forEach(row => {
       row.classList.remove('favorited');
@@ -4914,6 +4975,11 @@
       { title:'Software Engineer', company:'Cobalt Labs', start:'2015', end:'2017', description:'First engineering hire after the founders; built the MVP backend in Python/Postgres.\nWore every hat — infra, on-call, even customer support.' },
     ],
     skills: ['Go','Python','PostgreSQL','Kafka','Kubernetes','AWS','Distributed systems','Observability','Mentoring'],
+    portfolio: [
+      { title:'Event pipeline re-architecture (case study)', url:'https://example.com/priya/event-pipeline', description:'A write-up of the monolith → event-driven migration: the rollout plan, the chaos-testing approach, and how we hit zero customer-facing downtime over six months.' },
+      { title:'Conference talk — "Reliability as a feature"', url:'https://example.com/priya/talk', description:'30-minute talk on treating reliability as a product requirement, with the runbook and incident-review templates my team uses.' },
+      { title:'Open-source: pg-index-advisor', url:'https://github.com/example/pg-index-advisor', description:'A small tool that suggests Postgres indexes from slow-query logs. ~1.2k stars; I maintain it on weekends.' },
+    ],
   };
   // Resolve window.GigCuteAPI whether it's ready now or about to be. Avoids a
   // race on direct page loads where 'gigcute-api-ready' fires before we listen.
@@ -4962,6 +5028,7 @@
         resumeUrl: data.resume_url || '', linkedinUrl: data.linkedin_url || '',
         workHistory: (data.work || []).map(w => ({ title:w.title||'', company:w.company||'', start:w.start||'', end:w.end||'', description:w.description||'' })),
         favoritePrompts: (data.prompts || []).map(p => ({ label:p.label, answer:p.answer||'' })),
+        portfolio: (data.portfolio || []).map(p => ({ title:p.title||'', url:p.url||'', description:p.description||'' })),
       };
       shareId = data.code || id;        // share/Copy-link uses the short code
       try{ const u = await API.auth.currentUser(); own = !!(u && data.id && u.id === data.id); }catch(e){}
@@ -5093,6 +5160,20 @@
                 ? `<ul class="pv-work-bullets">${w.bullets.map(b=>`<li>${escapeHtml(b)}</li>`).join('')}</ul>`
                 : (w.description ? `<ul class="pv-work-bullets">${w.description.split('\n').map(s=>s.trim()).filter(Boolean).map(b=>`<li>${escapeHtml(b.replace(/^[•\-\*]\s?/,''))}</li>`).join('')}</ul>` : '')}
             </div>`).join('')}
+        </div>` : ''}
+
+        ${(p.portfolio||[]).length ? `
+        <div class="pv-section">
+          <div class="pv-section-title">Portfolio &amp; projects</div>
+          ${p.portfolio.map(pf=>{ const safe = /^https?:\/\//i.test(pf.url||'') ? pf.url : ''; const host = safe ? (()=>{ try{ return new URL(safe).hostname.replace(/^www\./,''); }catch(e){ return ''; } })() : ''; return `
+            <div class="pv-portfolio-entry">
+              <div class="pv-portfolio-top">
+                <div class="pv-portfolio-title">${escapeHtml(pf.title||'Untitled project')}</div>
+                ${safe ? `<a class="pv-portfolio-link" href="${escapeHtml(safe)}" target="_blank" rel="noopener noreferrer nofollow">View ↗</a>` : ''}
+              </div>
+              ${host ? `<div class="pv-portfolio-host">${escapeHtml(host)}</div>` : ''}
+              ${pf.description ? `<div class="pv-portfolio-desc">${escapeHtml(pf.description)}</div>` : ''}
+            </div>`; }).join('')}
         </div>` : ''}
 
         ${(p.education||[]).length ? `
@@ -5371,6 +5452,7 @@
         seekerProfile.workHistory = wh.map(w=>({ title:w.title||'', company:w.company||'', start:w.start_label||'', end:w.end_label||'', description:w.description||'' }));
         const pa = (sp.seeker_prompt_answers || []).filter(p=>p.is_favorite).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
         seekerProfile.favoritePrompts = pa.map(p=>({ label:p.prompt_label, answer:p.answer||'' }));
+        seekerProfile.portfolio = Array.isArray(sp.portfolio) ? sp.portfolio.map(p=>({ title:p.title||'', url:p.url||'', description:p.description||'' })) : [];
       }
     }catch(e){ console.warn('[gigcute] could not load profile:', e.message); }
   }
@@ -5495,7 +5577,7 @@
       const email = document.getElementById('sk-email').value.trim();
       const pw = document.getElementById('sk-password').value;
       const payload = {
-        profile: { headline: seekerProfile.title, linkedin_url: seekerProfile.linkedinUrl || '' },
+        profile: { headline: seekerProfile.title, linkedin_url: seekerProfile.linkedinUrl || '', portfolio: seekerProfile.portfolio || [] },
         workHistory: seekerProfile.workHistory || [],
         education: [],
         promptAnswers: (seekerProfile.favoritePrompts || []).map(fp => ({ label: fp.label, answer: fp.answer, isFavorite: true })),

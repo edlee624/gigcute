@@ -172,10 +172,10 @@ const seeker = {
     const uid = u.user.id;
 
     let { error } = await c.from('seeker_profiles').upsert({ ...profile, profile_id: uid });
-    // Resilience: if a column (e.g. resume_url before its migration is applied)
-    // isn't in the schema yet, save the rest of the profile rather than failing.
-    if (error && /schema cache|could not find .* column|column .* does not exist/i.test(error.message || '') && 'resume_url' in profile) {
-      const { resume_url, ...rest } = profile;
+    // Resilience: if an optional column (e.g. resume_url or portfolio, before its
+    // migration is applied) isn't in the schema yet, save the rest rather than fail.
+    if (error && /schema cache|could not find .* column|column .* does not exist/i.test(error.message || '')) {
+      const { resume_url, portfolio, ...rest } = profile;
       ({ error } = await c.from('seeker_profiles').upsert({ ...rest, profile_id: uid }));
     }
     if (error) throw error;
