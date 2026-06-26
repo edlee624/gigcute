@@ -9,7 +9,10 @@
 // The anon key is safe to ship to the browser: it is gated by the Row Level
 // Security policies in supabase/migrations. Never put the service_role key here.
 // ============================================================================
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// Supabase client is self-hosted (public/js/vendor/supabase.umd.js, loaded as a
+// classic script before this module) and exposed as the global `supabase`.
+// This avoids a runtime CDN import that slowed every cold page load.
+const { createClient } = window.supabase || {};
 
 const cfg = window.GIGCUTE_CONFIG || {};
 const enabled = Boolean(cfg.SUPABASE_URL && cfg.SUPABASE_ANON_KEY);
