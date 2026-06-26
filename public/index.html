@@ -3265,7 +3265,7 @@
 
 <!-- Persistent home logo: shown on flow screens (login/onboarding/wizard/etc.); -->
 <!-- the landing, app and admin have their own clickable wordmark. -->
-<div class="home-logo" id="homeLogo" style="display:none;" title="Home"><img src="logo.png" class="brand-img" alt="GigCute"></div>
+<div class="home-logo" id="homeLogo" style="display:none;" title="Home"><img src="/logo.png" class="brand-img" alt="GigCute"></div>
 
 <!-- ============ SEARCH "coming soon" blocker (over the /search preview) ============ -->
 <div class="recruit-overlay" id="searchComingSoon" style="display:none; pointer-events:auto; z-index:900;">
@@ -3292,7 +3292,7 @@
 <div class="screen flow-screen active" id="screen-landing">
   <div class="ob-shell">
     <div class="ob-top" style="justify-content:center;">
-      <img src="logo.png" class="hero-logo" style="width:200px;" alt="GigCute">
+      <img src="/logo.png" class="hero-logo" style="width:200px;" alt="GigCute">
     </div>
     <div style="text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:var(--coral); margin-top:24px;">Launching soon</div>
     <h1 class="ob-h1" style="text-align:center; font-size:30px; line-height:1.15; margin:14px auto 14px; max-width:460px;">You're more than a <em>resume</em>. Build a profile that proves it.</h1>
@@ -3639,7 +3639,7 @@
 
   <!-- ===== DESKTOP NAV ===== -->
   <nav class="ds-nav">
-    <div class="wordmark"><img src="logo.png" class="brand-img" alt="GigCute"></div>
+    <div class="wordmark"><img src="/logo.png" class="brand-img" alt="GigCute"></div>
     <button class="ds-nav-btn" id="navSearchBtn" type="button" style="display:inline-flex;align-items:center;gap:7px;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
       GigCute Search
@@ -3965,8 +3965,8 @@
 <!-- Backend (Supabase). config.js is gitignored; copy config.example.js and fill
      in your project URL + anon key. Until then the app runs in demo/in-memory mode
      and GigCuteAPI.enabled is false. The api layer is loaded as a module. -->
-<script src="config.js" onerror="window.__gigcuteNoConfig=true"></script>
-<script type="module" src="js/gigcute-api.js"></script>
+<script src="/config.js" onerror="window.__gigcuteNoConfig=true"></script>
+<script type="module" src="/js/gigcute-api.js"></script>
 
 <script>
 (function(){
