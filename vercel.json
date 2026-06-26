@@ -9,7 +9,6 @@
   ],
   "routes": [
     { "src": "/(.+\\.[a-zA-Z0-9]+)", "dest": "/public/$1" },
-    { "src": "/p/([^/]+)/?", "dest": "/public/p/$1/index.html" },
     { "src": "/(.*)", "dest": "/public/index.html" }
   ],
   "headers": [
