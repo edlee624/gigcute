@@ -5166,15 +5166,17 @@
       <div style="max-width:380px; margin:36px auto 0; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px; padding:28px;">
         <div style="font-family:'Fraunces',serif; font-size:20px; margin-bottom:4px;">Admin sign in</div>
         <div style="font-size:13px; color:rgba(251,247,240,0.55); margin-bottom:18px;">This area is restricted to GigCute admins.</div>
-        <div class="field"><label for="adminEmail">Email</label><input type="email" id="adminEmail" autocomplete="username" placeholder="you@email.com"></div>
+        <div class="field"><label for="adminEmail">Username</label><input type="text" id="adminEmail" autocomplete="username" placeholder="admin"></div>
         <div class="field"><label for="adminPw">Password</label><input type="password" id="adminPw" autocomplete="current-password" placeholder="••••••••"></div>
         <div id="adminLoginErr" style="display:none; color:var(--coral); font-size:13px; margin:2px 0 12px;"></div>
         <button class="ob-primary" id="adminLoginBtn" type="button" style="width:100%;">Log in</button>
       </div>`;
     const err = document.getElementById('adminLoginErr');
     const submit = async () => {
-      const email = document.getElementById('adminEmail').value.trim();
+      let email = document.getElementById('adminEmail').value.trim();
       const pw = document.getElementById('adminPw').value;
+      // "admin" is a friendly alias for the admin account's email.
+      if(email.toLowerCase() === 'admin') email = 'admin@gigcute.com';
       err.style.display = 'none';
       try{ await API.auth.signIn({ email, password: pw }); showAdmin(); }
       catch(e){ err.textContent = e.message || 'Login failed.'; err.style.display = 'block'; }
