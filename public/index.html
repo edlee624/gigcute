@@ -2982,6 +2982,9 @@
     font-family:'Inter',sans-serif;
     color:#1a1a1a;
   }
+  /* Own profile: lives inside the app content area, beside the sidebar. */
+  .profile-view-overlay.as-main{ background:transparent; min-height:0; }
+  .profile-view-overlay.as-main .profile-view-page{ max-width:100%; margin:0; min-height:calc(100vh - 60px); }
   .pv-toolbar{
     display:flex; align-items:center; gap:10px;
     padding:14px 20px;
@@ -4160,6 +4163,13 @@
   // Search dashboard (/search): hydrate the sidebar from the logged-in seeker's
   // real profile. Matches/invites/open-roles/tracker need the recruiter+postings
   // backend (not in this seeker-only build) so they show honest empty states.
+  // Undo the own-profile layout so the search dashboard lays out normally.
+  function gcResetAppLayout(){
+    const dash = document.getElementById('dashView'); if(dash) dash.style.display = '';
+    const cm = document.getElementById('candMain'); if(cm) cm.style.padding = '';
+    const ov = document.getElementById('profileViewOverlay');
+    if(ov && ov.parentNode !== document.body){ ov.classList.remove('open','as-main'); document.body.appendChild(ov); }
+  }
   async function renderDashboard(){
     const API = window.GigCuteAPI;
     const setText = (id,v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
@@ -4822,14 +4832,30 @@
       favoritePrompts: (data.prompts || []).map(p => ({ label:p.label, answer:p.answer||'' })),
     };
     let own = false; try{ const u = await API.auth.currentUser(); own = !!(u && u.id === id); }catch(e){}
-    // Make it the page: hide every screen so nothing sits behind the profile.
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    const hl = document.getElementById('homeLogo'); if(hl) hl.style.display = 'none';
+    const ov = document.getElementById('profileViewOverlay');
+    const cm = document.getElementById('candMain');
+    const dash = document.getElementById('dashView');
+    if(own){
+      // Own profile = the app page: nav + left sidebar + profile in the content area.
+      showScreen('screen-app');                 // (clears ov.open; re-added below)
+      setMode('candidate');                      // sidebar visible
+      const nr = document.querySelector('.ds-nav-right'); if(nr) nr.style.display = 'none';
+      if(dash) dash.style.display = 'none';       // hide the search dashboard
+      if(cm){ cm.style.padding = '0'; if(ov.parentNode !== cm) cm.appendChild(ov); }
+      ov.classList.add('as-main');
+      if(typeof renderDashboard === 'function') renderDashboard();   // hydrate the sidebar
+    } else {
+      // Shared / public profile = a clean full page, no sidebar or dashboard.
+      if(ov.parentNode !== document.body) document.body.appendChild(ov);
+      ov.classList.remove('as-main');
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const hl = document.getElementById('homeLogo'); if(hl) hl.style.display = 'none';
+    }
     renderProfileView(prof);
     const eb = document.getElementById('pvEditBtn'); if(eb) eb.style.display = own ? '' : 'none';
     const cb = document.getElementById('pvCloseBtn'); if(cb) cb.style.display = own ? 'none' : '';  // own profile is home — no "back"
     __shownProfileId = id;
-    document.getElementById('profileViewOverlay').classList.add('open');
+    ov.classList.add('open');
     window.scrollTo(0,0);
     if(location.pathname !== '/profile/'+id) window.history.pushState({}, '', '/profile/'+id);
     track('profile_viewed', { own:own, shared: !own });
@@ -4848,9 +4874,6 @@
     if(navigator.clipboard){ navigator.clipboard.writeText(url).then(()=>showToast('Profile link copied to clipboard!')); }
     else showToast('Copy the URL from your address bar to share.');
   };
-  document.getElementById('profileViewOverlay').addEventListener('click', e => {
-    if(e.target === document.getElementById('profileViewOverlay')) closeProfileView();
-  });
 
   function renderProfileView(profileArg){
     const p = profileArg || seekerProfile;
@@ -5218,7 +5241,7 @@
       const pm = path.match(/^\/profile\/([^/]+)\/?$/);
       if(pm){ showProfilePage(decodeURIComponent(pm[1])); }
       else if(path === '/main'){ openProfileView(); }
-      else if(path === '/search'){ showScreen('screen-app'); setMode('candidate'); const nr = document.querySelector('.ds-nav-right'); if(nr) nr.style.display = ''; const ov = document.getElementById('profileViewOverlay'); if(ov){ ov.classList.remove('open'); ov.classList.remove('as-main'); } if(typeof renderDashboard === 'function') renderDashboard(); }
+      else if(path === '/search'){ showScreen('screen-app'); setMode('candidate'); const nr = document.querySelector('.ds-nav-right'); if(nr) nr.style.display = ''; gcResetAppLayout(); if(typeof renderDashboard === 'function') renderDashboard(); }
       else if(SCREEN_BY_PATH[path]){ showScreen(SCREEN_BY_PATH[path]); }
       else { showScreen('screen-landing'); }
     } finally { __applyingRoute = false; }
