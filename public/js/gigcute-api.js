@@ -645,6 +645,12 @@ const events = {
     if (error) throw error;
     return data || [];
   },
+  // Admin: aggregated analytics (security-definer RPC; returns null for non-admins).
+  async analytics() {
+    const { data, error } = await requireClient().rpc('admin_analytics');
+    if (error) throw error;
+    return data; // jsonb object, or null if not an admin
+  },
 };
 
 const reports = {

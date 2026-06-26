@@ -3993,6 +3993,19 @@
 
 </div>
 
+<!-- ============ ADMIN ANALYTICS (owner only) ============ -->
+<div class="screen" id="screen-admin">
+  <div style="max-width:940px; margin:0 auto; padding:28px 22px 60px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px;">
+      <div class="wordmark"><img src="/logo.png" class="brand-img" alt="GigCute" style="height:26px;"></div>
+      <button class="ds-nav-btn" id="adminRefresh" type="button">Refresh</button>
+    </div>
+    <h1 style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; margin:8px 0 2px;">Admin · <em style="font-style:italic; color:var(--coral);">Analytics</em></h1>
+    <p style="color:rgba(251,247,240,0.55); font-size:14px; margin:0 0 24px;">Site activity captured from the events log.</p>
+    <div id="adminContent"><div style="color:rgba(251,247,240,0.5); padding:40px 0;">Loading…</div></div>
+  </div>
+</div>
+
 
 <!-- ============ OVERLAYS (placed before script so DOM is ready) ============ -->
 
@@ -4110,6 +4123,7 @@
     'screen-landing':'/',
     'screen-login-seeker':'/login',
     'screen-seeker-1':'/signup',
+    'screen-admin':'/admin',
   };
   const SCREEN_BY_PATH = Object.fromEntries(Object.entries(PATH_BY_SCREEN).map(([s,p]) => [p,s]));
 
@@ -4125,7 +4139,7 @@
     window.scrollTo(0,0);
     // Persistent home logo: show on flow screens (landing/app have their own wordmark)
     var hl = document.getElementById('homeLogo');
-    if(hl) hl.style.display = (id === 'screen-app' || id === 'screen-landing') ? 'none' : 'block';
+    if(hl) hl.style.display = (id === 'screen-app' || id === 'screen-landing' || id === 'screen-admin') ? 'none' : 'block';
     // sync URL for mapped top-level pages (the app screen is handled by setMode)
     if(!__applyingRoute && id !== 'screen-app'){
       const p = PATH_BY_SCREEN[id];
@@ -5116,6 +5130,37 @@
   { const b=document.getElementById('pvTipsBtn'); if(b) b.onclick = openTour; }
   window.openTour = openTour;
 
+  // ===== ADMIN ANALYTICS (owner only) =====
+  async function showAdmin(){
+    showScreen('screen-admin');
+    const c = document.getElementById('adminContent');
+    c.innerHTML = '<div style="color:rgba(251,247,240,0.5); padding:40px 0;">Loading…</div>';
+    const API = await gcAwaitAPI();
+    let data = null;
+    try{ if(API && API.enabled) data = await API.events.analytics(); }catch(e){ console.warn('admin analytics:', e && e.message); }
+    if(!data){
+      c.innerHTML = '<div style="background:var(--ink-soft); border:1px solid var(--line-light); border-radius:14px; padding:28px; text-align:center; color:rgba(251,247,240,0.65);">Not authorized — this page is for GigCute admins.<div style="margin-top:14px;"><button class="ds-nav-btn" onclick="GigCuteNavigate(\'/\')">Go home</button></div></div>';
+      return;
+    }
+    c.innerHTML = renderAdminHTML(data);
+  }
+  function renderAdminHTML(d){
+    const stat = (label,val) => `<div style="background:var(--ink-soft);border:1px solid var(--line-light);border-radius:14px;padding:18px 20px;"><div style="font-size:30px;font-family:'Fraunces',serif;color:var(--coral);line-height:1;">${val}</div><div style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.06em;color:rgba(251,247,240,0.5);margin-top:6px;">${label}</div></div>`;
+    const cards = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px;">${stat('Total events', d.total||0)}${stat('Screen views', d.screen_views||0)}${stat('Profile views', d.profile_views||0)}${stat('Signed-in users', d.unique_users||0)}${stat('Last 7 days', d.last_7d||0)}</div>`;
+    const panel = (title, inner) => `<div style="background:var(--ink-soft);border:1px solid var(--line-light);border-radius:14px;padding:20px;margin-bottom:18px;"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(251,247,240,0.5);margin-bottom:14px;">${title}</div>${inner}</div>`;
+    const maxScreen = Math.max(1, ...(d.top_screens||[]).map(s=>s.count));
+    const topScreens = (d.top_screens||[]).map(s=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;"><div style="flex:0 0 150px;font-size:13px;color:rgba(251,247,240,0.8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(s.screen)}</div><div style="flex:1;background:var(--ink);border-radius:5px;overflow:hidden;"><div style="height:16px;width:${Math.round(s.count/maxScreen*100)}%;background:var(--coral);min-width:2px;"></div></div><div style="flex:0 0 46px;text-align:right;font-size:12.5px;color:rgba(251,247,240,0.6);">${s.count}</div></div>`).join('') || '<div style="color:rgba(251,247,240,0.4);">No data yet.</div>';
+    const maxDay = Math.max(1, ...(d.by_day||[]).map(x=>x.count));
+    const byDay = (d.by_day||[]).map(x=>`<div title="${escapeHtml(x.day)}: ${x.count}" style="flex:1;min-width:5px;display:flex;flex-direction:column;justify-content:flex-end;"><div style="height:${Math.round(x.count/maxDay*120)}px;background:var(--sage);border-radius:3px 3px 0 0;min-height:2px;"></div></div>`).join('');
+    const recent = (d.recent||[]).map(r=>{ let when=r.created_at; try{ when=new Date(r.created_at).toLocaleString(); }catch(e){} const detail = (r.data && (r.data.screen || (r.data.shared!==undefined ? (r.data.shared?'shared link':'own') : ''))) || ''; return `<tr><td style="padding:7px 10px;font-size:12px;color:rgba(251,247,240,0.55);white-space:nowrap;">${escapeHtml(when)}</td><td style="padding:7px 10px;font-size:12px;color:var(--coral);font-family:'JetBrains Mono',monospace;">${escapeHtml(r.type)}</td><td style="padding:7px 10px;font-size:12px;color:rgba(251,247,240,0.7);">${escapeHtml(detail)}</td></tr>`; }).join('') || '<tr><td style="padding:14px;color:rgba(251,247,240,0.4);">No recent activity.</td></tr>';
+    return cards
+      + (byDay ? panel('Activity · last 30 days', `<div style="display:flex;align-items:flex-end;gap:3px;height:120px;">${byDay}</div>`) : '')
+      + panel('Top screens', topScreens)
+      + panel('Recent activity', `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">${recent}</table></div>`);
+  }
+  { const b=document.getElementById('adminRefresh'); if(b) b.onclick = showAdmin; }
+  window.showAdmin = showAdmin;
+
   // ===== CONFIRM MODAL =====
   let confirmCallback = null;
   function showConfirm(title, body, note, okLabel, okClass, cb){
@@ -5726,9 +5771,9 @@
     API.auth.currentUser().then(async (user) => {
       if(!user || __inRecovery) return;   // recovery flow handles its own screen
       await gcCompletePending(API);
-      // Deep-link to a specific /profile/<id> is handled by the route applier;
-      // don't override it by entering your own profile.
-      if(/^\/profile\//.test(location.pathname)) return;
+      // Deep-link to a specific /profile/<id> or the /admin page is handled by the
+      // route applier; don't override it by entering your own profile.
+      if(/^\/(profile|admin)\b/.test(location.pathname)) return;
       let role = 'seeker';
       try{ const me = await API.profiles.me(); if(me){ if(me.role) role = me.role; if(me.intro_seen) gcHideIntroLocal(); } }catch(e){}
       if(sessionStorage.getItem('gc_oauth_role') === 'recruiter') role = 'recruiter';
@@ -5848,6 +5893,7 @@
       const pm = path.match(/^\/profile\/([^/]+)\/?$/);
       if(pm){ showProfilePage(decodeURIComponent(pm[1])); }
       else if(path === '/main'){ openProfileView(); }
+      else if(path === '/admin'){ showAdmin(); }
       else if(path === '/search'){ showScreen('screen-app'); setMode('candidate'); const nr = document.querySelector('.ds-nav-right'); if(nr) nr.style.display = ''; gcResetAppLayout(); if(typeof renderDashboard === 'function') renderDashboard(); const cs = document.getElementById('searchComingSoon'); if(cs) cs.style.display = 'flex'; }   // search is gated behind "coming soon"
       else if(SCREEN_BY_PATH[path]){ showScreen(SCREEN_BY_PATH[path]); }
       else { showScreen('screen-landing'); }
