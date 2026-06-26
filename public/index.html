@@ -3089,10 +3089,12 @@
   }
   .pv-prompt-answer{ font-family:'Georgia',serif; font-size:15px; color:#222; line-height:1.5; white-space:pre-wrap; }
 
-  /* print mode */
+  /* print mode — show only the profile card, wherever it currently lives in
+     the DOM (own profile lives inside #candMain, shared lives in <body>). */
   @media print {
-    body > *:not(.profile-view-overlay){ display:none !important; }
-    .profile-view-overlay{ position:static !important; background:none !important; backdrop-filter:none !important; display:block !important; }
+    body * { visibility:hidden !important; }
+    #profileViewOverlay, #profileViewOverlay * { visibility:visible !important; }
+    #profileViewOverlay{ position:absolute !important; left:0 !important; top:0 !important; width:100% !important; background:none !important; backdrop-filter:none !important; display:block !important; }
     .pv-toolbar{ display:none !important; }
     .profile-view-page{ box-shadow:none !important; margin:0 !important; border-radius:0 !important; max-width:100% !important; }
     .pv-header{ print-color-adjust:exact; -webkit-print-color-adjust:exact; }
@@ -3929,6 +3931,10 @@
       <button class="pv-print-btn" id="pvPrintBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         Print / Save PDF
+      </button>
+      <button class="pv-print-btn" id="pvLogoutBtn" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Log out
       </button>
     </div>
     <div id="pvContent"></div>
@@ -4951,6 +4957,9 @@
       if(dash) dash.style.display = 'none';       // hide the search dashboard
       if(cm){ cm.style.padding = '0'; if(ov.parentNode !== cm) cm.appendChild(ov); }
       ov.classList.add('as-main');
+      // Load the full profile into the global so Edit shows the user's real
+      // entries (incl. all prompts), not the demo defaults.
+      try{ await gcLoadSeekerProfile(window.GigCuteAPI); }catch(e){}
       if(typeof renderDashboard === 'function') renderDashboard(prof);   // hydrate sidebar from this profile
     } else {
       // Shared / public profile = a clean full page, no sidebar or dashboard.
@@ -4962,6 +4971,7 @@
     renderProfileView(prof);
     const eb = document.getElementById('pvEditBtn'); if(eb) eb.style.display = own ? '' : 'none';
     const cb = document.getElementById('pvCloseBtn'); if(cb) cb.style.display = own ? 'none' : '';  // own profile is home — no "back"
+    const lo = document.getElementById('pvLogoutBtn'); if(lo) lo.style.display = own ? '' : 'none';  // logout only on your own profile
     // The sample is a preview only: no search / copy-link / print actions.
     const isSample = id === 'sample';
     ['pvShareBtn','pvPrintBtn'].forEach(bid => { const b = document.getElementById(bid); if(b) b.style.display = isSample ? 'none' : ''; });
@@ -4981,6 +4991,10 @@
   { const b = document.getElementById('navSearchBtn'); if(b) b.onclick = () => { navigate('/search'); }; }
   { const b = document.getElementById('searchCsBack'); if(b) b.onclick = () => { if(typeof openProfileView==='function') openProfileView(); else navigate('/'); }; }
   document.getElementById('pvPrintBtn').onclick = () => window.print();
+  { const b = document.getElementById('pvLogoutBtn'); if(b) b.onclick = async () => {
+      try{ const API = window.GigCuteAPI; if(API && API.auth) await API.auth.signOut(); }catch(e){}
+      window.location.href = '/';                 // hard reload to the landing as a fresh session
+  }; }
   document.getElementById('pvShareBtn').onclick = () => {
     const url = __shownProfileId ? (location.origin + '/profile/' + __shownProfileId) : window.location.href;
     if(navigator.clipboard){ navigator.clipboard.writeText(url).then(()=>showToast('Profile link copied to clipboard!')); }
