@@ -3072,6 +3072,12 @@
   .pv-portfolio-host{ font-family:'JetBrains Mono',monospace; font-size:11px; color:#999; margin-top:2px; word-break:break-all; }
   .pv-portfolio-desc{ font-size:13.5px; color:#333; line-height:1.55; margin-top:8px; white-space:pre-wrap; }
 
+  /* certifications */
+  .pv-cert-entry{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:10px 0; border-bottom:1px solid #f3f3f3; }
+  .pv-cert-entry:last-child{ border-bottom:none; }
+  .pv-cert-name{ font-size:14px; font-weight:700; color:#1a1a1a; }
+  .pv-cert-issuer{ font-size:12.5px; color:#666; margin-top:1px; }
+
   /* education */
   .pv-edu-entry{ display:flex; justify-content:space-between; margin-bottom:10px; }
   .pv-edu-degree{ font-size:13.5px; font-weight:600; color:#1a1a1a; }
@@ -3585,7 +3591,17 @@
     <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">Portfolio &amp; <em style="font-style:italic;color:var(--coral);">projects</em> <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.45);">(optional)</span></h2>
     <p class="ob-sub" style="margin-bottom:14px;">Show off your work. Link out to the live site, video, repo, or gallery — then describe it in your own words.</p>
     <div id="portfolioList"></div>
-    <button class="btn-sm" id="addPortfolioEntry" type="button" style="margin-bottom:22px;">+ Add a project</button>
+    <button class="btn-sm" id="addPortfolioEntry" type="button" style="margin-bottom:26px;">+ Add a project</button>
+
+    <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;"><em style="font-style:italic;color:var(--coral);">Education</em> <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.45);">(optional)</span></h2>
+    <p class="ob-sub" style="margin-bottom:14px;">Degrees, schools, and the years you attended.</p>
+    <div id="educationList"></div>
+    <button class="btn-sm" id="addEducationEntry" type="button" style="margin-bottom:26px;">+ Add education</button>
+
+    <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;"><em style="font-style:italic;color:var(--coral);">Certifications</em> <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.45);">(optional)</span></h2>
+    <p class="ob-sub" style="margin-bottom:14px;">Licenses and credentials — with a verification link if you have one.</p>
+    <div id="certificationsList"></div>
+    <button class="btn-sm" id="addCertEntry" type="button" style="margin-bottom:22px;">+ Add certification</button>
 
     <button class="ob-primary" id="sk3Next" type="button">Continue</button>
   </div>
@@ -4186,7 +4202,9 @@
       {label:"I'm proudest of", answer:"Leading the redesign that measurably improved conversion last year."},
       {label:"Looking for a team that", answer:"Moves fast without losing sight of why the work matters."}
     ],
-    portfolio: []
+    portfolio: [],
+    education: [],
+    certifications: []
   };
 
   // ================= SHARED HELPERS (seeker-only build) =================
@@ -4503,6 +4521,70 @@
       btn.closest('.work-entry').remove();
   }); }
 
+  // ---- Education editor ----
+  let nextEduId = 1;
+  function educationEntryHTML(e, id){
+    return `
+      <div class="work-entry" data-id="${id}">
+        <div class="field"><label>School / institution</label><input type="text" class="ed-school" value="${escapeHtml(e.school||'')}" placeholder="e.g. University of Michigan"></div>
+        <div class="field"><label>Degree / field of study</label><input type="text" class="ed-degree" value="${escapeHtml(e.degree||'')}" placeholder="e.g. B.S. Computer Science"></div>
+        <div class="field"><label>Year <span style="color:rgba(251,247,240,0.4);">(or range)</span></label><input type="text" class="ed-year" value="${escapeHtml(e.year||'')}" placeholder="e.g. 2018 or 2014 – 2018"></div>
+        <button class="btn-sm danger" type="button" data-remove-edu="${id}">Remove</button>
+      </div>`;
+  }
+  function renderEducationEntries(entries){
+    nextEduId = 1;
+    const list = document.getElementById('educationList'); if(!list) return;
+    list.innerHTML = (entries && entries.length) ? entries.map(e => educationEntryHTML(e, nextEduId++)).join('') : '';
+  }
+  function readEducationForm(){
+    return [...document.querySelectorAll('#educationList .work-entry')].map(card => ({
+      school: card.querySelector('.ed-school').value.trim(),
+      degree: card.querySelector('.ed-degree').value.trim(),
+      year: card.querySelector('.ed-year').value.trim()
+    })).filter(e => e.school || e.degree);
+  }
+  { const b = document.getElementById('addEducationEntry'); if(b) b.onclick = () => {
+      document.getElementById('educationList').insertAdjacentHTML('beforeend', educationEntryHTML({}, nextEduId++));
+  }; }
+  { const list = document.getElementById('educationList'); if(list) list.addEventListener('click', e => {
+      const btn = e.target.closest('[data-remove-edu]'); if(!btn) return; btn.closest('.work-entry').remove();
+  }); }
+
+  // ---- Certifications editor ----
+  let nextCertId = 1;
+  function certEntryHTML(c, id){
+    return `
+      <div class="work-entry" data-id="${id}">
+        <div class="field"><label>Certification / license</label><input type="text" class="cf-name" value="${escapeHtml(c.name||'')}" placeholder="e.g. AWS Solutions Architect"></div>
+        <div class="field"><label>Issuing organization</label><input type="text" class="cf-issuer" value="${escapeHtml(c.issuer||'')}" placeholder="e.g. Amazon Web Services"></div>
+        <div class="field" style="display:flex; gap:12px;">
+          <div style="flex:1;"><label>Year</label><input type="text" class="cf-year" value="${escapeHtml(c.year||'')}" placeholder="e.g. 2024"></div>
+          <div style="flex:2;"><label>Verification link <span style="color:rgba(251,247,240,0.4);">(optional)</span></label><input type="url" class="cf-url" value="${escapeHtml(c.url||'')}" placeholder="https://…"></div>
+        </div>
+        <button class="btn-sm danger" type="button" data-remove-cert="${id}">Remove</button>
+      </div>`;
+  }
+  function renderCertEntries(entries){
+    nextCertId = 1;
+    const list = document.getElementById('certificationsList'); if(!list) return;
+    list.innerHTML = (entries && entries.length) ? entries.map(c => certEntryHTML(c, nextCertId++)).join('') : '';
+  }
+  function readCertForm(){
+    return [...document.querySelectorAll('#certificationsList .work-entry')].map(card => ({
+      name: card.querySelector('.cf-name').value.trim(),
+      issuer: card.querySelector('.cf-issuer').value.trim(),
+      year: card.querySelector('.cf-year').value.trim(),
+      url: normalizePortfolioUrl(card.querySelector('.cf-url').value)
+    })).filter(c => c.name || c.issuer);
+  }
+  { const b = document.getElementById('addCertEntry'); if(b) b.onclick = () => {
+      document.getElementById('certificationsList').insertAdjacentHTML('beforeend', certEntryHTML({}, nextCertId++));
+  }; }
+  { const list = document.getElementById('certificationsList'); if(list) list.addEventListener('click', e => {
+      const btn = e.target.closest('[data-remove-cert]'); if(!btn) return; btn.closest('.work-entry').remove();
+  }); }
+
   function computeTotalYears(entries){
     if(!entries || entries.length === 0) return '';
     const CURRENT_YEAR = 2026;
@@ -4809,10 +4891,14 @@
   let pendingWorkHistory = [];
   let pendingFavoritePrompts = [];
   let pendingPortfolio = [];
+  let pendingEducation = [];
+  let pendingCertifications = [];
 
   document.getElementById('sk3Next').onclick = () => {
     pendingWorkHistory = readWorkHistoryForm();
     pendingPortfolio = readPortfolioForm();
+    pendingEducation = readEducationForm();
+    pendingCertifications = readCertForm();
     showScreen('screen-seeker-prompts');
   };
 
@@ -4892,7 +4978,9 @@
       linkedinUrl: document.getElementById('seekerLinkedInUrl').value.trim() || seekerProfile.linkedinUrl,
       workHistory: pendingWorkHistory,
       favoritePrompts: pendingFavoritePrompts,
-      portfolio: pendingPortfolio
+      portfolio: pendingPortfolio,
+      education: pendingEducation,
+      certifications: pendingCertifications
     };
     showSuccess({
       headline: "You're all set.",
@@ -4907,6 +4995,8 @@
     document.getElementById('importedBanner').style.display = 'none';
     renderWorkHistoryEntries(seekerProfile.workHistory);
     renderPortfolioEntries(seekerProfile.portfolio);
+    renderEducationEntries(seekerProfile.education);
+    renderCertEntries(seekerProfile.certifications);
     selectedSeekerFavorites.clear();
     document.querySelectorAll('#seekerPromptsList .prompt-row').forEach(row => {
       row.classList.remove('favorited');
@@ -4980,6 +5070,13 @@
       { title:'Conference talk — "Reliability as a feature"', url:'https://example.com/priya/talk', description:'30-minute talk on treating reliability as a product requirement, with the runbook and incident-review templates my team uses.' },
       { title:'Open-source: pg-index-advisor', url:'https://github.com/example/pg-index-advisor', description:'A small tool that suggests Postgres indexes from slow-query logs. ~1.2k stars; I maintain it on weekends.' },
     ],
+    education: [
+      { school:'University of Washington', degree:'B.S. Computer Science', year:'2011 – 2015' },
+    ],
+    certifications: [
+      { name:'AWS Certified Solutions Architect – Professional', issuer:'Amazon Web Services', year:'2023', url:'https://example.com/verify/priya-aws' },
+      { name:'Certified Kubernetes Administrator (CKA)', issuer:'The Linux Foundation', year:'2022', url:'' },
+    ],
   };
   // Resolve window.GigCuteAPI whether it's ready now or about to be. Avoids a
   // race on direct page loads where 'gigcute-api-ready' fires before we listen.
@@ -5029,6 +5126,8 @@
         workHistory: (data.work || []).map(w => ({ title:w.title||'', company:w.company||'', start:w.start||'', end:w.end||'', description:w.description||'' })),
         favoritePrompts: (data.prompts || []).map(p => ({ label:p.label, answer:p.answer||'' })),
         portfolio: (data.portfolio || []).map(p => ({ title:p.title||'', url:p.url||'', description:p.description||'' })),
+        education: (data.education || []).map(e => ({ school:e.school||'', degree:e.degree||'', year:e.year||'' })),
+        certifications: (data.certifications || []).map(c => ({ name:c.name||'', issuer:c.issuer||'', year:c.year||'', url:c.url||'' })),
       };
       shareId = data.code || id;        // share/Copy-link uses the short code
       try{ const u = await API.auth.currentUser(); own = !!(u && data.id && u.id === data.id); }catch(e){}
@@ -5146,6 +5245,20 @@
             </div>`).join('')}
         </div>` : ''}
 
+        ${(p.portfolio||[]).length ? `
+        <div class="pv-section">
+          <div class="pv-section-title">Portfolio &amp; projects</div>
+          ${p.portfolio.map(pf=>{ const safe = /^https?:\/\//i.test(pf.url||'') ? pf.url : ''; const host = safe ? (()=>{ try{ return new URL(safe).hostname.replace(/^www\./,''); }catch(e){ return ''; } })() : ''; return `
+            <div class="pv-portfolio-entry">
+              <div class="pv-portfolio-top">
+                <div class="pv-portfolio-title">${escapeHtml(pf.title||'Untitled project')}</div>
+                ${safe ? `<a class="pv-portfolio-link" href="${escapeHtml(safe)}" target="_blank" rel="noopener noreferrer nofollow">View ↗</a>` : ''}
+              </div>
+              ${host ? `<div class="pv-portfolio-host">${escapeHtml(host)}</div>` : ''}
+              ${pf.description ? `<div class="pv-portfolio-desc">${escapeHtml(pf.description)}</div>` : ''}
+            </div>`; }).join('')}
+        </div>` : ''}
+
         ${(p.workHistory||[]).length ? `
         <div class="pv-section">
           <div class="pv-section-title">Work history</div>
@@ -5162,20 +5275,6 @@
             </div>`).join('')}
         </div>` : ''}
 
-        ${(p.portfolio||[]).length ? `
-        <div class="pv-section">
-          <div class="pv-section-title">Portfolio &amp; projects</div>
-          ${p.portfolio.map(pf=>{ const safe = /^https?:\/\//i.test(pf.url||'') ? pf.url : ''; const host = safe ? (()=>{ try{ return new URL(safe).hostname.replace(/^www\./,''); }catch(e){ return ''; } })() : ''; return `
-            <div class="pv-portfolio-entry">
-              <div class="pv-portfolio-top">
-                <div class="pv-portfolio-title">${escapeHtml(pf.title||'Untitled project')}</div>
-                ${safe ? `<a class="pv-portfolio-link" href="${escapeHtml(safe)}" target="_blank" rel="noopener noreferrer nofollow">View ↗</a>` : ''}
-              </div>
-              ${host ? `<div class="pv-portfolio-host">${escapeHtml(host)}</div>` : ''}
-              ${pf.description ? `<div class="pv-portfolio-desc">${escapeHtml(pf.description)}</div>` : ''}
-            </div>`; }).join('')}
-        </div>` : ''}
-
         ${(p.education||[]).length ? `
         <div class="pv-section">
           <div class="pv-section-title">Education</div>
@@ -5184,6 +5283,19 @@
               <div><div class="pv-edu-degree">${escapeHtml(e.degree||'')}</div><div class="pv-edu-school">${escapeHtml(e.school||'')}</div></div>
               <div class="pv-edu-year">${escapeHtml(e.year||'')}</div>
             </div>`).join('')}
+        </div>` : ''}
+
+        ${(p.certifications||[]).length ? `
+        <div class="pv-section">
+          <div class="pv-section-title">Certifications</div>
+          ${p.certifications.map(c=>{ const safe = /^https?:\/\//i.test(c.url||'') ? c.url : ''; const sub = [escapeHtml(c.issuer||''), escapeHtml(c.year||'')].filter(Boolean).join(' · '); return `
+            <div class="pv-cert-entry">
+              <div>
+                <div class="pv-cert-name">${escapeHtml(c.name||'')}</div>
+                ${sub ? `<div class="pv-cert-issuer">${sub}</div>` : ''}
+              </div>
+              ${safe ? `<a class="pv-portfolio-link" href="${escapeHtml(safe)}" target="_blank" rel="noopener noreferrer nofollow">Verify ↗</a>` : ''}
+            </div>`; }).join('')}
         </div>` : ''}
 
         ${(p.skills||[]).length ? `
@@ -5453,6 +5565,9 @@
         const pa = (sp.seeker_prompt_answers || []).filter(p=>p.is_favorite).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
         seekerProfile.favoritePrompts = pa.map(p=>({ label:p.prompt_label, answer:p.answer||'' }));
         seekerProfile.portfolio = Array.isArray(sp.portfolio) ? sp.portfolio.map(p=>({ title:p.title||'', url:p.url||'', description:p.description||'' })) : [];
+        const ed = (sp.education || []).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+        seekerProfile.education = ed.map(e=>({ school:e.school||'', degree:e.degree||'', year:e.year||'' }));
+        seekerProfile.certifications = Array.isArray(sp.certifications) ? sp.certifications.map(c=>({ name:c.name||'', issuer:c.issuer||'', year:c.year||'', url:c.url||'' })) : [];
       }
     }catch(e){ console.warn('[gigcute] could not load profile:', e.message); }
   }
@@ -5577,9 +5692,9 @@
       const email = document.getElementById('sk-email').value.trim();
       const pw = document.getElementById('sk-password').value;
       const payload = {
-        profile: { headline: seekerProfile.title, linkedin_url: seekerProfile.linkedinUrl || '', portfolio: seekerProfile.portfolio || [] },
+        profile: { headline: seekerProfile.title, linkedin_url: seekerProfile.linkedinUrl || '', portfolio: seekerProfile.portfolio || [], certifications: seekerProfile.certifications || [] },
         workHistory: seekerProfile.workHistory || [],
-        education: [],
+        education: seekerProfile.education || [],
         promptAnswers: (seekerProfile.favoritePrompts || []).map(fp => ({ label: fp.label, answer: fp.answer, isFavorite: true })),
       };
 
