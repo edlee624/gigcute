@@ -4936,12 +4936,15 @@
   // The profile page at /profile/<id> — a standalone page (own profile or a
   // shared one). Renders as the whole page, not an overlay over the dashboard.
   async function showProfilePage(id){
+    // Hide the landing/other screens up front so the home page doesn't flash
+    // while the profile (and the API/CDN) loads on a cold page load.
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     let prof, own = false, shareId = id;
     if(id === 'sample'){
       prof = SAMPLE_PROFILE;            // built-in demo, rendered by the real component
     } else {
       const API = await gcAwaitAPI();
-      if(!API || !API.enabled){ showToast('Profile unavailable.'); return; }
+      if(!API || !API.enabled){ showToast('Profile unavailable.'); navigate('/'); return; }
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
       let data = null;
       try{ data = isUuid ? await API.profiles.publicProfile(id) : await API.profiles.publicProfileByCode(id); }catch(e){ console.warn('profile load:', e && e.message); }
