@@ -3454,7 +3454,10 @@
     <h1 class="ob-h1">Let's get your <em>account</em> started.</h1>
     <p class="ob-sub">Just the basics — you'll build your real profile next.</p>
 
-    <div class="field"><label for="sk-name">Full name</label><input type="text" id="sk-name" placeholder="Your full name"></div>
+    <div class="field-row" style="display:flex;gap:12px;">
+      <div class="field" style="flex:1;min-width:0;"><label for="sk-first">First name</label><input type="text" id="sk-first" placeholder="First name" autocomplete="given-name"></div>
+      <div class="field" style="flex:1;min-width:0;"><label for="sk-last">Last name</label><input type="text" id="sk-last" placeholder="Last name" autocomplete="family-name"></div>
+    </div>
     <div class="field"><label for="sk-email">Email</label><input type="email" id="sk-email" placeholder="maya@email.com" autocomplete="email"></div>
     <div class="field password-field">
       <label for="sk-password">Create a password</label>
@@ -4607,7 +4610,12 @@
       banner.style.display = 'flex';
       document.getElementById('importedBannerText').textContent = 'Imported from your resume — review the details below';
       renderWorkHistoryEntries(parsed.workHistory);
-      if(parsed.name){ const n = document.getElementById('sk-name'); if(n && !n.value) n.value = parsed.name; }
+      if(parsed.name){
+        const fEl = document.getElementById('sk-first'), lEl = document.getElementById('sk-last');
+        const np = parsed.name.trim().split(/\s+/);
+        if(fEl && !fEl.value) fEl.value = np[0] || '';
+        if(lEl && !lEl.value) lEl.value = np.slice(1).join(' ');
+      }
       if(parsed.headline){ const r = document.getElementById('sk-role'); if(r && !r.value) r.value = parsed.headline; }
       seedSeekerPrompts({});   // prompts are answered by the user, never fabricated
     } else {
@@ -4691,8 +4699,14 @@
     return `${parts[0][0].toUpperCase()}. ${parts[parts.length-1][0].toUpperCase()}.`;
   }
 
+  // Combine the first/last registration fields into one display name.
+  function gcSeekerName(){
+    const f = (document.getElementById('sk-first') || {}).value || '';
+    const l = (document.getElementById('sk-last') || {}).value || '';
+    return (f.trim() + ' ' + l.trim()).trim();
+  }
   function renderSeekerPreview(){
-    const name = document.getElementById('sk-name').value.trim() || seekerProfile.name;
+    const name = gcSeekerName() || seekerProfile.name;
     const latestTitle = (pendingWorkHistory[0] && pendingWorkHistory[0].title) || document.getElementById('sk-role').value.trim() || seekerProfile.title;
     document.getElementById('previewInitials').textContent = getInitials(name) || 'Your initials';
     document.getElementById('previewTitle').textContent = latestTitle || 'Add a role to your work history';
@@ -4739,7 +4753,7 @@
 
   document.getElementById('finishSeeker').onclick = () => {
     seekerProfile = {
-      name: document.getElementById('sk-name').value.trim() || seekerProfile.name,
+      name: gcSeekerName() || seekerProfile.name,
       title: (pendingWorkHistory[0] && pendingWorkHistory[0].title) || document.getElementById('sk-role').value.trim() || seekerProfile.title,
       photo: currentPhotoUrl,
       linkedinUrl: document.getElementById('seekerLinkedInUrl').value.trim() || seekerProfile.linkedinUrl,
@@ -5188,7 +5202,7 @@
     // ---- Seeker registration → create account on publish ----
     document.getElementById('finishSeeker').onclick = async () => {
       seekerProfile = {
-        name: document.getElementById('sk-name').value.trim() || seekerProfile.name,
+        name: gcSeekerName() || seekerProfile.name,
         title: (pendingWorkHistory[0] && pendingWorkHistory[0].title) || document.getElementById('sk-role').value.trim() || seekerProfile.title,
         photo: currentPhotoUrl,
         linkedinUrl: document.getElementById('seekerLinkedInUrl').value.trim() || seekerProfile.linkedinUrl,
