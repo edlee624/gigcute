@@ -3631,10 +3631,10 @@
   <!-- ===== DESKTOP NAV ===== -->
   <nav class="ds-nav">
     <div class="wordmark"><img src="logo.png" class="brand-img" alt="GigCute"></div>
-    <div class="ds-mode-toggle">
-      <button class="ds-mode-btn active" data-mode="candidate" type="button" id="lookingModeBtn">I'm looking</button>
-      <button class="ds-mode-btn hiring" data-mode="recruiter" type="button" id="hiringModeBtn" style="display:none;">I'm hiring</button>
-    </div>
+    <button class="ds-nav-btn" id="navSearchBtn" type="button" style="display:inline-flex;align-items:center;gap:7px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+      GigCute Search
+    </button>
     <div class="ds-nav-right">
       <button class="ds-nav-btn" id="navPostingsBtn" type="button" style="display:none;">My Postings</button>
       <button class="ds-nav-btn primary" id="navNewPostingBtn" type="button" style="display:none;">+ New posting</button>
@@ -3910,10 +3910,6 @@
     <div class="pv-toolbar">
       <div class="pv-toolbar-left">
         <button class="pv-close-btn" id="pvCloseBtn">← Back</button>
-        <button id="pvSearchBtn" type="button" style="display:inline-flex;align-items:center;gap:7px;background:var(--ink-soft);border:1px solid var(--line-light);color:rgba(251,247,240,0.75);border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;padding:8px 14px;cursor:pointer;white-space:nowrap;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
-          GigCute Search
-        </button>
       </div>
       <button id="pvEditBtn" style="display:inline-flex;align-items:center;gap:7px;background:var(--coral);color:var(--paper);border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:700;padding:9px 16px;cursor:pointer;margin-right:auto;margin-left:8px;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -4961,7 +4957,7 @@
     const cb = document.getElementById('pvCloseBtn'); if(cb) cb.style.display = own ? 'none' : '';  // own profile is home — no "back"
     // The sample is a preview only: no search / copy-link / print actions.
     const isSample = id === 'sample';
-    ['pvSearchBtn','pvShareBtn','pvPrintBtn'].forEach(bid => { const b = document.getElementById(bid); if(b) b.style.display = isSample ? 'none' : ''; });
+    ['pvShareBtn','pvPrintBtn'].forEach(bid => { const b = document.getElementById(bid); if(b) b.style.display = isSample ? 'none' : ''; });
     __shownProfileId = shareId;
     ov.classList.add('open');
     window.scrollTo(0,0);
@@ -4975,7 +4971,7 @@
   }
   document.getElementById('pvCloseBtn').onclick = closeProfileView;
   { const b = document.getElementById('pvEditBtn'); if(b) b.onclick = () => { openProfileEdit(); }; }
-  { const b = document.getElementById('pvSearchBtn'); if(b) b.onclick = () => { navigate('/search'); }; }
+  { const b = document.getElementById('navSearchBtn'); if(b) b.onclick = () => { navigate('/search'); }; }
   { const b = document.getElementById('searchCsBack'); if(b) b.onclick = () => { if(typeof openProfileView==='function') openProfileView(); else navigate('/'); }; }
   document.getElementById('pvPrintBtn').onclick = () => window.print();
   document.getElementById('pvShareBtn').onclick = () => {
