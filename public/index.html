@@ -4010,7 +4010,7 @@
   document.getElementById('loginSeeker').onclick = () => showScreen('screen-login-seeker');
   { const a=document.getElementById('goRecruit'); if(a) a.onclick = () => showScreen('screen-recruit'); }
   { const a=document.getElementById('recruitBack'); if(a) a.onclick = () => showScreen('screen-landing'); }
-  { const a=document.getElementById('seeSampleBtn'); if(a) a.onclick = () => { window.location.href = '/p/priya-raman'; }; }
+  { const a=document.getElementById('seeSampleBtn'); if(a) a.onclick = () => { navigate('/profile/sample'); }; }
 
   // ---- Password show/hide toggles ----
   document.querySelectorAll('.pw-toggle').forEach(btn => {
@@ -4814,6 +4814,28 @@
 
   // ===== PROFILE VIEW =====
   let __shownProfileId = null;   // id of the profile currently displayed
+  // Built-in sample profile (shown at /profile/sample) — rendered by the real
+  // profile component so it looks exactly like a live profile.
+  const SAMPLE_PROFILE = {
+    name: 'Priya Raman',
+    title: 'Staff Software Engineer · Distributed Systems & Platform',
+    photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=320&q=80',
+    resumeUrl: '', linkedinUrl: '',
+    favoritePrompts: [
+      { label:'My superpower at work', answer:"Taking a vague, scary problem — \"our pipeline keeps falling over and nobody knows why\" — and turning it into a sequenced plan a whole team can execute. I find the one bottleneck quietly causing eight downstream symptoms." },
+      { label:"I'm proudest of", answer:"Leading the re-architecture of our event pipeline from a monolith to event-driven services. The win wasn't elegant code — it was pulling it off with zero customer-facing downtime over six months while the business kept shipping on top of it." },
+      { label:"The hardest thing I've shipped", answer:"A multi-region failover for our payments service. The happy path was easy; the hard part was the dozen ways partial failures cascade. I spent more time on chaos tests and runbooks than on the feature — which is exactly why it held when we actually lost a region." },
+      { label:'A mistake that taught me the most', answer:"Early on I rewrote a \"messy\" legacy service over a weekend, sure I understood it. I'd missed three edge cases the mess was quietly handling. Rough Monday. Now I treat old code as load-bearing until I can prove otherwise." },
+      { label:'Looking for a team that', answer:"Treats reliability as a feature, not a chore — where \"it works on the happy path\" isn't done. I do my best work with people who care about the boring 20% that keeps systems alive at 3am." },
+    ],
+    workHistory: [
+      { title:'Staff Software Engineer', company:'Lattice Cloud', start:'2022', end:'Present', description:'Lead the platform team owning a multi-region data pipeline (40+ services, ~2B events/day).\nDrove the monolith → event-driven migration with zero customer-facing downtime, cutting p99 latency 45%.\nMentor 5 engineers and run the weekly architecture-review forum.' },
+      { title:'Senior Software Engineer', company:'Northwind Systems', start:'2019', end:'2022', description:'Built the real-time notifications platform serving 12M users.\nOwned on-call for payments; cut incident MTTR from ~50 min to 12 min.' },
+      { title:'Software Engineer II', company:'Brightloom', start:'2017', end:'2019', description:'Shipped the core public API used by 200+ integration partners.\nStood up the team’s first end-to-end test suite, reducing regressions ~60%.' },
+      { title:'Software Engineer', company:'Cobalt Labs', start:'2015', end:'2017', description:'First engineering hire after the founders; built the MVP backend in Python/Postgres.\nWore every hat — infra, on-call, even customer support.' },
+    ],
+    skills: ['Go','Python','PostgreSQL','Kafka','Kubernetes','AWS','Distributed systems','Observability','Mentoring'],
+  };
   // Resolve window.GigCuteAPI whether it's ready now or about to be. Avoids a
   // race on direct page loads where 'gigcute-api-ready' fires before we listen.
   function gcAwaitAPI(){
@@ -4836,18 +4858,23 @@
   // The profile page at /profile/<id> — a standalone page (own profile or a
   // shared one). Renders as the whole page, not an overlay over the dashboard.
   async function showProfilePage(id){
-    const API = await gcAwaitAPI();
-    if(!API || !API.enabled){ showToast('Profile unavailable.'); return; }
-    let data = null;
-    try{ data = await API.profiles.publicProfile(id); }catch(e){ console.warn('profile load:', e && e.message); }
-    if(!data){ showToast('That profile isn’t available.'); navigate('/'); return; }
-    const prof = {
-      name: data.name || '', title: data.headline || '', photo: data.photo_url || null,
-      resumeUrl: data.resume_url || '', linkedinUrl: data.linkedin_url || '',
-      workHistory: (data.work || []).map(w => ({ title:w.title||'', company:w.company||'', start:w.start||'', end:w.end||'', description:w.description||'' })),
-      favoritePrompts: (data.prompts || []).map(p => ({ label:p.label, answer:p.answer||'' })),
-    };
-    let own = false; try{ const u = await API.auth.currentUser(); own = !!(u && u.id === id); }catch(e){}
+    let prof, own = false;
+    if(id === 'sample'){
+      prof = SAMPLE_PROFILE;            // built-in demo, rendered by the real component
+    } else {
+      const API = await gcAwaitAPI();
+      if(!API || !API.enabled){ showToast('Profile unavailable.'); return; }
+      let data = null;
+      try{ data = await API.profiles.publicProfile(id); }catch(e){ console.warn('profile load:', e && e.message); }
+      if(!data){ showToast('That profile isn’t available.'); navigate('/'); return; }
+      prof = {
+        name: data.name || '', title: data.headline || '', photo: data.photo_url || null,
+        resumeUrl: data.resume_url || '', linkedinUrl: data.linkedin_url || '',
+        workHistory: (data.work || []).map(w => ({ title:w.title||'', company:w.company||'', start:w.start||'', end:w.end||'', description:w.description||'' })),
+        favoritePrompts: (data.prompts || []).map(p => ({ label:p.label, answer:p.answer||'' })),
+      };
+      try{ const u = await API.auth.currentUser(); own = !!(u && u.id === id); }catch(e){}
+    }
     const ov = document.getElementById('profileViewOverlay');
     const cm = document.getElementById('candMain');
     const dash = document.getElementById('dashView');
