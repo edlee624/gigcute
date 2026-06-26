@@ -4170,14 +4170,21 @@
     const ov = document.getElementById('profileViewOverlay');
     if(ov && ov.parentNode !== document.body){ ov.classList.remove('open','as-main'); document.body.appendChild(ov); }
   }
-  async function renderDashboard(){
+  // Pass `preloaded` (a {name,title,photo,resumeUrl,linkedinUrl,workHistory,
+  // favoritePrompts} object, e.g. the one showProfilePage already fetched) to
+  // hydrate the sidebar directly without a second round-trip.
+  async function renderDashboard(preloaded){
     const API = window.GigCuteAPI;
     const setText = (id,v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
     let user = null, me = null;
-    try{ user = await (API && API.enabled && API.auth.currentUser()); }catch(e){}
-    if(user){ try{ await gcLoadSeekerProfile(API); }catch(e){} try{ me = await API.profiles.me(); }catch(e){} }
-    const p = user ? (seekerProfile || {}) : {};   // ignore demo defaults when logged out
-    const fullName = (me && me.full_name) || p.name || '';
+    if(preloaded){
+      user = { id: '_' };   // treat as logged-in for sidebar purposes
+    } else {
+      try{ user = await (API && API.enabled && API.auth.currentUser()); }catch(e){}
+      if(user){ try{ await gcLoadSeekerProfile(API); }catch(e){} try{ me = await API.profiles.me(); }catch(e){} }
+    }
+    const p = preloaded || (user ? (seekerProfile || {}) : {});   // ignore demo defaults when logged out
+    const fullName = preloaded ? (preloaded.name || '') : ((me && me.full_name) || p.name || '');
     const parts = fullName.trim().split(/\s+/).filter(Boolean);
     const first = parts[0] || '';
     const lastInit = parts[1] ? parts[1].charAt(0) + '.' : '';
@@ -4843,7 +4850,7 @@
       if(dash) dash.style.display = 'none';       // hide the search dashboard
       if(cm){ cm.style.padding = '0'; if(ov.parentNode !== cm) cm.appendChild(ov); }
       ov.classList.add('as-main');
-      if(typeof renderDashboard === 'function') renderDashboard();   // hydrate the sidebar
+      if(typeof renderDashboard === 'function') renderDashboard(prof);   // hydrate sidebar from this profile
     } else {
       // Shared / public profile = a clean full page, no sidebar or dashboard.
       if(ov.parentNode !== document.body) document.body.appendChild(ov);
