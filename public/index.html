@@ -5424,21 +5424,34 @@
     try{ track('cheatsheet_opened', { sample: !name }); }catch(e){}
   }
   function closeCheatSheet(){ document.getElementById('cheatModal').classList.remove('show'); }
-  function printCheatSheet(){ document.body.classList.add('print-cheat'); window.print(); setTimeout(() => document.body.classList.remove('print-cheat'), 500); }
-  // Profile print: hoist the overlay to <body> so the print-profile rules can hide
-  // the app shell entirely (no blank pages), then restore it to where it lived.
-  function printProfile(){
+  // Printing is prepped via the browser's beforeprint event so it works no matter
+  // how the user prints (toolbar button, Ctrl+P, or the browser menu). We detect
+  // what's on screen and either: (a) cheat sheet open -> print-cheat, or (b) a
+  // profile open -> hoist the overlay out of the app shell to <body> and add
+  // print-profile so every other body child is display:none (no blank pages).
+  let __gcPrintRestore = null;
+  function __gcPrintPrep(){
+    if(__gcPrintRestore) return;   // already prepped (e.g. button + beforeprint both fire)
+    const cheat = document.getElementById('cheatModal');
     const ov = document.getElementById('profileViewOverlay');
-    if(!ov){ window.print(); return; }
-    const parent = ov.parentNode, next = ov.nextSibling;
-    document.body.appendChild(ov);
-    document.body.classList.add('print-profile');
-    window.print();
-    setTimeout(() => {
-      document.body.classList.remove('print-profile');
-      if(parent) parent.insertBefore(ov, next);
-    }, 500);
+    if(cheat && cheat.classList.contains('show')){
+      document.body.classList.add('print-cheat');
+      __gcPrintRestore = () => document.body.classList.remove('print-cheat');
+    } else if(ov && ov.classList.contains('open')){
+      const parent = ov.parentNode, next = ov.nextSibling;
+      document.body.appendChild(ov);
+      document.body.classList.add('print-profile');
+      __gcPrintRestore = () => { document.body.classList.remove('print-profile'); if(parent) parent.insertBefore(ov, next); };
+    }
   }
+  function __gcPrintCleanup(){ if(__gcPrintRestore){ const r = __gcPrintRestore; __gcPrintRestore = null; r(); } }
+  window.addEventListener('beforeprint', __gcPrintPrep);
+  window.addEventListener('afterprint', __gcPrintCleanup);
+  // Button handlers: prep explicitly (covers browsers that don't fire beforeprint,
+  // e.g. older Safari), print, then a timeout cleanup as a safety net if afterprint
+  // never fires. Cleanup is idempotent, so afterprint + timeout can't double-restore.
+  function printCheatSheet(){ __gcPrintPrep(); window.print(); setTimeout(__gcPrintCleanup, 800); }
+  function printProfile(){ __gcPrintPrep(); window.print(); setTimeout(__gcPrintCleanup, 800); }
   window.printProfile = printProfile;
   function openSampleCheatSheet(){ openCheatSheet('', SAMPLE_CHEATSHEET); }
   window.openCheatSheet = openCheatSheet; window.closeCheatSheet = closeCheatSheet; window.openSampleCheatSheet = openSampleCheatSheet;
