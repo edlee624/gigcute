@@ -5160,6 +5160,35 @@
     }
     if(controls) controls.style.display = 'flex';
     c.innerHTML = renderAdminHTML(data);
+    wireAdminUsers(API);
+  }
+  let __adminUserTimer = null;
+  function wireAdminUsers(API){
+    const input = document.getElementById('adminUserSearch');
+    if(!input) return;
+    input.addEventListener('input', () => { clearTimeout(__adminUserTimer); __adminUserTimer = setTimeout(() => loadAdminUsers(API, input.value), 280); });
+    loadAdminUsers(API, '');
+  }
+  async function loadAdminUsers(API, search){
+    const list = document.getElementById('adminUsersList'); if(!list) return;
+    list.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:8px 0;">Searching…</div>';
+    let res = null;
+    try{ res = await API.profiles.users(search); }catch(e){ list.innerHTML = '<div style="color:var(--coral);">Could not load users.</div>'; return; }
+    if(!res){ list.innerHTML = '<div style="color:rgba(251,247,240,0.4);">Not authorized.</div>'; return; }
+    const users = res.users || [];
+    const cnt = document.getElementById('adminUsersCount'); if(cnt) cnt.textContent = '· ' + (search ? (users.length + ' match' + (users.length===1?'':'es')) : (res.total + ' total'));
+    if(!users.length){ list.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:8px 0;">No users found.</div>'; return; }
+    const td = (v, extra) => `<td style="padding:8px 10px;font-size:12.5px;${extra||''}">${escapeHtml(v==null||v===''?'—':String(v))}</td>`;
+    const rows = users.map(u => {
+      let joined = u.created_at; try{ joined = new Date(u.created_at).toLocaleDateString(); }catch(e){}
+      const codeCell = u.code
+        ? `<td style="padding:8px 10px;font-size:12.5px;"><a href="/profile/${encodeURIComponent(u.code)}" target="_blank" rel="noopener" style="color:var(--coral);font-family:'JetBrains Mono',monospace;text-decoration:none;">${escapeHtml(u.code)} ↗</a></td>`
+        : td('—');
+      const status = (u.confirmed ? '' : 'unconfirmed') + (u.visible === false ? (u.confirmed?'hidden':' · hidden') : '');
+      return `<tr>${td(u.name,'color:var(--paper);font-weight:600;')}${td(u.email,"color:rgba(251,247,240,0.7);")}${codeCell}${td(u.role,'color:rgba(251,247,240,0.6);')}${td(joined,'color:rgba(251,247,240,0.55);white-space:nowrap;')}${td(status||'active','color:rgba(251,247,240,0.5);')}</tr>`;
+    }).join('');
+    const head = ['Name','Email','Profile','Role','Joined','Status'].map(h=>`<th style="text-align:left;padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(251,247,240,0.4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${h}</th>`).join('');
+    list.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
   }
   function renderAdminLogin(c, API){
     c.innerHTML = `
@@ -5202,7 +5231,10 @@
     const recentTable = `<table style="width:100%;border-collapse:collapse;"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
     const maxRef = Math.max(1, ...(d.top_referrers||[]).map(r=>r.count));
     const topRefs = (d.top_referrers||[]).map(r=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;"><div style="flex:0 0 170px;font-size:13px;color:rgba(251,247,240,0.8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(r.ref)}</div><div style="flex:1;background:var(--ink);border-radius:5px;overflow:hidden;"><div style="height:16px;width:${Math.round(r.count/maxRef*100)}%;background:var(--sage);min-width:2px;"></div></div><div style="flex:0 0 46px;text-align:right;font-size:12.5px;color:rgba(251,247,240,0.6);">${r.count}</div></div>`).join('') || '<div style="color:rgba(251,247,240,0.4);">No referrer data yet.</div>';
+    const usersPanel = panel('Users <span id="adminUsersCount" style="color:rgba(251,247,240,0.4);text-transform:none;letter-spacing:0;"></span>',
+      `<input id="adminUserSearch" placeholder="Search by name, email, or profile code…" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:13.5px;padding:10px 14px;margin-bottom:14px;"><div id="adminUsersList" style="color:rgba(251,247,240,0.5);">Loading…</div>`);
     return cards
+      + usersPanel
       + (byDay ? panel('Activity', `<div style="display:flex;align-items:flex-end;gap:3px;height:120px;">${byDay}</div>`) : '')
       + panel('Top referrers', topRefs)
       + panel('Top screens', topScreens)

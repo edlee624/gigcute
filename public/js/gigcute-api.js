@@ -690,6 +690,12 @@ const events = {
     if (error) throw error;
     return data;
   },
+  // Admin: list/search registered users. { total, users:[...] } or null for non-admins.
+  async users(search) {
+    const { data, error } = await requireClient().rpc('admin_users', { p_search: search || null });
+    if (error) throw error;
+    return data;
+  },
 };
 
 const reports = {
