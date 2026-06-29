@@ -3263,11 +3263,14 @@
   .cheat-doc .cs-empty{ font-size:14px; color:#666; line-height:1.6; }
   @media (max-width:600px){ .cheat-doc{ padding:30px 22px; } }
 
-  /* Cheat-sheet print: override the profile print rules above so ONLY the sheet prints. */
+  /* Cheat-sheet print: override the profile print rules above so ONLY the sheet
+     prints. Everything except the modal is display:none (NOT visibility:hidden) so
+     it occupies zero layout height — otherwise the hidden app shell / profile below
+     spills out as empty trailing pages. The modal flows from the top of the page. */
   @media print {
+    body.print-cheat > *:not(#cheatModal){ display:none !important; }
     body.print-cheat #cheatModal, body.print-cheat #cheatModal *{ visibility:visible !important; }
-    body.print-cheat #profileViewOverlay, body.print-cheat #profileViewOverlay *{ visibility:hidden !important; }
-    body.print-cheat #cheatModal{ position:absolute !important; inset:0 !important; display:block !important; background:#fff !important; backdrop-filter:none !important; overflow:visible !important; }
+    body.print-cheat #cheatModal{ position:static !important; display:block !important; height:auto !important; min-height:0 !important; background:#fff !important; backdrop-filter:none !important; overflow:visible !important; }
     body.print-cheat .cheat-shell{ max-width:100% !important; margin:0 !important; padding:0 !important; }
     body.print-cheat .cheat-toolbar{ display:none !important; }
     body.print-cheat .cheat-doc{ box-shadow:none !important; border-radius:0 !important; padding:0 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
