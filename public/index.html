@@ -3158,6 +3158,16 @@
   .tour-next{ background:var(--coral); border:none; color:var(--paper); }
   .tour-next:hover{ background:var(--coral-dim); }
 
+  /* QR code modal */
+  #qrModal{ display:none; position:fixed; inset:0; z-index:900; background:rgba(10,10,12,0.78); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:20px; }
+  #qrModal.open{ display:flex; }
+  .qr-card{ position:relative; width:100%; max-width:340px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:18px; padding:28px 26px 24px; text-align:center; box-shadow:0 40px 80px -20px rgba(0,0,0,0.8); }
+  .qr-title{ font-family:'Fraunces',serif; font-size:20px; color:var(--paper); margin-bottom:4px; }
+  .qr-sub{ font-size:13px; color:rgba(251,247,240,0.55); margin-bottom:18px; line-height:1.45; }
+  .qr-url{ font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--sage-soft); margin:14px 0 18px; word-break:break-all; }
+  .qr-download{ background:var(--coral); color:var(--paper); border:none; border-radius:10px; font-family:'Inter',sans-serif; font-size:14px; font-weight:700; padding:11px 22px; cursor:pointer; }
+  .qr-download:hover{ background:var(--coral-dim); }
+
   /* print mode — show only the profile card, wherever it currently lives in
      the DOM (own profile lives inside #candMain, shared lives in <body>). */
   @media print {
@@ -4033,6 +4043,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
         Copy link
       </button>
+      <button class="pv-share-btn" id="pvQrBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v.01M14 21h.01M17 21h.01M21 17v4"/></svg>
+        QR code
+      </button>
       <button class="pv-print-btn" id="pvPrintBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         Print / Save PDF
@@ -4075,6 +4089,18 @@
     </div>
   </div>
 </div>
+
+<!-- Profile QR code modal -->
+<div id="qrModal">
+  <div class="qr-card">
+    <button class="legal-close" id="qrClose" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    <div class="qr-title">Profile QR code</div>
+    <div class="qr-sub">Scan to open this profile. Great for résumés, business cards, and slides.</div>
+    <div id="qrImageWrap" style="background:#fff;border-radius:14px;padding:14px;display:flex;align-items:center;justify-content:center;margin:0 auto;width:max-content;"></div>
+    <div id="qrUrl" class="qr-url"></div>
+    <button class="qr-download" id="qrDownload" type="button">Download PNG</button>
+  </div>
+</div>
 <!-- ============ LEGAL MODALS ============ -->
 <div class="legal-overlay" id="legalOverlay">
   <div class="legal-modal">
@@ -4102,6 +4128,7 @@
      and GigCuteAPI.enabled is false. The api layer is loaded as a module. -->
 <script src="/config.js" onerror="window.__gigcuteNoConfig=true"></script>
 <script src="/js/vendor/supabase.umd.js"></script>
+<script src="/js/vendor/qrcode.min.js"></script>
 <script type="module" src="/js/gigcute-api.js"></script>
 
 <script>
@@ -5397,7 +5424,7 @@
     if(own){ try{ if(!localStorage.getItem('gc_tour_seen') && typeof openTour === 'function') setTimeout(openTour, 600); }catch(e){} }
     // The sample is a preview only: no search / copy-link / print actions.
     const isSample = id === 'sample';
-    ['pvShareBtn','pvPrintBtn'].forEach(bid => { const b = document.getElementById(bid); if(b) b.style.display = isSample ? 'none' : ''; });
+    ['pvShareBtn','pvPrintBtn','pvQrBtn'].forEach(bid => { const b = document.getElementById(bid); if(b) b.style.display = isSample ? 'none' : ''; });
     __shownProfileId = shareId;
     ov.classList.add('open');
     window.scrollTo(0,0);
@@ -5414,6 +5441,36 @@
   { const b = document.getElementById('navSearchBtn'); if(b) b.onclick = () => { navigate('/search'); }; }
   { const b = document.getElementById('searchCsBack'); if(b) b.onclick = () => { if(typeof openProfileView==='function') openProfileView(); else navigate('/'); }; }
   document.getElementById('pvPrintBtn').onclick = () => window.print();
+
+  // ----- Profile QR code (links to the shareable profile URL) -----
+  function gcBuildQrCanvas(url){
+    if(typeof qrcode !== 'function') return null;
+    const qr = qrcode(0, 'M'); qr.addData(url); qr.make();
+    const n = qr.getModuleCount(), quiet = 4, cell = 8, size = (n + quiet*2) * cell;
+    const cv = document.createElement('canvas'); cv.width = size; cv.height = size;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,size,size);
+    ctx.fillStyle = '#15171c';
+    for(let r=0;r<n;r++) for(let c=0;c<n;c++){ if(qr.isDark(r,c)) ctx.fillRect((c+quiet)*cell,(r+quiet)*cell,cell,cell); }
+    return cv;
+  }
+  function openQr(){
+    const url = __shownProfileId ? (location.origin + '/profile/' + __shownProfileId) : window.location.href;
+    const wrap = document.getElementById('qrImageWrap'); const cv = gcBuildQrCanvas(url);
+    if(!cv){ showToast('Could not generate the QR code.'); return; }
+    cv.style.width = '220px'; cv.style.height = '220px'; cv.style.imageRendering = 'pixelated';
+    wrap.innerHTML = ''; wrap.appendChild(cv);
+    document.getElementById('qrUrl').textContent = url;
+    document.getElementById('qrModal').classList.add('open');
+    document.getElementById('qrDownload').onclick = () => {
+      const a = document.createElement('a'); a.href = cv.toDataURL('image/png');
+      a.download = 'gigcute-profile-qr.png'; document.body.appendChild(a); a.click(); a.remove();
+    };
+  }
+  { const b = document.getElementById('pvQrBtn'); if(b) b.onclick = openQr; }
+  { const b = document.getElementById('qrClose'); if(b) b.onclick = () => document.getElementById('qrModal').classList.remove('open'); }
+  { const m = document.getElementById('qrModal'); if(m) m.addEventListener('click', e => { if(e.target === m) m.classList.remove('open'); }); }
+
   { const b = document.getElementById('pvLogoutBtn'); if(b) b.onclick = async () => {
       try{ const API = window.GigCuteAPI; if(API && API.auth) await API.auth.signOut(); }catch(e){}
       window.location.href = '/';                 // hard reload to the landing as a fresh session
