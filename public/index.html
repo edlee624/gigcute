@@ -199,6 +199,7 @@
   .lm-value-card.sage .lm-vc-icon svg{ color:#9fc2ad; }
   .lm-value-card h3{ font-family:'Fraunces',serif; font-size:19px; margin:0 0 8px; color:var(--paper); }
   .lm-value-card p{ font-size:14px; color:rgba(251,247,240,0.55); line-height:1.55; margin:0; }
+  .lm-value-card .lm-vc-num{ width:42px; height:42px; border-radius:50%; background:rgba(255,90,60,0.12); border:1px solid rgba(255,90,60,0.3); display:flex; align-items:center; justify-content:center; margin-bottom:16px; font-family:'Fraunces',serif; font-size:21px; font-weight:600; color:var(--coral); }
   .lm-shots{ display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:center; margin-top:8px; }
   .lm-shots.reverse .lm-shot-text{ order:2; }
   .lm-shot-text h3{ font-family:'Fraunces',serif; font-size:24px; margin:0 0 12px; color:var(--paper); line-height:1.2; }
@@ -3426,7 +3427,7 @@
     <div class="lm-wide">
       <div class="lm-eyebrow">For job seekers</div>
       <h2 class="lm-h2">You're more than a <em>resume</em>. We built a profile that proves it.</h2>
-      <p class="lm-sub">Resumes flatten you into bullet points and buzzwords. GigCute lets you answer prompts that show who you are and how you think — so that you can stand out to recruiters.</p>
+      <p class="lm-sub">There are a lot of talented people with similar skills applying to the same job. Unfortunately, a résumé flattens you into bullet points and keywords, and it's hard to stand above the crowd.<br><br>A GigCute profile shows how you actually think: answer prompts in your own words, and highlight your projects, ambitions, and personality — letting you show how special and different you are from the rest!</p>
       <div class="lm-video" style="max-width:760px; margin:30px auto 4px;">
         <div style="position:relative; padding-bottom:56.25%; height:0; border-radius:16px; overflow:hidden; border:1px solid var(--line-light); box-shadow:0 16px 50px rgba(0,0,0,0.4);">
           <iframe src="https://www.youtube-nocookie.com/embed/Op3y84UfXzI" title="GigCute — see how it works" loading="lazy" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position:absolute; top:0; left:0; width:100%; height:100%;"></iframe>
@@ -3463,6 +3464,36 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ HOW IT WORKS ============ -->
+  <div class="lm-section" style="width:100%; border-top:1px solid var(--line-light);">
+    <div class="lm-wide">
+      <div class="lm-eyebrow">How it works</div>
+      <h2 class="lm-h2">Build it once. Share it <em>everywhere</em>.</h2>
+      <p class="lm-sub">Your GigCute profile is one link — and a QR code — that you can put anywhere a résumé or LinkedIn goes.</p>
+      <div class="lm-value-grid">
+        <div class="lm-value-card">
+          <div class="lm-vc-num">1</div>
+          <h3>Build your profile</h3>
+          <p>Answer prompts in your own voice — they mirror the questions you'd get in a phone screen or behavioral interview — then add your work, projects, education, certifications, and résumé.</p>
+        </div>
+        <div class="lm-value-card">
+          <div class="lm-vc-num">2</div>
+          <h3>Get your link &amp; QR</h3>
+          <p>Every profile gets a short, shareable link (like gigcute.com/profile/you) and a downloadable QR code — ready to drop anywhere.</p>
+        </div>
+        <div class="lm-value-card">
+          <div class="lm-vc-num">3</div>
+          <h3>Share it everywhere</h3>
+          <p>Add the link to your résumé header, LinkedIn, and job applications. Use the QR on a business card or name tag at career fairs, or as a "scan me" slide in interviews.</p>
+        </div>
+      </div>
+      <div class="lm-cta-row" style="margin-top:36px; justify-content:center; display:flex; gap:12px; flex-wrap:wrap;">
+        <button class="lm-cta-btn" type="button" onclick="showScreen('screen-seeker-1')">Create your profile</button>
+        <button type="button" onclick="GigCuteNavigate('/profile/sample')" style="background:var(--ink-soft); border:1px solid var(--line-light); color:var(--paper); border-radius:12px; font-family:'Inter',sans-serif; font-size:15px; font-weight:700; padding:15px 30px; cursor:pointer;">See a sample profile</button>
       </div>
     </div>
   </div>
