@@ -678,9 +678,18 @@ const events = {
     return data || [];
   },
   // Admin: aggregated analytics (security-definer RPC; returns null for non-admins).
-  // days = null for all-time, or 7/30/90 for a window.
-  async analytics(days = null) {
-    const { data, error } = await requireClient().rpc('admin_analytics', { p_days: days });
+  // Accepts a number of days (null/7/30/90 for a preset window) OR an options
+  // object { days, from, to } where from/to are 'YYYY-MM-DD' strings for an
+  // explicit calendar range (range takes precedence over days, inclusive of `to`).
+  async analytics(opts = null) {
+    let p_days = null, p_from = null, p_to = null;
+    if (typeof opts === 'number') p_days = opts;
+    else if (opts && typeof opts === 'object') { p_days = opts.days != null ? opts.days : null; p_from = opts.from || null; p_to = opts.to || null; }
+    // Only send the range args when a range is set, so the default preset view
+    // still resolves against the older admin_analytics(int) before migration 0023
+    // is applied. (After 0023 the 3-arg version covers both shapes via defaults.)
+    const params = (p_from || p_to) ? { p_days, p_from, p_to } : { p_days };
+    const { data, error } = await requireClient().rpc('admin_analytics', params);
     if (error) throw error;
     return data; // jsonb object, or null if not an admin
   },

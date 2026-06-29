@@ -4148,6 +4148,9 @@
           <option value="30" selected>Last 30 days</option>
           <option value="90">Last 90 days</option>
         </select>
+        <input type="date" id="adminFrom" title="From date" class="ds-nav-btn" style="cursor:pointer; color-scheme:dark;">
+        <span style="color:rgba(251,247,240,0.4); font-size:13px;">→</span>
+        <input type="date" id="adminTo" title="To date" class="ds-nav-btn" style="cursor:pointer; color-scheme:dark;">
         <button class="ds-nav-btn" id="adminRefresh" type="button">Refresh</button>
         <button class="ds-nav-btn" id="adminReset" type="button" style="border-color:rgba(255,90,60,0.4); color:var(--coral);">Reset</button>
       </div>
@@ -5469,9 +5472,15 @@
     let user = null; try{ user = await (API && API.enabled && API.auth.currentUser()); }catch(e){}
     if(!user){ if(controls) controls.style.display = 'none'; renderAdminLogin(c, API); return; }
     const rangeEl = document.getElementById('adminRange');
+    const fromEl = document.getElementById('adminFrom');
+    const toEl = document.getElementById('adminTo');
+    const from = fromEl && fromEl.value ? fromEl.value : null;
+    const to = toEl && toEl.value ? toEl.value : null;
     const days = rangeEl && rangeEl.value ? parseInt(rangeEl.value, 10) : null;
+    // An explicit From/To range takes precedence over the preset dropdown.
+    const opts = (from || to) ? { from, to } : { days };
     let data = null;
-    try{ data = await API.events.analytics(days); }catch(e){ console.warn('admin analytics:', e && e.message); }
+    try{ data = await API.events.analytics(opts); }catch(e){ console.warn('admin analytics:', e && e.message); }
     if(!data){
       if(controls) controls.style.display = 'none';
       c.innerHTML = '<div style="background:var(--ink-soft); border:1px solid var(--line-light); border-radius:14px; padding:28px; text-align:center; color:rgba(251,247,240,0.65);">This account isn’t a GigCute admin.<div style="margin-top:14px; display:flex; gap:10px; justify-content:center;"><button class="ds-nav-btn" id="adminSignOut">Sign out</button><button class="ds-nav-btn" onclick="GigCuteNavigate(\'/\')">Go home</button></div></div>';
@@ -5563,7 +5572,14 @@
       + panel('Recent activity', `<div style="overflow-x:auto;">${recentTable}</div>`);
   }
   { const b=document.getElementById('adminRefresh'); if(b) b.onclick = showAdmin; }
-  { const s=document.getElementById('adminRange'); if(s) s.onchange = showAdmin; }
+  // Preset dropdown clears any explicit date range so the preset takes effect.
+  { const s=document.getElementById('adminRange'); if(s) s.onchange = () => {
+      const f=document.getElementById('adminFrom'), t=document.getElementById('adminTo');
+      if(f) f.value=''; if(t) t.value=''; showAdmin();
+  }; }
+  // A From/To date change overrides the preset (handled in showAdmin).
+  { const f=document.getElementById('adminFrom'); if(f) f.onchange = showAdmin; }
+  { const t=document.getElementById('adminTo'); if(t) t.onchange = showAdmin; }
   { const b=document.getElementById('adminReset'); if(b) b.onclick = () => {
       showConfirm('Reset analytics?', 'This permanently deletes all recorded events (visits, profile views, etc.). This cannot be undone.', 'Your profiles and accounts are not affected — only the analytics log.', 'Delete all events', 'danger', async () => {
         try{ const n = await window.GigCuteAPI.events.resetAll(); showToast(n >= 0 ? (n + ' events cleared.') : 'Not authorized.'); }catch(e){ showToast('Could not reset.'); }
