@@ -637,7 +637,16 @@ const support = {
 let _meta = null;
 function sessionMeta() {
   if (_meta) return _meta;
-  _meta = { ua: navigator.userAgent, ref: document.referrer || '' };
+  // Persistent visitor id (counts a device once across visits) for unique visitors.
+  let vid = '';
+  try {
+    vid = localStorage.getItem('gc_vid') || '';
+    if (!vid) {
+      vid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2));
+      localStorage.setItem('gc_vid', vid);
+    }
+  } catch (e) {}
+  _meta = { ua: navigator.userAgent, ref: document.referrer || '', vid: vid };
   try {
     const cached = sessionStorage.getItem('gc_geo');
     if (cached) Object.assign(_meta, JSON.parse(cached));
