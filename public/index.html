@@ -3217,26 +3217,29 @@
   .ex-slide .qr-mini{ width:108px; height:108px; flex:0 0 108px; border-radius:6px; }
   @media (max-width:560px){ .qr-top{ flex-direction:column; } .qr-examples{ justify-content:center; } .ex-slide{ width:100%; max-width:362px; } }
 
-  /* print mode — show only the profile card, wherever it currently lives in
-     the DOM (own profile lives inside #candMain, shared lives in <body>). */
+  /* print mode — only the profile card prints. printProfile() hoists
+     #profileViewOverlay to <body> and sets body.print-profile, so every OTHER
+     body child is display:none (NOT visibility:hidden) and occupies zero height.
+     Otherwise the hidden app shell / sidebar that the own-profile overlay lives
+     inside keeps its full height and spills out as giant blank pages. The overlay
+     flows from the top (position:static) so its multi-page content prints clean. */
   @media print {
     @page { margin: 1.4cm; }
-    body * { visibility:hidden !important; }
-    #profileViewOverlay, #profileViewOverlay * { visibility:visible !important; }
-    #profileViewOverlay{ position:absolute !important; left:0 !important; top:0 !important; width:100% !important; min-height:0 !important; background:#fff !important; backdrop-filter:none !important; display:block !important; }
-    .pv-toolbar{ display:none !important; }
-    .profile-view-page{ box-shadow:none !important; margin:0 !important; border-radius:0 !important; max-width:100% !important; min-height:0 !important; background:#fff !important; }
+    body.print-profile > *:not(#profileViewOverlay){ display:none !important; }
+    body.print-profile #profileViewOverlay{ position:static !important; display:block !important; width:100% !important; min-height:0 !important; height:auto !important; background:#fff !important; backdrop-filter:none !important; overflow:visible !important; }
+    body.print-profile .pv-toolbar{ display:none !important; }
+    body.print-profile .profile-view-page{ box-shadow:none !important; margin:0 !important; border-radius:0 !important; max-width:100% !important; min-height:0 !important; background:#fff !important; }
     /* Invert the dark header so it isn't a big black block on paper. */
-    .pv-header{ background:#fff !important; color:#1a1a1a !important; padding:0 0 14px !important; margin:0 0 20px !important; border-bottom:2px solid #1a1a1a !important; gap:18px !important; }
-    .pv-name{ color:#1a1a1a !important; }
-    .pv-headline{ color:#444 !important; }
-    .pv-meta-item, .pv-meta-row a{ color:#555 !important; }
-    .pv-photo{ background:#eee !important; border-color:#bbb !important; color:#555 !important; width:74px !important; height:74px !important; }
-    .pv-body{ padding:0 !important; }
-    .pv-section{ margin-bottom:22px !important; page-break-inside:avoid; }
-    .pv-prompt-card, .pv-work-entry, .pv-edu-entry{ page-break-inside:avoid; }
-    .pv-prompt-card{ background:#fff !important; border:1px solid #ddd !important; }
-    .pv-section-title, .pv-prompt-label{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    body.print-profile .pv-header{ background:#fff !important; color:#1a1a1a !important; padding:0 0 14px !important; margin:0 0 20px !important; border-bottom:2px solid #1a1a1a !important; gap:18px !important; }
+    body.print-profile .pv-name{ color:#1a1a1a !important; }
+    body.print-profile .pv-headline{ color:#444 !important; }
+    body.print-profile .pv-meta-item, body.print-profile .pv-meta-row a{ color:#555 !important; }
+    body.print-profile .pv-photo{ background:#eee !important; border-color:#bbb !important; color:#555 !important; width:74px !important; height:74px !important; }
+    body.print-profile .pv-body{ padding:0 !important; }
+    body.print-profile .pv-section{ margin-bottom:22px !important; page-break-inside:avoid; }
+    body.print-profile .pv-prompt-card, body.print-profile .pv-work-entry, body.print-profile .pv-edu-entry{ page-break-inside:avoid; }
+    body.print-profile .pv-prompt-card{ background:#fff !important; border:1px solid #ddd !important; }
+    body.print-profile .pv-section-title, body.print-profile .pv-prompt-label{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   }
 
   /* ===== INTERVIEW CHEAT SHEET ===== */
@@ -5419,6 +5422,21 @@
   }
   function closeCheatSheet(){ document.getElementById('cheatModal').classList.remove('show'); }
   function printCheatSheet(){ document.body.classList.add('print-cheat'); window.print(); setTimeout(() => document.body.classList.remove('print-cheat'), 500); }
+  // Profile print: hoist the overlay to <body> so the print-profile rules can hide
+  // the app shell entirely (no blank pages), then restore it to where it lived.
+  function printProfile(){
+    const ov = document.getElementById('profileViewOverlay');
+    if(!ov){ window.print(); return; }
+    const parent = ov.parentNode, next = ov.nextSibling;
+    document.body.appendChild(ov);
+    document.body.classList.add('print-profile');
+    window.print();
+    setTimeout(() => {
+      document.body.classList.remove('print-profile');
+      if(parent) parent.insertBefore(ov, next);
+    }, 500);
+  }
+  window.printProfile = printProfile;
   function openSampleCheatSheet(){ openCheatSheet('', SAMPLE_CHEATSHEET); }
   window.openCheatSheet = openCheatSheet; window.closeCheatSheet = closeCheatSheet; window.openSampleCheatSheet = openSampleCheatSheet;
   { const b=document.getElementById('cheatClose'); if(b) b.onclick = closeCheatSheet; }
@@ -5697,7 +5715,7 @@
   { const b = document.getElementById('pvEditBtn'); if(b) b.onclick = () => { openProfileEdit(); }; }
   { const b = document.getElementById('navSearchBtn'); if(b) b.onclick = () => { navigate('/search'); }; }
   { const b = document.getElementById('searchCsBack'); if(b) b.onclick = () => { if(typeof openProfileView==='function') openProfileView(); else navigate('/'); }; }
-  document.getElementById('pvPrintBtn').onclick = () => window.print();
+  document.getElementById('pvPrintBtn').onclick = () => printProfile();
 
   // ----- Profile QR code (links to the shareable profile URL) -----
   function gcBuildQrCanvas(url){
