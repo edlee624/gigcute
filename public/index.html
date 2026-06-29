@@ -3165,48 +3165,50 @@
   .qr-x{ position:absolute; top:18px; right:20px; background:var(--ink-soft); border:1px solid var(--line-light); color:rgba(251,247,240,0.7); border-radius:10px; width:38px; height:38px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
   .qr-x:hover{ color:var(--paper); }
   .qr-x svg{ width:18px; height:18px; }
+  .qr-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:34px; }
+  .qr-top-left{ flex:1; }
   .qr-title{ font-family:'Fraunces',serif; font-size:30px; color:var(--paper); margin-bottom:4px; }
-  .qr-sub{ font-size:14px; color:rgba(251,247,240,0.55); margin-bottom:26px; line-height:1.5; max-width:560px; }
-  .qr-main{ display:flex; gap:34px; align-items:flex-start; flex-wrap:wrap; }
-  .qr-left{ flex:0 0 auto; text-align:center; }
-  .qr-url{ font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--sage-soft); margin:14px 0 16px; word-break:break-all; max-width:300px; }
-  .qr-download{ background:var(--coral); color:var(--paper); border:none; border-radius:10px; font-family:'Inter',sans-serif; font-size:14px; font-weight:700; padding:12px 26px; cursor:pointer; }
+  .qr-sub{ font-size:14px; color:rgba(251,247,240,0.55); line-height:1.5; max-width:520px; }
+  .qr-url{ font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--sage-soft); margin-top:12px; word-break:break-all; }
+  .qr-corner{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .qr-download{ background:var(--coral); color:var(--paper); border:none; border-radius:10px; font-family:'Inter',sans-serif; font-size:13px; font-weight:700; padding:9px 18px; cursor:pointer; }
   .qr-download:hover{ background:var(--coral-dim); }
 
   /* use-case mockups (each embeds the live QR via .qr-mini) */
-  .qr-examples{ flex:1; min-width:280px; display:grid; grid-template-columns:repeat(auto-fill,minmax(168px,1fr)); gap:18px; }
-  .qr-ex figcaption{ font-size:12.5px; color:rgba(251,247,240,0.65); text-align:center; margin-top:9px; }
+  .qr-examples{ display:flex; flex-wrap:wrap; gap:30px; align-items:flex-start; }
+  .qr-ex figcaption{ font-size:13px; color:rgba(251,247,240,0.65); text-align:center; margin-top:12px; max-width:320px; }
   .qr-ex figcaption strong{ color:var(--paper); font-weight:600; }
   .qr-mini{ display:block; image-rendering:pixelated; background:#fff; }
-  .bar{ height:6px; border-radius:3px; background:rgba(21,23,28,0.85); margin-bottom:5px; }
+  .bar{ height:7px; border-radius:3px; background:rgba(21,23,28,0.85); margin-bottom:6px; }
   .bar.dim{ background:rgba(21,23,28,0.4); }
   .w70{ width:70%; } .w60{ width:60%; } .w50{ width:50%; } .w40{ width:40%; }
   /* résumé */
-  .ex-paper{ background:#fff; border-radius:8px; padding:14px; height:180px; box-shadow:0 8px 24px rgba(0,0,0,0.35); }
-  .ex-paper-head{ display:flex; align-items:flex-start; gap:10px; margin-bottom:14px; }
-  .ex-paper-head .qr-mini{ width:38px; height:38px; flex:0 0 38px; }
-  .ex-lines i{ display:block; height:5px; border-radius:3px; background:#e6e6e6; margin-bottom:7px; }
+  .ex-paper{ background:#fff; border-radius:10px; padding:20px; width:270px; height:350px; box-shadow:0 10px 30px rgba(0,0,0,0.4); }
+  .ex-paper-head{ display:flex; align-items:flex-start; gap:14px; margin-bottom:20px; }
+  .ex-paper-head .qr-mini{ width:56px; height:56px; flex:0 0 56px; }
+  .ex-lines i{ display:block; height:6px; border-radius:3px; background:#e6e6e6; margin-bottom:11px; }
   .ex-lines i.w70{ width:70%; } .ex-lines i.w50{ width:50%; }
-  /* business card */
-  .ex-bizcard{ background:#fff; border-radius:10px; padding:16px; height:180px; display:flex; align-items:center; gap:14px; box-shadow:0 8px 24px rgba(0,0,0,0.35); }
-  .ex-bizcard .bc-left{ flex:1; display:flex; flex-direction:column; height:78%; }
-  .ex-bizcard .bc-spacer{ flex:1; }
-  .ex-bizcard .qr-mini{ width:64px; height:64px; flex:0 0 64px; }
+  /* business card — front (contact) + back (QR), horizontal */
+  .bc-pair{ display:flex; flex-direction:column; gap:16px; }
+  .bc-card{ width:320px; height:183px; border-radius:12px; padding:20px 22px; box-sizing:border-box; box-shadow:0 10px 30px rgba(0,0,0,0.4); }
+  .bc-front{ background:#fff; display:flex; flex-direction:column; }
+  .bc-name{ font-family:'Fraunces',serif; font-size:20px; color:#15171c; }
+  .bc-title{ font-size:12.5px; color:#888; margin-top:3px; }
+  .bc-rows{ margin-top:auto; display:flex; flex-direction:column; gap:5px; }
+  .bc-rows span{ font-size:12px; color:#555; }
+  .bc-brand{ position:absolute; }
+  .bc-front .bc-brand{ position:static; align-self:flex-end; margin-top:8px; font-family:'Fraunces',serif; font-style:italic; font-weight:600; font-size:14px; color:#15171c; }
+  .bc-front .bc-brand span{ color:var(--coral); font-style:normal; }
+  .bc-back{ background:#15171c; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; }
+  .bc-back .qr-mini{ width:96px; height:96px; border-radius:4px; }
+  .bc-back-cap{ font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.04em; color:rgba(251,247,240,0.6); }
   /* name badge */
-  .ex-badge{ background:var(--sage); border-radius:10px; padding:16px 14px; height:180px; text-align:center; position:relative; box-shadow:0 8px 24px rgba(0,0,0,0.35); }
-  .ex-badge .badge-clip{ width:42px; height:8px; border-radius:4px; background:rgba(0,0,0,0.35); margin:-6px auto 12px; }
-  .ex-badge .badge-pill{ display:inline-block; background:rgba(255,255,255,0.85); color:var(--sage); font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; letter-spacing:0.1em; padding:3px 9px; border-radius:999px; }
-  .ex-badge .bar{ background:rgba(255,255,255,0.85); }
-  .ex-badge .qr-mini{ width:64px; height:64px; margin:0 auto; border-radius:4px; }
-  /* slide */
-  .ex-slide{ background:#15171c; border:1px solid var(--line-light); border-radius:8px; padding:16px; height:180px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
-  .ex-slide .slide-text{ font-family:'Fraunces',serif; font-size:17px; color:var(--paper); line-height:1.25; }
-  .ex-slide .qr-mini{ width:66px; height:66px; flex:0 0 66px; border-radius:5px; }
-  /* phone */
-  .ex-phone{ width:104px; height:180px; margin:0 auto; background:#0c0d10; border:3px solid #2a2d36; border-radius:18px; position:relative; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(0,0,0,0.35); }
-  .ex-phone .phone-notch{ position:absolute; top:7px; left:50%; transform:translateX(-50%); width:34px; height:5px; border-radius:3px; background:#2a2d36; }
-  .ex-phone .qr-mini{ width:74px; height:74px; border-radius:6px; }
-  @media (max-width:560px){ .qr-main{ gap:24px; } .qr-left{ margin:0 auto; } }
+  .ex-badge{ background:var(--sage); border-radius:12px; padding:20px 18px; width:230px; height:330px; text-align:center; position:relative; box-shadow:0 10px 30px rgba(0,0,0,0.4); }
+  .ex-badge .badge-clip{ width:52px; height:9px; border-radius:5px; background:rgba(0,0,0,0.35); margin:-8px auto 18px; }
+  .ex-badge .badge-pill{ display:inline-block; background:rgba(255,255,255,0.9); color:var(--sage); font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.12em; padding:4px 12px; border-radius:999px; }
+  .ex-badge .bar{ background:rgba(255,255,255,0.85); height:8px; }
+  .ex-badge .qr-mini{ width:120px; height:120px; margin:0 auto; border-radius:6px; }
+  @media (max-width:560px){ .qr-top{ flex-direction:column; } .qr-examples{ justify-content:center; } }
 
   /* print mode — show only the profile card, wherever it currently lives in
      the DOM (own profile lives inside #candMain, shared lives in <body>). */
@@ -4134,53 +4136,49 @@
 <div id="qrModal">
   <div class="qr-page">
     <button class="qr-x" id="qrClose" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-    <div class="qr-title">Your profile QR code</div>
-    <div class="qr-sub">Download it and drop it anywhere physical — here's how it looks in the wild.</div>
-    <div class="qr-main">
-      <div class="qr-left">
-        <div id="qrImageWrap" style="background:#fff;border-radius:16px;padding:16px;display:flex;align-items:center;justify-content:center;margin:0 auto;width:max-content;max-width:100%;"></div>
+    <div class="qr-top">
+      <div class="qr-top-left">
+        <div class="qr-title">Your profile QR code</div>
+        <div class="qr-sub">Add it to your résumé, business card, or name tag — here's how it looks in the wild.</div>
         <div id="qrUrl" class="qr-url"></div>
+      </div>
+      <div class="qr-corner">
+        <div id="qrImageWrap" style="background:#fff;border-radius:12px;padding:10px;display:flex;align-items:center;justify-content:center;width:max-content;"></div>
         <button class="qr-download" id="qrDownload" type="button">Download PNG</button>
       </div>
-      <div class="qr-examples">
-        <figure class="qr-ex">
-          <div class="ex-art ex-paper">
-            <div class="ex-paper-head"><div style="flex:1;"><div class="bar w60"></div><div class="bar w40 dim"></div></div><img class="qr-mini" alt=""></div>
-            <div class="ex-lines"><i></i><i></i><i class="w70"></i><i></i><i class="w50"></i><i></i></div>
+    </div>
+    <div class="qr-examples">
+      <figure class="qr-ex">
+        <div class="ex-art ex-paper">
+          <div class="ex-paper-head"><div style="flex:1;"><div class="bar w60"></div><div class="bar w40 dim"></div></div><img class="qr-mini" alt=""></div>
+          <div class="ex-lines"><i></i><i></i><i class="w70"></i><i></i><i></i><i class="w50"></i><i></i><i class="w70"></i><i></i></div>
+        </div>
+        <figcaption>On your <strong>résumé</strong> header</figcaption>
+      </figure>
+      <figure class="qr-ex">
+        <div class="bc-pair">
+          <div class="bc-card bc-front">
+            <div class="bc-name">Your Name</div>
+            <div class="bc-title">Job Title</div>
+            <div class="bc-rows"><span>you@email.com</span><span>(555) 123-4567</span><span>linkedin.com/in/you</span></div>
+            <div class="bc-brand">GigCute<span>.</span></div>
           </div>
-          <figcaption>On your <strong>résumé</strong> header</figcaption>
-        </figure>
-        <figure class="qr-ex">
-          <div class="ex-art ex-bizcard">
-            <div class="bc-left"><div class="bar w70"></div><div class="bar w50 dim"></div><div class="bc-spacer"></div><div class="bar w40 dim"></div></div>
+          <div class="bc-card bc-back">
             <img class="qr-mini" alt="">
+            <div class="bc-back-cap">Scan for my full profile</div>
           </div>
-          <figcaption>On a <strong>business card</strong> for networking</figcaption>
-        </figure>
-        <figure class="qr-ex">
-          <div class="ex-art ex-badge">
-            <div class="badge-clip"></div>
-            <div class="badge-pill">ATTENDEE</div>
-            <div class="bar w60" style="margin:8px auto 10px;"></div>
-            <img class="qr-mini" alt="">
-          </div>
-          <figcaption>On a <strong>name tag</strong> at career fairs</figcaption>
-        </figure>
-        <figure class="qr-ex">
-          <div class="ex-art ex-slide">
-            <div class="slide-text">Scan to see<br>my profile</div>
-            <img class="qr-mini" alt="">
-          </div>
-          <figcaption>A <strong>“scan me” slide</strong> in decks</figcaption>
-        </figure>
-        <figure class="qr-ex">
-          <div class="ex-art ex-phone">
-            <div class="phone-notch"></div>
-            <img class="qr-mini" alt="">
-          </div>
-          <figcaption>Show it on your <strong>phone</strong> to scan</figcaption>
-        </figure>
-      </div>
+        </div>
+        <figcaption><strong>Business card</strong> — contact on the front, QR on the back</figcaption>
+      </figure>
+      <figure class="qr-ex">
+        <div class="ex-art ex-badge">
+          <div class="badge-clip"></div>
+          <div class="badge-pill">ATTENDEE</div>
+          <div class="bar w60" style="margin:12px auto 14px;"></div>
+          <img class="qr-mini" alt="">
+        </div>
+        <figcaption>On a <strong>name tag</strong> at career fairs</figcaption>
+      </figure>
     </div>
   </div>
 </div>
@@ -5541,7 +5539,7 @@
     const url = __shownProfileId ? (location.origin + '/profile/' + __shownProfileId) : window.location.href;
     const wrap = document.getElementById('qrImageWrap'); const cv = gcBuildQrCanvas(url);
     if(!cv){ showToast('Could not generate the QR code.'); return; }
-    cv.style.width = '300px'; cv.style.height = '300px'; cv.style.maxWidth = '100%'; cv.style.imageRendering = 'pixelated';
+    cv.style.width = '120px'; cv.style.height = '120px'; cv.style.imageRendering = 'pixelated';
     wrap.innerHTML = ''; wrap.appendChild(cv);
     // Embed the same QR into every use-case mockup.
     const dataUrl = cv.toDataURL('image/png');
