@@ -1193,8 +1193,10 @@
     transition:border-color .2s ease;
   }
   .prompt-row.favorited{ border-color:var(--coral); }
+  .prompt-row.featured{ border-color:rgba(255,90,60,0.35); background:linear-gradient(180deg, rgba(255,90,60,0.06), var(--ink-soft)); }
   .pr-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
   .pr-label{ font-weight:600; font-size:14px; color:var(--paper); flex:1; }
+  .pr-badge{ display:inline-block; margin-left:8px; font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--coral); background:rgba(255,90,60,0.12); border:1px solid rgba(255,90,60,0.3); border-radius:999px; padding:2px 8px; vertical-align:middle; white-space:nowrap; }
   .pr-star{ background:none; border:none; padding:2px; cursor:pointer; color:rgba(251,247,240,0.3); flex-shrink:0; line-height:0; }
   .pr-star svg{ width:20px;height:20px; }
   .prompt-row.favorited .pr-star{ color:var(--coral); }
@@ -4369,22 +4371,26 @@
 
   // ================= SHARED: 30-prompt bank (seekers answer these; recruiters can request them) =================
   const SEEKER_PROMPT_BANK = [
+    // Featured first — great for students & early-career folks highlighting
+    // coursework, projects, and what they're learning.
+    {label:"I'm currently learning", helper:"A course, certification, or skill you're investing in right now.", featured:true},
+    {label:"I'm proudest of", helper:"A project, paper, or moment you'd want to be asked about — academic work counts.", featured:true},
+    {label:"The tool I can't live without", helper:"Software, a framework, a language, even a notebook — be specific.", featured:true},
+    {label:"I geek out about", helper:"A topic you could talk about for an hour, unprompted.", featured:true},
+    {label:"The skill I'm still building", helper:"Self-awareness reads better than pretending you're finished growing.", featured:true},
+    {label:"A project I'd love to talk about", helper:"A class project, side project, internship, or research — anything you're proud of.", featured:true},
+
     {label:"My superpower at work", helper:"The thing you're quietly best at."},
-    {label:"I'm proudest of", helper:"A project or moment you'd want a recruiter to ask about."},
     {label:"Looking for a team that", helper:"What kind of environment brings out your best work."},
     {label:"A mistake that taught me the most", helper:"Recruiters respect honesty more than a flawless track record."},
     {label:"My ideal manager", helper:"How you like to be managed, specifically."},
     {label:"Outside of work, I", helper:"A glimpse of who you are beyond the job title."},
-    {label:"The tool I can't live without", helper:"Software, a framework, even a notebook — be specific."},
-    {label:"On a typical Tuesday, I", helper:"Walk through an ordinary day in your role."},
+    {label:"On a typical Tuesday, I", helper:"Walk through an ordinary day in your role or studies."},
     {label:"I work best when", helper:"The conditions that bring out your best output."},
-    {label:"The skill I'm still building", helper:"Self-awareness reads better than pretending you're finished growing."},
-    {label:"A project I'd love to talk about", helper:"Something meaty enough for a real interview conversation."},
     {label:"My non-negotiable", helper:"The one thing you won't compromise on in your next role."},
-    {label:"I geek out about", helper:"A topic you could talk about for an hour, unprompted."},
     {label:"The feedback that changed how I work", helper:"Specific feedback, and what you did differently after."},
     {label:"My biggest career pivot", helper:"A turn in your path and what it taught you."},
-    {label:"I'm the person people come to for", helper:"Your reputation among teammates, in your own words."},
+    {label:"I'm the person people come to for", helper:"Your reputation among teammates or classmates, in your own words."},
     {label:"A risk that paid off", helper:"A bet you made that worked out."},
     {label:"What gets me out of bed in the morning", helper:"The actual motivation, not the polished version."},
     {label:"My work style in three words", helper:"Quick, honest, no buzzwords."},
@@ -4393,7 +4399,6 @@
     {label:"A belief I've changed my mind on", helper:"Intellectual honesty is rare — show it off."},
     {label:"The kind of problems I want to solve next", helper:"Point your next role in the right direction."},
     {label:"My favorite part of the day", helper:"A small, specific detail says more than a mission statement."},
-    {label:"I'm currently learning", helper:"What you're investing in right now."},
     {label:"A team I'd love to be part of", helper:"Describe the environment, not just the industry."},
     {label:"What success looks like to me", helper:"Define it on your own terms."},
     {label:"The thing I wish more interviewers asked me", helper:"Give recruiters the question you actually want to answer."},
@@ -4818,9 +4823,9 @@
 
   function renderSeekerPromptRows(){
     document.getElementById('seekerPromptsList').innerHTML = SEEKER_PROMPT_BANK.map((p, idx) => `
-      <div class="prompt-row" data-idx="${idx}">
+      <div class="prompt-row${p.featured ? ' featured' : ''}" data-idx="${idx}">
         <div class="pr-head">
-          <div class="pr-label">${escapeHtml(p.label)}</div>
+          <div class="pr-label">${escapeHtml(p.label)}${p.featured ? '<span class="pr-badge">★ Great for new grads</span>' : ''}</div>
           <button class="pr-star" type="button" data-idx="${idx}" aria-label="Feature on profile">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.3-6.2 3.3 1.2-6.8-5-4.9 6.9-1z"/></svg>
           </button>
