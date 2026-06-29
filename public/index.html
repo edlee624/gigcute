@@ -3205,7 +3205,14 @@
   .ex-badge .badge-pill{ display:inline-block; background:rgba(255,255,255,0.9); color:var(--sage); font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.12em; padding:4px 12px; border-radius:999px; }
   .ex-badge .bar{ background:rgba(255,255,255,0.85); height:8px; }
   .ex-badge .qr-mini{ width:120px; height:120px; margin:0 auto; border-radius:6px; }
-  @media (max-width:560px){ .qr-top{ flex-direction:column; } .qr-examples{ justify-content:center; } }
+  /* closing presentation slide (16:9) */
+  .ex-slide{ width:362px; height:204px; background:#15171c; border:1px solid var(--line-light); border-radius:10px; padding:24px 26px; display:flex; align-items:center; justify-content:space-between; gap:18px; box-shadow:0 10px 30px rgba(0,0,0,0.4); }
+  .ex-slide .slide-text{ flex:1; min-width:0; }
+  .slide-eyebrow{ font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:var(--coral); margin-bottom:8px; }
+  .slide-title{ font-family:'Fraunces',serif; font-size:27px; color:var(--paper); line-height:1.05; }
+  .slide-sub{ font-size:12px; color:rgba(251,247,240,0.55); margin-top:10px; line-height:1.4; }
+  .ex-slide .qr-mini{ width:108px; height:108px; flex:0 0 108px; border-radius:6px; }
+  @media (max-width:560px){ .qr-top{ flex-direction:column; } .qr-examples{ justify-content:center; } .ex-slide{ width:100%; max-width:362px; } }
 
   /* print mode — show only the profile card, wherever it currently lives in
      the DOM (own profile lives inside #candMain, shared lives in <body>). */
@@ -4174,6 +4181,17 @@
           <img class="qr-mini" alt="">
         </div>
         <figcaption>On a <strong>name tag</strong> at career fairs</figcaption>
+      </figure>
+      <figure class="qr-ex">
+        <div class="ex-art ex-slide">
+          <div class="slide-text">
+            <div class="slide-eyebrow">Thank you</div>
+            <div class="slide-title">More about me</div>
+            <div class="slide-sub">Scan to view my full GigCute profile</div>
+          </div>
+          <img class="qr-mini" alt="">
+        </div>
+        <figcaption>A <strong>closing slide</strong> in your deck</figcaption>
       </figure>
     </div>
   </div>
