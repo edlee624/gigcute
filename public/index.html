@@ -1196,7 +1196,7 @@
   .prompt-row.featured{ border-color:rgba(255,90,60,0.35); background:linear-gradient(180deg, rgba(255,90,60,0.06), var(--ink-soft)); }
   .pr-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
   .pr-label{ font-weight:600; font-size:14px; color:var(--paper); flex:1; }
-  .pr-badge{ display:inline-block; margin-left:8px; font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--coral); background:rgba(255,90,60,0.12); border:1px solid rgba(255,90,60,0.3); border-radius:999px; padding:2px 8px; vertical-align:middle; white-space:nowrap; }
+  .pr-badge{ display:inline-block; margin-left:8px; font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--coral); background:rgba(255,90,60,0.12); border:1px solid rgba(255,90,60,0.3); border-radius:999px; padding:2px 8px; vertical-align:middle; line-height:1.5; }
   .pr-star{ background:none; border:none; padding:2px; cursor:pointer; color:rgba(251,247,240,0.3); flex-shrink:0; line-height:0; }
   .pr-star svg{ width:20px;height:20px; }
   .prompt-row.favorited .pr-star{ color:var(--coral); }
@@ -4825,7 +4825,7 @@
     document.getElementById('seekerPromptsList').innerHTML = SEEKER_PROMPT_BANK.map((p, idx) => `
       <div class="prompt-row${p.featured ? ' featured' : ''}" data-idx="${idx}">
         <div class="pr-head">
-          <div class="pr-label">${escapeHtml(p.label)}${p.featured ? '<span class="pr-badge">★ Great for new grads</span>' : ''}</div>
+          <div class="pr-label">${escapeHtml(p.label)}${p.featured ? '<span class="pr-badge">★ Great for new grads &amp; young professionals</span>' : ''}</div>
           <button class="pr-star" type="button" data-idx="${idx}" aria-label="Feature on profile">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.3-6.2 3.3 1.2-6.8-5-4.9 6.9-1z"/></svg>
           </button>
