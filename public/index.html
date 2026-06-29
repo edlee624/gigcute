@@ -3239,6 +3239,41 @@
     .pv-section-title, .pv-prompt-label{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   }
 
+  /* ===== INTERVIEW CHEAT SHEET ===== */
+  #cheatModal{ display:none; position:fixed; inset:0; z-index:950; background:rgba(10,11,14,0.78); backdrop-filter:blur(3px); overflow-y:auto; }
+  #cheatModal.show{ display:block; }
+  .cheat-shell{ max-width:820px; margin:30px auto; padding:0 16px 50px; }
+  .cheat-toolbar{ position:sticky; top:0; z-index:2; display:flex; align-items:center; justify-content:space-between; padding:12px 2px; }
+  .cheat-tt{ font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:rgba(251,247,240,0.6); }
+  .cheat-tools{ display:flex; gap:10px; }
+  .cheat-print{ background:var(--coral); border:none; border-radius:10px; color:var(--paper); font-family:'Inter',sans-serif; font-size:13px; font-weight:700; padding:9px 16px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; }
+  .cheat-print svg{ width:15px; height:15px; }
+  .cheat-x{ background:rgba(251,247,240,0.08); border:1px solid var(--line-light); border-radius:10px; color:var(--paper); width:38px; height:38px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
+  .cheat-x svg{ width:16px; height:16px; }
+  .cheat-doc{ background:#fff; color:#1a1a1a; border-radius:6px; padding:46px 50px; box-shadow:0 24px 70px rgba(0,0,0,0.5); }
+  .cheat-doc .cs-title{ font-family:'Fraunces',serif; font-size:26px; font-weight:600; margin:0 0 6px; color:#15171c; }
+  .cheat-doc .cs-name{ font-size:15px; font-weight:700; color:#15171c; }
+  .cheat-doc .cs-sub{ font-size:13px; color:#666; margin:3px 0 0; line-height:1.5; }
+  .cheat-doc .cs-rule{ height:2px; background:#15171c; margin:18px 0 26px; }
+  .cheat-doc .cs-qa{ margin-bottom:22px; page-break-inside:avoid; }
+  .cheat-doc .cs-q{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:#15171c; margin:0 0 5px; }
+  .cheat-doc .cs-star{ color:#ff5a3c; margin-left:6px; font-size:11px; font-weight:700; }
+  .cheat-doc .cs-a{ font-size:14px; line-height:1.6; color:#333; white-space:pre-wrap; margin:0; }
+  .cheat-doc .cs-foot{ margin-top:32px; padding-top:14px; border-top:1px solid #e4e4e4; font-size:11px; color:#999; display:flex; justify-content:space-between; gap:12px; }
+  .cheat-doc .cs-empty{ font-size:14px; color:#666; line-height:1.6; }
+  @media (max-width:600px){ .cheat-doc{ padding:30px 22px; } }
+
+  /* Cheat-sheet print: override the profile print rules above so ONLY the sheet prints. */
+  @media print {
+    body.print-cheat #cheatModal, body.print-cheat #cheatModal *{ visibility:visible !important; }
+    body.print-cheat #profileViewOverlay, body.print-cheat #profileViewOverlay *{ visibility:hidden !important; }
+    body.print-cheat #cheatModal{ position:absolute !important; inset:0 !important; display:block !important; background:#fff !important; backdrop-filter:none !important; overflow:visible !important; }
+    body.print-cheat .cheat-shell{ max-width:100% !important; margin:0 !important; padding:0 !important; }
+    body.print-cheat .cheat-toolbar{ display:none !important; }
+    body.print-cheat .cheat-doc{ box-shadow:none !important; border-radius:0 !important; padding:0 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    body.print-cheat .cs-star{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+
   /* ===== CANDIDATE INVITE INBOX ===== */
   .invite-inbox-section{ margin-bottom:0; }
   .invite-inbox-head{
@@ -3416,10 +3451,20 @@
     </div>
     <div style="text-align:center; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:var(--coral); margin-top:24px;">Launching soon</div>
     <h1 class="ob-h1" style="text-align:center; font-size:30px; line-height:1.15; margin:14px auto 14px; max-width:460px;">You're more than a <em>resume</em>. Build a profile that proves it.</h1>
-    <p style="text-align:center; font-size:15px; color:rgba(251,247,240,0.6); line-height:1.55; max-width:420px; margin:0 auto 28px;">Answer prompts that show how you actually think, then share your GigCute profile anywhere.</p>
+    <p style="text-align:center; font-size:15px; color:rgba(251,247,240,0.6); line-height:1.55; max-width:420px; margin:0 auto 28px;">Showcase more of who you are with a GigCute Profile.</p>
     <button class="lm-cta-btn" id="lmSeekerCta" type="button" style="display:block; margin:0 auto;">Create a profile now</button>
     <button id="seeSampleBtn" type="button" style="display:block; margin:12px auto 0; background:var(--ink-soft); border:1px solid var(--line-light); color:var(--paper); border-radius:12px; font-family:'Inter',sans-serif; font-size:14px; font-weight:600; padding:12px 26px; cursor:pointer;">See sample profile</button>
     <div style="text-align:center; font-size:13px; color:rgba(251,247,240,0.45); margin-top:14px;">Already have an account? <button id="loginSeeker" type="button" style="background:none; border:none; color:var(--coral); font:inherit; font-weight:700; cursor:pointer; padding:0;">Log in</button></div>
+
+    <!-- Interview cheat sheet teaser -->
+    <div style="max-width:440px; margin:30px auto 0; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px; padding:20px 22px; text-align:center;">
+      <div style="display:inline-flex; align-items:center; gap:8px; font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--coral); margin-bottom:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+        Interview cheat sheet
+      </div>
+      <p style="font-size:13.5px; color:rgba(251,247,240,0.62); line-height:1.55; margin:0 0 14px;">The prompts double as the questions you'll hear in a typical interview. Answer them once, store them on your profile, and print a cheat sheet to bring along whenever you need to prep.</p>
+      <button id="cheatSampleBtn" type="button" style="background:none; border:1px solid var(--line-light); color:var(--paper); border-radius:10px; font-family:'Inter',sans-serif; font-size:13px; font-weight:700; padding:9px 18px; cursor:pointer;">See a sample cheat sheet</button>
+    </div>
   </div>
 
   <!-- ============ FOR JOB SEEKERS ============ -->
@@ -4130,9 +4175,9 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         Print / Save PDF
       </button>
-      <button class="pv-share-btn" id="pvTipsBtn" title="Tips for using and sharing your profile" style="display:none;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12" y2="17"/></svg>
-        Tips
+      <button class="pv-share-btn" id="pvTipsBtn" title="Print an interview cheat sheet of your prompt answers" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+        Interview cheat sheet
       </button>
       <button class="pv-print-btn" id="pvLogoutBtn" style="display:none;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -4229,6 +4274,26 @@
     </div>
   </div>
 </div>
+
+<!-- ============ INTERVIEW CHEAT SHEET (printable) ============ -->
+<div id="cheatModal">
+  <div class="cheat-shell">
+    <div class="cheat-toolbar">
+      <div class="cheat-tt">Interview cheat sheet</div>
+      <div class="cheat-tools">
+        <button id="cheatPrintBtn" type="button" class="cheat-print">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print / Save PDF
+        </button>
+        <button id="cheatClose" type="button" class="cheat-x"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+      </div>
+    </div>
+    <div class="cheat-scroll">
+      <div class="cheat-doc" id="cheatDoc"><!-- filled by openCheatSheet() --></div>
+    </div>
+  </div>
+</div>
+
 <!-- ============ LEGAL MODALS ============ -->
 <div class="legal-overlay" id="legalOverlay">
   <div class="legal-modal">
@@ -4323,6 +4388,7 @@
   { const a=document.getElementById('goRecruit'); if(a) a.onclick = () => showScreen('screen-recruit'); }
   { const a=document.getElementById('recruitBack'); if(a) a.onclick = () => showScreen('screen-landing'); }
   { const a=document.getElementById('seeSampleBtn'); if(a) a.onclick = () => { navigate('/profile/sample'); }; }
+  { const a=document.getElementById('cheatSampleBtn'); if(a) a.onclick = () => openSampleCheatSheet(); }
 
   // ---- Password show/hide toggles ----
   document.querySelectorAll('.pw-toggle').forEach(btn => {
@@ -5139,6 +5205,7 @@
   // ---- navigation: work history -> prompts -> preview ----
   let pendingWorkHistory = [];
   let pendingFavoritePrompts = [];
+  let pendingAllPrompts = [];
   let pendingPortfolio = [];
   let pendingEducation = [];
   let pendingCertifications = [];
@@ -5156,6 +5223,12 @@
       label: SEEKER_PROMPT_BANK[idx].label,
       answer: document.querySelector(`#seekerPromptsList .prompt-row[data-idx="${idx}"] textarea`).value.trim()
     }));
+    // Keep every answered prompt (not just the 3 favorites) for the interview cheat sheet.
+    pendingAllPrompts = [...document.querySelectorAll('#seekerPromptsList .prompt-row')].map(row => {
+      const idx = Number(row.dataset.idx);
+      const answer = (row.querySelector('textarea').value || '').trim();
+      return answer ? { label: SEEKER_PROMPT_BANK[idx].label, answer, isFavorite: selectedSeekerFavorites.has(idx) } : null;
+    }).filter(Boolean);
     renderSeekerPreview();
     showScreen('screen-seeker-preview');
   };
@@ -5227,6 +5300,7 @@
       linkedinUrl: document.getElementById('seekerLinkedInUrl').value.trim() || seekerProfile.linkedinUrl,
       workHistory: pendingWorkHistory,
       favoritePrompts: pendingFavoritePrompts,
+      allPrompts: pendingAllPrompts,
       portfolio: pendingPortfolio,
       education: pendingEducation,
       certifications: pendingCertifications
@@ -5251,13 +5325,18 @@
       row.classList.remove('favorited');
       const ta = row.querySelector('textarea'); ta.value = ''; promptAnswerInput(ta);
     });
-    seekerProfile.favoritePrompts.forEach(fp => {
+    // Re-fill every saved answer; star the ones that are favorites. Fall back to
+    // favoritePrompts for older profiles that pre-date the full cheat-sheet store.
+    const seedPrompts = (seekerProfile.allPrompts && seekerProfile.allPrompts.length)
+      ? seekerProfile.allPrompts
+      : (seekerProfile.favoritePrompts || []).map(fp => ({ ...fp, isFavorite: true }));
+    seedPrompts.forEach(fp => {
       const idx = SEEKER_PROMPT_BANK.findIndex(b => b.label === fp.label);
       if(idx >= 0){
-        selectedSeekerFavorites.add(idx);
         const row = document.querySelector(`#seekerPromptsList .prompt-row[data-idx="${idx}"]`);
-        row.classList.add('favorited');
+        if(!row) return;
         const ta = row.querySelector('textarea'); ta.value = fp.answer || ''; promptAnswerInput(ta);
+        if(fp.isFavorite){ selectedSeekerFavorites.add(idx); row.classList.add('favorited'); }
       }
     });
     updateSeekerPromptCounter();
@@ -5294,8 +5373,54 @@
   { const b=document.getElementById('tourNext'); if(b) b.onclick = () => { if(__tourIdx < TOUR_STEPS.length-1){ __tourIdx++; renderTourStep(); } else closeTour(); }; }
   { const b=document.getElementById('tourBack'); if(b) b.onclick = () => { if(__tourIdx>0){ __tourIdx--; renderTourStep(); } }; }
   { const b=document.getElementById('tourSkip'); if(b) b.onclick = closeTour; }
-  { const b=document.getElementById('pvTipsBtn'); if(b) b.onclick = openTour; }
+  { const b=document.getElementById('pvTipsBtn'); if(b) b.onclick = () => openCheatSheet(); }
   window.openTour = openTour;
+
+  // ===== INTERVIEW CHEAT SHEET (printable prep document) =====
+  // The setup prompts double as common interview questions. Owners can print their
+  // own answers; the homepage shows a sample so visitors see the idea.
+  const SAMPLE_CHEATSHEET = [
+    { label:"I'm proudest of", fav:true, answer:"Leading my class capstone — a scheduling app for a local food bank. I owned the backend, coordinated a team of four, and we shipped on time. They still use it today." },
+    { label:"A project I'd love to talk about", fav:true, answer:"A side project where I pulled five years of city transit data and visualized the least reliable bus routes. It taught me how to turn messy data into a clear story." },
+    { label:"The skill I'm still building", answer:"Public speaking. I started volunteering to present in team standups to get the reps, and I can feel it getting more natural each time." },
+    { label:"I'm currently learning", answer:"TypeScript and the basics of system design — I'm working through a course and rebuilding an old project with what I learn as I go." },
+    { label:"The tool I can't live without", answer:"A good notebook, digital or paper. I think on the page; writing things down is how I untangle a hard problem." },
+    { label:"I geek out about", answer:"Clean, fast interfaces. I'll happily spend an hour shaving 200ms off a page load or fixing a janky animation." },
+    { label:"My superpower at work", fav:true, answer:"Turning a vague, ambiguous ask into a concrete plan the whole team can rally around." },
+    { label:"Looking for a team that", answer:"Cares about the craft, hands out real responsibility early, and is patient enough to let people learn out loud." }
+  ];
+  function cheatDocHTML(name, prompts){
+    const list = (prompts || []).filter(p => (p.answer || '').trim());
+    const sub = name
+      ? "These prompts double as questions you'll hear in a typical interview. Print this and bring it to prep."
+      : "A sample of the prompts you can answer and store on GigCute — then print to prep before an interview.";
+    const body = list.length
+      ? list.map(p => `<div class="cs-qa"><div class="cs-q">${escapeHtml(p.label)}${(p.isFavorite || p.fav) ? '<span class="cs-star">★ on profile</span>' : ''}</div><p class="cs-a">${escapeHtml(p.answer)}</p></div>`).join('')
+      : `<div class="cs-empty">You haven't answered any prompts yet. Edit your profile, answer a few prompts, and they'll appear here as a cheat sheet you can print and take with you.</div>`;
+    return `<div class="cs-title">Interview cheat sheet</div>
+      ${name ? `<div class="cs-name">${escapeHtml(name)}</div>` : ''}
+      <div class="cs-sub">${sub}</div>
+      <div class="cs-rule"></div>
+      ${body}
+      <div class="cs-foot"><span>Made with GigCute · gigcute.com</span><span>${list.length} ${list.length === 1 ? 'answer' : 'answers'}</span></div>`;
+  }
+  function openCheatSheet(name, prompts){
+    // Called with no args → the signed-in owner's own saved answers.
+    if(name === undefined && prompts === undefined){
+      name = (seekerProfile && seekerProfile.name) || '';
+      prompts = (seekerProfile && ((seekerProfile.allPrompts && seekerProfile.allPrompts.length) ? seekerProfile.allPrompts : seekerProfile.favoritePrompts)) || [];
+    }
+    document.getElementById('cheatDoc').innerHTML = cheatDocHTML(name || '', prompts || []);
+    document.getElementById('cheatModal').classList.add('show');
+    try{ track('cheatsheet_opened', { sample: !name }); }catch(e){}
+  }
+  function closeCheatSheet(){ document.getElementById('cheatModal').classList.remove('show'); }
+  function printCheatSheet(){ document.body.classList.add('print-cheat'); window.print(); setTimeout(() => document.body.classList.remove('print-cheat'), 500); }
+  function openSampleCheatSheet(){ openCheatSheet('', SAMPLE_CHEATSHEET); }
+  window.openCheatSheet = openCheatSheet; window.closeCheatSheet = closeCheatSheet; window.openSampleCheatSheet = openSampleCheatSheet;
+  { const b=document.getElementById('cheatClose'); if(b) b.onclick = closeCheatSheet; }
+  { const b=document.getElementById('cheatPrintBtn'); if(b) b.onclick = printCheatSheet; }
+  { const m=document.getElementById('cheatModal'); if(m) m.addEventListener('click', e => { if(e.target === m) closeCheatSheet(); }); }
 
   // ===== ADMIN ANALYTICS (owner only) =====
   async function showAdmin(){
@@ -5550,9 +5675,7 @@
     const eb = document.getElementById('pvEditBtn'); if(eb) eb.style.display = own ? '' : 'none';
     const cb = document.getElementById('pvCloseBtn'); if(cb) cb.style.display = own ? 'none' : '';  // own profile is home — no "back"
     const lo = document.getElementById('pvLogoutBtn'); if(lo) lo.style.display = own ? '' : 'none';  // logout only on your own profile
-    const tb = document.getElementById('pvTipsBtn'); if(tb) tb.style.display = own ? '' : 'none';   // tips/tour only for the owner
-    // First time on your own profile, auto-open the guided tips.
-    if(own){ try{ if(!localStorage.getItem('gc_tour_seen') && typeof openTour === 'function') setTimeout(openTour, 600); }catch(e){} }
+    const tb = document.getElementById('pvTipsBtn'); if(tb) tb.style.display = own ? '' : 'none';   // cheat sheet only for the owner
     // The sample is a preview only: no search / copy-link / print actions.
     const isSample = id === 'sample';
     ['pvShareBtn','pvPrintBtn','pvQrBtn'].forEach(bid => { const b = document.getElementById(bid); if(b) b.style.display = isSample ? 'none' : ''; });
@@ -5993,8 +6116,11 @@
         seekerProfile.resumeUrl = sp.resume_url || '';
         const wh = (sp.work_history || []).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
         seekerProfile.workHistory = wh.map(w=>({ title:w.title||'', company:w.company||'', start:w.start_label||'', end:w.end_label||'', description:w.description||'' }));
-        const pa = (sp.seeker_prompt_answers || []).filter(p=>p.is_favorite).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+        const allPa = (sp.seeker_prompt_answers || []).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+        const pa = allPa.filter(p=>p.is_favorite);
         seekerProfile.favoritePrompts = pa.map(p=>({ label:p.prompt_label, answer:p.answer||'' }));
+        // Every answered prompt (favorites flagged) — used by the interview cheat sheet.
+        seekerProfile.allPrompts = allPa.filter(p=>(p.answer||'').trim()).map(p=>({ label:p.prompt_label, answer:p.answer||'', isFavorite:!!p.is_favorite }));
         seekerProfile.portfolio = Array.isArray(sp.portfolio) ? sp.portfolio.map(p=>({ title:p.title||'', url:p.url||'', description:p.description||'' })) : [];
         const ed = (sp.education || []).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
         seekerProfile.education = ed.map(e=>({ school:e.school||'', degree:e.degree||'', year:e.year||'' }));
@@ -6119,6 +6245,7 @@
         linkedinUrl: document.getElementById('seekerLinkedInUrl').value.trim() || seekerProfile.linkedinUrl,
         workHistory: pendingWorkHistory,
         favoritePrompts: pendingFavoritePrompts,
+        allPrompts: pendingAllPrompts,
         portfolio: pendingPortfolio,
         education: pendingEducation,
         certifications: pendingCertifications
@@ -6129,7 +6256,11 @@
         profile: { headline: seekerProfile.title, linkedin_url: seekerProfile.linkedinUrl || '', portfolio: seekerProfile.portfolio || [], certifications: seekerProfile.certifications || [] },
         workHistory: seekerProfile.workHistory || [],
         education: seekerProfile.education || [],
-        promptAnswers: (seekerProfile.favoritePrompts || []).map(fp => ({ label: fp.label, answer: fp.answer, isFavorite: true })),
+        // Store every answered prompt (favorites flagged) so the owner can print a full cheat sheet.
+        promptAnswers: ((seekerProfile.allPrompts && seekerProfile.allPrompts.length)
+          ? seekerProfile.allPrompts
+          : (seekerProfile.favoritePrompts || []).map(fp => ({ label: fp.label, answer: fp.answer, isFavorite: true }))
+        ).map(p => ({ label: p.label, answer: p.answer, isFavorite: !!p.isFavorite })),
       };
 
       // Already signed in? This is an edit (or finishing setup after email
