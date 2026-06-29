@@ -3161,12 +3161,18 @@
   /* QR code modal */
   #qrModal{ display:none; position:fixed; inset:0; z-index:900; background:rgba(10,10,12,0.78); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:20px; }
   #qrModal.open{ display:flex; }
-  .qr-card{ position:relative; width:100%; max-width:340px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:18px; padding:28px 26px 24px; text-align:center; box-shadow:0 40px 80px -20px rgba(0,0,0,0.8); }
+  #qrModal{ overflow-y:auto; }
+  .qr-card{ position:relative; width:100%; max-width:400px; margin:auto; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:18px; padding:28px 26px 24px; text-align:center; box-shadow:0 40px 80px -20px rgba(0,0,0,0.8); }
   .qr-title{ font-family:'Fraunces',serif; font-size:20px; color:var(--paper); margin-bottom:4px; }
   .qr-sub{ font-size:13px; color:rgba(251,247,240,0.55); margin-bottom:18px; line-height:1.45; }
   .qr-url{ font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--sage-soft); margin:14px 0 18px; word-break:break-all; }
   .qr-download{ background:var(--coral); color:var(--paper); border:none; border-radius:10px; font-family:'Inter',sans-serif; font-size:14px; font-weight:700; padding:11px 22px; cursor:pointer; }
   .qr-download:hover{ background:var(--coral-dim); }
+  .qr-tips{ text-align:left; margin-top:22px; padding-top:18px; border-top:1px solid var(--line-light); }
+  .qr-tips-title{ font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--coral); margin-bottom:10px; }
+  .qr-tips ul{ margin:0; padding-left:18px; }
+  .qr-tips li{ font-size:13px; line-height:1.5; color:rgba(251,247,240,0.7); margin-bottom:6px; }
+  .qr-tips li strong{ color:var(--paper); font-weight:600; }
 
   /* print mode — show only the profile card, wherever it currently lives in
      the DOM (own profile lives inside #candMain, shared lives in <body>). */
@@ -4096,9 +4102,19 @@
     <button class="legal-close" id="qrClose" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
     <div class="qr-title">Profile QR code</div>
     <div class="qr-sub">Scan to open this profile. Great for résumés, business cards, and slides.</div>
-    <div id="qrImageWrap" style="background:#fff;border-radius:14px;padding:14px;display:flex;align-items:center;justify-content:center;margin:0 auto;width:max-content;"></div>
+    <div id="qrImageWrap" style="background:#fff;border-radius:16px;padding:16px;display:flex;align-items:center;justify-content:center;margin:0 auto;width:max-content;"></div>
     <div id="qrUrl" class="qr-url"></div>
     <button class="qr-download" id="qrDownload" type="button">Download PNG</button>
+    <div class="qr-tips">
+      <div class="qr-tips-title">Where to use it</div>
+      <ul>
+        <li>On your <strong>résumé header</strong>, next to your email &amp; LinkedIn</li>
+        <li>On a <strong>name tag or handout</strong> at career fairs &amp; meetups</li>
+        <li>On a <strong>personal / networking card</strong></li>
+        <li>A <strong>“scan me” slide</strong> in interview or portfolio decks</li>
+        <li>Show it on your <strong>phone</strong> for someone to scan on the spot</li>
+      </ul>
+    </div>
   </div>
 </div>
 <!-- ============ LEGAL MODALS ============ -->
@@ -5458,7 +5474,7 @@
     const url = __shownProfileId ? (location.origin + '/profile/' + __shownProfileId) : window.location.href;
     const wrap = document.getElementById('qrImageWrap'); const cv = gcBuildQrCanvas(url);
     if(!cv){ showToast('Could not generate the QR code.'); return; }
-    cv.style.width = '220px'; cv.style.height = '220px'; cv.style.imageRendering = 'pixelated';
+    cv.style.width = '300px'; cv.style.height = '300px'; cv.style.maxWidth = '100%'; cv.style.imageRendering = 'pixelated';
     wrap.innerHTML = ''; wrap.appendChild(cv);
     document.getElementById('qrUrl').textContent = url;
     document.getElementById('qrModal').classList.add('open');
