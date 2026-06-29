@@ -5179,15 +5179,17 @@
     const cnt = document.getElementById('adminUsersCount'); if(cnt) cnt.textContent = '· ' + (search ? (users.length + ' match' + (users.length===1?'':'es')) : (res.total + ' total'));
     if(!users.length){ list.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:8px 0;">No users found.</div>'; return; }
     const td = (v, extra) => `<td style="padding:8px 10px;font-size:12.5px;${extra||''}">${escapeHtml(v==null||v===''?'—':String(v))}</td>`;
+    const linkCell = (url, label) => { const safe = /^https?:\/\//i.test(url||'') ? url : (url ? 'https://'+url : ''); return safe ? `<td style="padding:8px 10px;font-size:12.5px;"><a href="${escapeHtml(safe)}" target="_blank" rel="noopener noreferrer nofollow" style="color:var(--coral);text-decoration:none;">${label} ↗</a></td>` : td('—'); };
+    const roleColor = r => r==='admin' ? 'color:#e8c848;font-weight:700;' : (r==='recruiter' ? 'color:var(--sage-soft);' : 'color:rgba(251,247,240,0.6);');
     const rows = users.map(u => {
       let joined = u.created_at; try{ joined = new Date(u.created_at).toLocaleDateString(); }catch(e){}
       const codeCell = u.code
         ? `<td style="padding:8px 10px;font-size:12.5px;"><a href="/profile/${encodeURIComponent(u.code)}" target="_blank" rel="noopener" style="color:var(--coral);font-family:'JetBrains Mono',monospace;text-decoration:none;">${escapeHtml(u.code)} ↗</a></td>`
         : td('—');
       const status = (u.confirmed ? '' : 'unconfirmed') + (u.visible === false ? (u.confirmed?'hidden':' · hidden') : '');
-      return `<tr>${td(u.name,'color:var(--paper);font-weight:600;')}${td(u.email,"color:rgba(251,247,240,0.7);")}${codeCell}${td(u.role,'color:rgba(251,247,240,0.6);')}${td(joined,'color:rgba(251,247,240,0.55);white-space:nowrap;')}${td(status||'active','color:rgba(251,247,240,0.5);')}</tr>`;
+      return `<tr>${td(u.name,'color:var(--paper);font-weight:600;')}${td(u.title,'color:rgba(251,247,240,0.7);')}${td(u.email,"color:rgba(251,247,240,0.7);")}${linkCell(u.linkedin,'LinkedIn')}${td(u.role,roleColor(u.role))}${codeCell}${td(joined,'color:rgba(251,247,240,0.55);white-space:nowrap;')}${td(status||'active','color:rgba(251,247,240,0.5);')}</tr>`;
     }).join('');
-    const head = ['Name','Email','Profile','Role','Joined','Status'].map(h=>`<th style="text-align:left;padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(251,247,240,0.4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${h}</th>`).join('');
+    const head = ['Name','Title','Email','LinkedIn','Role','Profile','Joined','Status'].map(h=>`<th style="text-align:left;padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(251,247,240,0.4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${h}</th>`).join('');
     list.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
   }
   function renderAdminLogin(c, API){
