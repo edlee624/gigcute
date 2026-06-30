@@ -5544,19 +5544,38 @@
     document.getElementById('adminLoginBtn').onclick = submit;
     document.getElementById('adminPw').addEventListener('keydown', e => { if(e.key === 'Enter') submit(); });
   }
+  // Friendly labels for the internal screen IDs shown in analytics.
+  const SCREEN_LABELS = {
+    'screen-landing':'Home (landing page)',
+    'screen-app':'Profile / signed-in app',
+    'screen-login-seeker':'Log in',
+    'screen-forgot-pw':'Forgot password',
+    'screen-set-pw':'Set new password',
+    'screen-seeker-1':'Sign-up · 1 · Create account',
+    'screen-seeker-2':'Sign-up · 2 · Import résumé',
+    'screen-seeker-parsing':'Sign-up · Parsing résumé',
+    'screen-seeker-work':'Sign-up · 3 · Work & details',
+    'screen-seeker-prompts':'Sign-up · 4 · Prompts',
+    'screen-seeker-preview':'Sign-up · 5 · Preview',
+    'screen-success':'Sign-up · Done',
+    'screen-recruit':'Recruiters (coming soon)',
+    'screen-admin':'Admin panel',
+  };
+  function screenLabel(id){ return SCREEN_LABELS[id] || id || '(unknown)'; }
   function renderAdminHTML(d){
     const stat = (label,val) => `<div style="background:var(--ink-soft);border:1px solid var(--line-light);border-radius:14px;padding:18px 20px;"><div style="font-size:30px;font-family:'Fraunces',serif;color:var(--coral);line-height:1;">${val}</div><div style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.06em;color:rgba(251,247,240,0.5);margin-top:6px;">${label}</div></div>`;
     const cards = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:24px;">${stat('Unique visitors', d.unique_visitors||0)}${stat('Signups', d.signups||0)}${stat('Screen views', d.screen_views||0)}${stat('Profile views', d.profile_views||0)}${stat('Signed-in users', d.unique_users||0)}${stat('Total events', d.total||0)}${stat('Last 7 days', d.last_7d||0)}</div>`;
     const panel = (title, inner) => `<div style="background:var(--ink-soft);border:1px solid var(--line-light);border-radius:14px;padding:20px;margin-bottom:18px;"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(251,247,240,0.5);margin-bottom:14px;">${title}</div>${inner}</div>`;
     const maxScreen = Math.max(1, ...(d.top_screens||[]).map(s=>s.count));
-    const topScreens = (d.top_screens||[]).map(s=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;"><div style="flex:0 0 150px;font-size:13px;color:rgba(251,247,240,0.8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(s.screen)}</div><div style="flex:1;background:var(--ink);border-radius:5px;overflow:hidden;"><div style="height:16px;width:${Math.round(s.count/maxScreen*100)}%;background:var(--coral);min-width:2px;"></div></div><div style="flex:0 0 46px;text-align:right;font-size:12.5px;color:rgba(251,247,240,0.6);">${s.count}</div></div>`).join('') || '<div style="color:rgba(251,247,240,0.4);">No data yet.</div>';
+    const topScreens = (d.top_screens||[]).map(s=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;"><div title="${escapeHtml(s.screen)}" style="flex:0 0 190px;font-size:13px;color:rgba(251,247,240,0.8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(screenLabel(s.screen))}</div><div style="flex:1;background:var(--ink);border-radius:5px;overflow:hidden;"><div style="height:16px;width:${Math.round(s.count/maxScreen*100)}%;background:var(--coral);min-width:2px;"></div></div><div style="flex:0 0 46px;text-align:right;font-size:12.5px;color:rgba(251,247,240,0.6);">${s.count}</div></div>`).join('') || '<div style="color:rgba(251,247,240,0.4);">No data yet.</div>';
     const maxDay = Math.max(1, ...(d.by_day||[]).map(x=>x.count));
     const byDay = (d.by_day||[]).map(x=>`<div title="${escapeHtml(x.day)}: ${x.count}" style="flex:1;min-width:5px;display:flex;flex-direction:column;justify-content:flex-end;"><div style="height:${Math.round(x.count/maxDay*120)}px;background:var(--sage);border-radius:3px 3px 0 0;min-height:2px;"></div></div>`).join('');
     const browserOf = ua => { ua = ua||''; if(/edg/i.test(ua)) return 'Edge'; if(/(chrome|crios)/i.test(ua)) return 'Chrome'; if(/(firefox|fxios)/i.test(ua)) return 'Firefox'; if(/safari/i.test(ua)) return 'Safari'; return ua ? ua.slice(0,16) : '—'; };
     const td = (v, extra) => `<td style="padding:7px 10px;font-size:12px;${extra||''}">${escapeHtml(v||'—')}</td>`;
     const rows = (d.recent||[]).map(r=>{ let when=r.created_at; try{ when=new Date(r.created_at).toLocaleString(); }catch(e){}
       const loc = [r.city, r.country].filter(Boolean).join(', ');
-      return `<tr>${td(when,'color:rgba(251,247,240,0.55);white-space:nowrap;')}${td(r.type,"color:var(--coral);font-family:'JetBrains Mono',monospace;")}${td(r.detail,'color:rgba(251,247,240,0.7);')}${td(r.account||'anonymous','color:rgba(251,247,240,0.7);')}${td(loc,'color:rgba(251,247,240,0.7);')}${td(browserOf(r.ua),'color:rgba(251,247,240,0.7);')}${td(r.ip,"color:rgba(251,247,240,0.45);font-family:'JetBrains Mono',monospace;")}</tr>`;
+      const detail = (r.detail && r.detail.indexOf('screen-')===0) ? screenLabel(r.detail) : r.detail;
+      return `<tr>${td(when,'color:rgba(251,247,240,0.55);white-space:nowrap;')}${td(r.type,"color:var(--coral);font-family:'JetBrains Mono',monospace;")}${td(detail,'color:rgba(251,247,240,0.7);')}${td(r.account||'anonymous','color:rgba(251,247,240,0.7);')}${td(loc,'color:rgba(251,247,240,0.7);')}${td(browserOf(r.ua),'color:rgba(251,247,240,0.7);')}${td(r.ip,"color:rgba(251,247,240,0.45);font-family:'JetBrains Mono',monospace;")}</tr>`;
     }).join('') || '<tr><td colspan="7" style="padding:14px;color:rgba(251,247,240,0.4);">No recent activity.</td></tr>';
     const head = ['Time','Event','Detail','Account','Location','Browser','IP'].map(h=>`<th style="text-align:left;padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(251,247,240,0.4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${h}</th>`).join('');
     const recentTable = `<table style="width:100%;border-collapse:collapse;"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
