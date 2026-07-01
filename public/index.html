@@ -3784,22 +3784,21 @@
 </div>
 
 <!-- ============ JOB DETAIL ============ -->
-<div id="jobDetailModal" style="display:none; position:fixed; inset:0; z-index:950; background:rgba(10,11,14,0.8); backdrop-filter:blur(3px); overflow-y:auto;">
-  <div style="max-width:680px; margin:40px auto; padding:0 16px 60px;">
-    <div style="background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px; padding:26px 28px;">
-      <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
-        <div id="jdTitle" style="font-family:'Fraunces',serif; font-size:22px; font-weight:600; color:var(--paper); line-height:1.2;"></div>
-        <button id="jdClose" type="button" class="ds-nav-btn" style="flex-shrink:0;">✕</button>
-      </div>
-      <div id="jdMeta" style="font-size:14px; color:rgba(251,247,240,0.7); margin-top:8px;"></div>
-      <div id="jdSalary" style="font-size:13px; color:var(--sage-soft); margin-top:6px;"></div>
-      <div id="jdTags" class="jli-tags" style="margin-top:12px;"></div>
-      <div id="jdDesc" style="font-size:13.5px; color:rgba(251,247,240,0.72); line-height:1.65; margin-top:16px; white-space:pre-wrap;"></div>
-      <div style="display:flex; gap:14px; align-items:center; margin-top:24px; flex-wrap:wrap;">
-        <a id="jdApply" href="#" target="_blank" rel="noopener noreferrer nofollow" class="lm-cta-btn" style="text-decoration:none; font-size:14px;">Apply on source ↗</a>
-        <div id="jdSource" style="font-size:11px; color:rgba(251,247,240,0.4);"></div>
-      </div>
+<div id="jobDetailModal" style="display:none; position:fixed; inset:0; z-index:950; background:var(--ink); overflow-y:auto;">
+  <div style="max-width:1080px; margin:0 auto; min-height:100%; padding:0 clamp(16px,5vw,52px) 72px; box-sizing:border-box;">
+    <div style="position:sticky; top:0; background:var(--ink); z-index:2; display:flex; justify-content:space-between; gap:16px; align-items:flex-start; padding:22px 0 16px; border-bottom:1px solid var(--line-light);">
+      <div id="jdTitle" style="font-family:'Fraunces',serif; font-size:26px; font-weight:600; color:var(--paper); line-height:1.2;"></div>
+      <button id="jdClose" type="button" class="ds-nav-btn" style="flex-shrink:0;">✕ Close</button>
     </div>
+    <div id="jdMeta" style="font-size:15px; color:rgba(251,247,240,0.75); margin-top:16px;"></div>
+    <div id="jdSalary" style="font-size:14px; color:var(--sage-soft); margin-top:6px;"></div>
+    <div id="jdTags" class="jli-tags" style="margin-top:14px;"></div>
+    <div style="display:flex; gap:14px; align-items:center; margin-top:20px; flex-wrap:wrap;">
+      <a id="jdApply" href="#" target="_blank" rel="noopener noreferrer nofollow" class="lm-cta-btn" style="text-decoration:none; font-size:14px;">Apply on source ↗</a>
+      <div id="jdSource" style="font-size:11.5px; color:rgba(251,247,240,0.4);"></div>
+    </div>
+    <div id="jdDesc" style="font-size:15px; color:rgba(251,247,240,0.82); line-height:1.75; margin-top:24px; white-space:pre-wrap; max-width:800px;"></div>
+    <div id="jdFullNote" style="font-size:12.5px; color:rgba(251,247,240,0.45); margin-top:22px; padding-top:16px; border-top:1px solid var(--line-light); max-width:800px;"></div>
   </div>
 </div>
 
@@ -6649,7 +6648,10 @@
     const a = document.getElementById('jdApply'); a.href = /^https?:\/\//i.test(j.url || '') ? j.url : '#';
     a.onclick = () => trackApplyClick(key);
     document.getElementById('jdSource').textContent = [j.posted_at ? ('Posted ' + jobTimeAgo(j.posted_at)) : '', j.source ? ('via ' + j.source) : ''].filter(Boolean).join(' · ');
-    document.getElementById('jobDetailModal').style.display = 'block';
+    const note = document.getElementById('jdFullNote');
+    if(note) note.textContent = j.url ? `This is the summary provided by ${j.source || 'the source'}. Some feeds shorten the description — open “Apply on source” above for the complete posting, requirements, and application.` : '';
+    const modal = document.getElementById('jobDetailModal');
+    modal.style.display = 'block'; modal.scrollTop = 0;
     document.body.style.overflow = 'hidden';
   }
   function closeJobDetail(){ const m = document.getElementById('jobDetailModal'); if(m) m.style.display = 'none'; document.body.style.overflow = ''; }
