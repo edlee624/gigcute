@@ -4182,23 +4182,6 @@
           <div class="adv-filter-panel" id="advFilterPanel">
             <div class="adv-filter-grid">
 
-              <div class="adv-filter-group" style="grid-column:1 / -1;">
-                <label>Location &amp; distance</label>
-                <div class="loc-add-row">
-                  <input type="text" id="jobLocationInput" placeholder="Your city, state or ZIP — e.g. Austin, TX or 78701">
-                  <select id="jobRadius" class="loc-dist">
-                    <option value="0">Any distance</option>
-                    <option value="5">Within 5 mi</option>
-                    <option value="10">Within 10 mi</option>
-                    <option value="25">Within 25 mi</option>
-                    <option value="50">Within 50 mi</option>
-                    <option value="100">Within 100 mi</option>
-                    <option value="100+">100 mi+</option>
-                  </select>
-                </div>
-                <div style="font-size:11px;color:rgba(251,247,240,0.4);margin-top:6px;">Remote roles always match. Add a ZIP for closer matches to an office.</div>
-              </div>
-
               <div class="adv-filter-group">
                 <label>Work setup</label>
                 <div class="adv-filter-chips">
@@ -6621,6 +6604,27 @@
   }
   const __jobsById = {};
   function jobKey(j){ return String(j.id || (j.source && j.external_id ? j.source + ':' + j.external_id : '') || j.url || `${j.title||''}|${j.company||''}`); }
+  // Defensive display cleaner: some older ingested rows stored entity-ENCODED HTML
+  // (e.g. "<p>&nbsp;</p>") as literal text. Decode → strip tags → decode again so
+  // the description reads as plain text no matter how it was stored.
+  function decodeEntitiesClient(s){
+    return String(s)
+      .replace(/&#x([0-9a-f]+);/gi, (_m,n) => String.fromCharCode(parseInt(n,16)))
+      .replace(/&#(\d+);/g, (_m,n) => String.fromCharCode(+n))
+      .replace(/&nbsp;/gi,' ').replace(/&#39;|&rsquo;|&lsquo;|&apos;/gi,"'")
+      .replace(/&quot;|&ldquo;|&rdquo;/gi,'"').replace(/&mdash;/gi,'—').replace(/&ndash;/gi,'–')
+      .replace(/&hellip;/gi,'…').replace(/&bull;/gi,'•')
+      .replace(/&lt;/gi,'<').replace(/&gt;/gi,'>').replace(/&amp;/gi,'&');
+  }
+  function cleanDesc(s){
+    if(!s) return '';
+    let t = decodeEntitiesClient(s);
+    if(/<[^>]+>/.test(t)){
+      t = t.replace(/<\/(p|div|li|br|h[1-6]|ul|ol|tr)>/gi,'\n').replace(/<li[^>]*>/gi,'• ').replace(/<[^>]*>/g,' ');
+      t = decodeEntitiesClient(t);
+    }
+    return t.replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();
+  }
   // Build an OR-search query from the logged-in seeker's profile (title + recent
   // job titles). Returns { terms:[...], query:'a or b or c' } — used by "Best match".
   function seekerJobKeywords(){
@@ -6644,7 +6648,7 @@
     document.getElementById('jdMeta').textContent = [j.company, loc, type].filter(Boolean).join(' · ');
     document.getElementById('jdSalary').textContent = fmtSalary(j) || '';
     document.getElementById('jdTags').innerHTML = (j.tags || []).map(t => `<span class="jli-tag">${escapeHtml(t)}</span>`).join('');
-    document.getElementById('jdDesc').textContent = j.description || 'No description provided. Use “Apply” to see the full posting on the source site.';
+    document.getElementById('jdDesc').textContent = cleanDesc(j.description) || 'No description provided. Use “Apply” to see the full posting on the source site.';
     const a = document.getElementById('jdApply'); a.href = /^https?:\/\//i.test(j.url || '') ? j.url : '#';
     a.onclick = () => trackApplyClick(key);
     document.getElementById('jdSource').textContent = [j.posted_at ? ('Posted ' + jobTimeAgo(j.posted_at)) : '', j.source ? ('via ' + j.source) : ''].filter(Boolean).join(' · ');
@@ -6708,7 +6712,7 @@
     if(!listEl) return;
     const countEl = document.getElementById('roleCount'); if(countEl) countEl.textContent = __dash.total ? `${__dash.total} role${__dash.total !== 1 ? 's' : ''}` : '';
     const heading = document.getElementById('allRolesHeading');
-    if(heading) heading.innerHTML = (__dash.q || __dash.remote || __dash.minSalary || __dash.employmentType) ? 'Search <em>results</em>' : 'All open <em>roles</em>';
+    if(heading) heading.innerHTML = (__dash.q || __dash.remote || __dash.minSalary || (__dash.employmentType && __dash.employmentType.length) || (__dash.keywordGroups && __dash.keywordGroups.length)) ? 'Search <em>results</em>' : 'All open <em>roles</em>';
     if(!__dash.items.length){
       listEl.innerHTML = `<div style="text-align:center;padding:44px 20px;color:rgba(251,247,240,0.4);"><div style="font-family:'Fraunces',serif;font-size:18px;font-style:italic;margin-bottom:6px;">No roles found</div><div style="font-size:13px;">Try adjusting your search or filters.</div></div>`;
     } else {
@@ -6730,15 +6734,29 @@
         if(__dash.sort === 'match'){
           res = await loadMatchSorted(API, PAGE, reset);
         } else {
-          res = await API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType || null, location:__dash.location || null, keywords:__dash.keywords || null, sort:__dash.sort });
+          res = await API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, sort:__dash.sort });
         }
       } else {
         res = filterSampleJobs(PAGE);
       }
     }catch(e){ console.warn('dash jobs:', e && e.message); res = { jobs: [], total: 0 }; }
-    const fresh = (res.jobs || []).filter(j => !isDismissed(j));   // hide jobs the user removed
+    // Hide removed jobs, then dedupe: the same role can be ingested by two sources
+    // (e.g. Adzuna + Greenhouse) under different external_ids — collapse by a
+    // company|title|location signature so it shows once.
+    if(reset) __dashSeen = new Set();
+    const fresh = (res.jobs || []).filter(j => {
+      if(isDismissed(j)) return false;
+      const sig = jobSig(j);
+      if(__dashSeen.has(sig)) return false;
+      __dashSeen.add(sig); return true;
+    });
     __dash.total = res.total; __dash.items = __dash.items.concat(fresh); __dash.offset += (res.jobs || []).length;
     renderDashJobs();
+  }
+  let __dashSeen = new Set();
+  function jobSig(j){
+    const norm = s => String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
+    return `${norm(j.company)}|${norm(j.title)}|${norm((j.location||'').replace(/remote/ig,''))}`;
   }
   // "Best match": relevance-rank via jobs_search (profile keywords + typed query),
   // then apply the structured filters the RPC doesn't support, client-side.
@@ -6746,25 +6764,24 @@
     if(!reset) return { jobs: [], total: __dash.total };   // match view is a single ranked page
     const kw = (typeof seekerJobKeywords === 'function') ? seekerJobKeywords() : { query:'' };
     const q = [kw.query, __dash.q].filter(Boolean).join(' or ');
-    if(!q) return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType || null, location:__dash.location || null, keywords:__dash.keywords || null, sort:'newest' });
+    if(!q) return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, sort:'newest' });
     let ranked = [];
     try{ ranked = await API.jobs.search({ q, remote:__dash.remote || null, limit:50 }); }catch(e){ ranked = []; }
-    const ms = __dash.minSalary || 0, loc = (__dash.location || '').toLowerCase(), kws = (__dash.keywords || []).map(k => k.toLowerCase());
+    const ms = __dash.minSalary || 0, empTypes = __dash.employmentType || [], groups = __dash.keywordGroups || [];
     ranked = ranked.filter(j => {
-      if(__dash.employmentType && j.employment_type !== __dash.employmentType) return false;
+      if(empTypes.length && !empTypes.includes(j.employment_type)) return false;
       if(ms && !((j.salary_max && j.salary_max >= ms) || (j.salary_min && j.salary_min >= ms))) return false;
-      if(loc && !String(j.location || '').toLowerCase().includes(loc)) return false;
-      if(kws.length){ const hay = `${j.title||''} ${j.description||''}`.toLowerCase(); if(!kws.every(k => hay.includes(k))) return false; }
+      const hay = `${j.title||''} ${j.description||''}`.toLowerCase();
+      if(!groups.every(g => g.some(k => hay.includes(k.toLowerCase())))) return false;
       return true;
     });
     return { jobs: ranked, total: ranked.length };
   }
   function filterSampleJobs(PAGE){
-    const q = __dash.q.toLowerCase(); const ms = __dash.minSalary || 0; const loc = (__dash.location||'').toLowerCase(); const kws = (__dash.keywords||[]).map(k=>k.toLowerCase());
-    let f = SAMPLE_JOBS.filter(j => (!__dash.remote || j.remote) && (!__dash.employmentType || j.employment_type === __dash.employmentType)
+    const q = __dash.q.toLowerCase(); const ms = __dash.minSalary || 0; const empTypes = __dash.employmentType || []; const groups = __dash.keywordGroups || [];
+    let f = SAMPLE_JOBS.filter(j => (!__dash.remote || j.remote) && (!empTypes.length || empTypes.includes(j.employment_type))
       && (!ms || (j.salary_max && j.salary_max >= ms) || (j.salary_min && j.salary_min >= ms))
-      && (!loc || `${j.location||''}`.toLowerCase().includes(loc))
-      && (!kws.length || kws.every(k => `${j.title||''} ${(j.tags||[]).join(' ')}`.toLowerCase().includes(k)))
+      && groups.every(g => g.some(k => `${j.title||''} ${(j.tags||[]).join(' ')}`.toLowerCase().includes(k.toLowerCase())))
       && (!q || `${j.title} ${j.company} ${j.location}`.toLowerCase().includes(q)));
     if(__dash.sort === 'salary') f = f.slice().sort((a,b) => (b.salary_max||0) - (a.salary_max||0));
     else if(__dash.sort === 'alpha') f = f.slice().sort((a,b) => (a.title||'').localeCompare(b.title||''));
@@ -6772,23 +6789,25 @@
   }
   function syncDashFilters(){
     const activeQuick = new Set([...document.querySelectorAll('#dashView .quick-chip.active')].map(c => c.dataset.quick));
-    const setupRemote = !!document.querySelector('#advFilterPanel .adv-chip[data-filter="setup"][data-value="Remote"].active');
-    __dash.remote = activeQuick.has('Remote') || setupRemote;
+    // Work setup is multi-select: only filter to remote when Remote is chosen and
+    // no on-site setup (Hybrid / In-office) is also chosen.
+    const setupVals = [...document.querySelectorAll('#advFilterPanel .adv-chip[data-filter="setup"].active')].map(c => c.dataset.value);
+    __dash.remote = (activeQuick.has('Remote') || setupVals.includes('Remote')) && !setupVals.includes('Hybrid') && !setupVals.includes('In-office');
     const slider = document.getElementById('salarySlider'); const sv = slider ? parseInt(slider.value,10) : 0;
     __dash.minSalary = activeQuick.has('$100K+') ? 100000 : (sv > 0 ? sv * 1000 : null);
-    const empChip = document.querySelector('#advFilterPanel .adv-chip[data-filter="empType"].active');
-    __dash.employmentType = activeQuick.has('Full-time') ? 'full_time' : (empChip ? mapEmpType(empChip.dataset.value) : null);
-    const deptChip = document.querySelector('#advFilterPanel .adv-chip[data-filter="dept"].active');
-    const senChip = document.querySelector('#advFilterPanel .adv-chip[data-filter="seniority"].active');
-    __dash.keywords = [deptChip && deptMap(deptChip.dataset.value), senChip && senMap(senChip.dataset.value)].filter(Boolean);
-    const li = document.getElementById('jobLocationInput'); __dash.location = li ? li.value.trim() : '';
+    const empVals = [...document.querySelectorAll('#advFilterPanel .adv-chip[data-filter="empType"].active')].map(c => mapEmpType(c.dataset.value)).filter(Boolean);
+    if(activeQuick.has('Full-time')) empVals.push('full_time');
+    __dash.employmentType = [...new Set(empVals)];
+    // Department + Experience are each multi-select groups: OR within, AND across.
+    const deptVals = [...document.querySelectorAll('#advFilterPanel .adv-chip[data-filter="dept"].active')].map(c => deptMap(c.dataset.value)).filter(Boolean);
+    const senVals = [...document.querySelectorAll('#advFilterPanel .adv-chip[data-filter="seniority"].active')].map(c => senMap(c.dataset.value)).filter(Boolean);
+    __dash.keywordGroups = [deptVals, senVals].filter(g => g.length);
     const s = document.getElementById('jobSearch'); __dash.q = s ? s.value.trim() : '';
     const so = document.getElementById('jobSortSelect'); __dash.sort = so ? so.value : 'newest';
   }
   function clearDashFilters(){
     document.querySelectorAll('#dashView .quick-chip.active, #advFilterPanel .adv-chip.active').forEach(c => c.classList.remove('active'));
     const sl = document.getElementById('salarySlider'); if(sl){ sl.value = 0; const sd = document.getElementById('salaryDisplay'); if(sd) sd.textContent = 'Any'; }
-    const li = document.getElementById('jobLocationInput'); if(li) li.value = '';
     const s = document.getElementById('jobSearch'); if(s) s.value = '';
     const so = document.getElementById('jobSortSelect'); if(so) so.value = 'newest';
     syncDashFilters(); loadDashJobs(true);
@@ -6801,13 +6820,10 @@
     once(document.getElementById('advFilterToggle'), ft => ft.onclick = () => { const p = document.getElementById('advFilterPanel'); if(p) p.classList.toggle('open'); ft.classList.toggle('active'); });
     once(document.getElementById('clearAllFilters'), c => c.onclick = clearDashFilters);
     once(document.getElementById('salarySlider'), sl => { sl.oninput = () => { const v = parseInt(sl.value,10); const sd = document.getElementById('salaryDisplay'); if(sd) sd.textContent = v ? ('$' + v + 'k+') : 'Any'; }; sl.onchange = () => { syncDashFilters(); loadDashJobs(true); }; });
-    once(document.getElementById('jobLocationInput'), li => li.addEventListener('input', () => { clearTimeout(__dashTimer); __dashTimer = setTimeout(() => { syncDashFilters(); loadDashJobs(true); }, 350); }));
     document.querySelectorAll('#dashView .quick-chip').forEach(chip => once(chip, c => c.onclick = () => { c.classList.toggle('active'); syncDashFilters(); loadDashJobs(true); }));
-    // advanced-panel chips: single-select within each group (work setup, job type, department, experience)
+    // advanced-panel chips: multi-select — each chip toggles independently.
     document.querySelectorAll('#advFilterPanel .adv-chip[data-filter="setup"], #advFilterPanel .adv-chip[data-filter="empType"], #advFilterPanel .adv-chip[data-filter="dept"], #advFilterPanel .adv-chip[data-filter="seniority"]').forEach(chip => once(chip, c => c.onclick = () => {
-      const group = c.getAttribute('data-filter'); const wasActive = c.classList.contains('active');
-      document.querySelectorAll(`#advFilterPanel .adv-chip[data-filter="${group}"]`).forEach(x => x.classList.remove('active'));
-      if(!wasActive) c.classList.add('active');
+      c.classList.toggle('active');
       syncDashFilters(); loadDashJobs(true);
     }));
   }
@@ -6820,12 +6836,11 @@
     // their dividers, and the old in-dashboard demo tracker table.
     document.querySelectorAll('#dashView .cd-section-head, #dashView .cd-divider').forEach(el => el.style.display = 'none');
     const tb = document.getElementById('trackerBody'); if(tb){ const box = tb.closest('div'); if(box) box.style.display = 'none'; }
-    // Only the equity group has no feed data; distance needs geocoding — hide those two.
+    // The equity group has no feed data to filter on — hide it.
     document.querySelectorAll('#advFilterPanel .adv-filter-group').forEach(g => {
       const dfEl = g.querySelector('[data-filter]'); const df = dfEl && dfEl.getAttribute('data-filter');
       if(df === 'equity') g.style.display = 'none';
     });
-    const dist = document.getElementById('jobRadius'); if(dist) dist.style.display = 'none';
   }
   async function showJobsDashboard(){
     showScreen('screen-app');
@@ -6836,7 +6851,7 @@
     renderDashboard();          // hydrate the sidebar (async; sidebar only)
     hideDashRecruiterBits();
     wireDashControls();
-    __dash = { q:'', remote:false, minSalary:null, employmentType:null, location:'', keywords:[], sort:'newest', offset:0, total:0, items:[], loading:false };
+    __dash = { q:'', remote:false, minSalary:null, employmentType:[], keywordGroups:[], sort:'newest', offset:0, total:0, items:[], loading:false };
     await loadSavedSet();     // so cards show the correct Save state
     loadDashJobs(true);
   }

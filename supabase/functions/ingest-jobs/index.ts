@@ -51,15 +51,24 @@ function meetsSalary(r: { salary_min: number | null; salary_max: number | null }
   return (r.salary_max != null && r.salary_max >= JOB_MIN_SALARY) ||
          (r.salary_min != null && r.salary_min >= JOB_MIN_SALARY);
 }
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&#x([0-9a-f]+);/gi, (_m, n) => String.fromCharCode(parseInt(n, 16)))
+    .replace(/&#(\d+);/g, (_m, n) => String.fromCharCode(+n))
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&#39;|&rsquo;|&lsquo;|&apos;/gi, "'").replace(/&quot;|&ldquo;|&rdquo;/gi, '"')
+    .replace(/&mdash;/gi, "—").replace(/&ndash;/gi, "–").replace(/&hellip;/gi, "…").replace(/&bull;/gi, "•")
+    .replace(/&lt;/gi, "<").replace(/&gt;/gi, ">").replace(/&amp;/gi, "&");
+}
 function htmlToText(s: string | null | undefined): string | null {
   if (!s) return null;
-  return s
-    .replace(/<\/(p|div|li|br|h[1-6]|ul|ol|tr)>/gi, "\n").replace(/<li[^>]*>/gi, "• ").replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">")
-    .replace(/&#39;|&rsquo;|&apos;/gi, "'").replace(/&quot;|&ldquo;|&rdquo;/gi, '"')
-    .replace(/&mdash;/gi, "—").replace(/&ndash;/gi, "–").replace(/&hellip;/gi, "…")
-    .replace(/&#(\d+);/g, (_m, n) => String.fromCharCode(+n))
-    .replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+  // Greenhouse (and some boards) entity-ENCODE their HTML (e.g. "&lt;p&gt;&amp;nbsp;"),
+  // so decode ONCE to recover the real tags, strip the tags, then decode a second
+  // time to catch entities that were double-encoded (e.g. "&amp;nbsp;").
+  let t = decodeEntities(s);
+  t = t.replace(/<\/(p|div|li|br|h[1-6]|ul|ol|tr)>/gi, "\n").replace(/<li[^>]*>/gi, "• ").replace(/<[^>]*>/g, " ");
+  t = decodeEntities(t);
+  return t.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
 }
 function extractSalary(text: string | null | undefined): { min: number | null; max: number | null } {
   if (!text) return { min: null, max: null };

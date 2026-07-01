@@ -721,22 +721,30 @@ const reports = {
 const jobs = {
   // List active jobs, newest first, with optional text search + remote filter.
   // Returns { jobs:[...], total }. total is the full match count (for paging).
-  async list({ limit = 20, offset = 0, q = '', remote = null, minSalary = null, employmentType = null, location = null, keywords = null, sort = 'newest' } = {}) {
+  async list({ limit = 20, offset = 0, q = '', remote = null, minSalary = null, employmentType = null, location = null, keywords = null, keywordGroups = null, sort = 'newest' } = {}) {
     const clean = s => String(s || '').replace(/[(),%]/g, ' ').trim();
     let query = requireClient()
       .from('jobs')
       .select('*', { count: 'exact' })
       .eq('is_active', true);
     if (remote === true) query = query.eq('remote', true);
-    if (employmentType) query = query.eq('employment_type', employmentType);
+    // employmentType may be a string or an array (multi-select)
+    const empTypes = (Array.isArray(employmentType) ? employmentType : (employmentType ? [employmentType] : [])).filter(Boolean);
+    if (empTypes.length === 1) query = query.eq('employment_type', empTypes[0]);
+    else if (empTypes.length > 1) query = query.in('employment_type', empTypes);
     if (minSalary) query = query.or(`salary_min.gte.${minSalary},salary_max.gte.${minSalary}`);
     const term = clean(q);
     if (term) query = query.or(`title.ilike.%${term}%,company.ilike.%${term}%,location.ilike.%${term}%`);
     const loc = clean(location);
     if (loc) query = query.ilike('location', `%${loc}%`);
-    // each keyword (e.g. department/experience) must appear in title or description
-    (keywords || []).map(clean).filter(Boolean).forEach(kw => {
-      query = query.or(`title.ilike.%${kw}%,description.ilike.%${kw}%`);
+    // keyword GROUPS (e.g. departments, seniority): OR within a group, AND across
+    // groups. Falls back to treating a flat `keywords` array as one AND'd group.
+    const groups = keywordGroups || (keywords ? [keywords] : []);
+    groups.forEach(group => {
+      const terms = (group || []).map(clean).filter(Boolean);
+      if (!terms.length) return;
+      const ors = terms.flatMap(kw => [`title.ilike.%${kw}%`, `description.ilike.%${kw}%`]).join(',');
+      query = query.or(ors);
     });
     if (sort === 'salary') query = query.order('salary_max', { ascending: false, nullsFirst: false });
     else if (sort === 'alpha') query = query.order('title', { ascending: true });
