@@ -3601,13 +3601,47 @@
       Listings are aggregated from third-party job sites and updated automatically. GigCute is not the employer and doesn't manage these postings — always verify details and apply on the original site.
     </div>
     <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
-      <input id="jobSearch" type="text" placeholder="Search title, company, or location…" style="flex:1; min-width:220px; box-sizing:border-box; background:var(--ink); border:1px solid var(--line-light); border-radius:10px; color:var(--paper); font-family:'Inter',sans-serif; font-size:14px; padding:11px 14px;">
-      <label style="display:inline-flex; align-items:center; gap:8px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:10px; padding:0 14px; font-size:13px; color:rgba(251,247,240,0.75); cursor:pointer; user-select:none;"><input type="checkbox" id="jobRemote" style="cursor:pointer;"> Remote only</label>
+      <input id="jbSearch" type="text" placeholder="Search title, company, or location…" style="flex:1; min-width:200px; box-sizing:border-box; background:var(--ink); border:1px solid var(--line-light); border-radius:10px; color:var(--paper); font-family:'Inter',sans-serif; font-size:14px; padding:11px 14px;">
+      <select id="jbSalary" class="ds-nav-btn" style="cursor:pointer;">
+        <option value="">Any salary</option>
+        <option value="100000">$100k+</option>
+        <option value="150000">$150k+</option>
+        <option value="200000">$200k+</option>
+        <option value="250000">$250k+</option>
+      </select>
+      <select id="jbType" class="ds-nav-btn" style="cursor:pointer;">
+        <option value="">Any type</option>
+        <option value="full_time">Full-time</option>
+        <option value="part_time">Part-time</option>
+        <option value="contract">Contract</option>
+        <option value="permanent">Permanent</option>
+      </select>
+      <label style="display:inline-flex; align-items:center; gap:8px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:10px; padding:0 14px; font-size:13px; color:rgba(251,247,240,0.75); cursor:pointer; user-select:none;"><input type="checkbox" id="jbRemote" style="cursor:pointer;"> Remote only</label>
     </div>
     <div id="jobsRecommended" style="display:none; margin-bottom:26px;"></div>
     <div id="jobsCount" style="font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:rgba(251,247,240,0.45); margin-bottom:12px;"></div>
     <div id="jobsList"></div>
     <div id="jobsMore" style="text-align:center; margin-top:20px;"></div>
+  </div>
+</div>
+
+<!-- ============ JOB DETAIL ============ -->
+<div id="jobDetailModal" style="display:none; position:fixed; inset:0; z-index:950; background:rgba(10,11,14,0.8); backdrop-filter:blur(3px); overflow-y:auto;">
+  <div style="max-width:680px; margin:40px auto; padding:0 16px 60px;">
+    <div style="background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px; padding:26px 28px;">
+      <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+        <div id="jdTitle" style="font-family:'Fraunces',serif; font-size:22px; font-weight:600; color:var(--paper); line-height:1.2;"></div>
+        <button id="jdClose" type="button" class="ds-nav-btn" style="flex-shrink:0;">✕</button>
+      </div>
+      <div id="jdMeta" style="font-size:14px; color:rgba(251,247,240,0.7); margin-top:8px;"></div>
+      <div id="jdSalary" style="font-size:13px; color:var(--sage-soft); margin-top:6px;"></div>
+      <div id="jdTags" class="jli-tags" style="margin-top:12px;"></div>
+      <div id="jdDesc" style="font-size:13.5px; color:rgba(251,247,240,0.72); line-height:1.65; margin-top:16px; white-space:pre-wrap;"></div>
+      <div style="display:flex; gap:14px; align-items:center; margin-top:24px; flex-wrap:wrap;">
+        <a id="jdApply" href="#" target="_blank" rel="noopener noreferrer nofollow" class="lm-cta-btn" style="text-decoration:none; font-size:14px;">Apply on source ↗</a>
+        <div id="jdSource" style="font-size:11px; color:rgba(251,247,240,0.4);"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -6428,7 +6462,10 @@
       return Math.floor(d/365) + 'y ago';
     }catch(e){ return ''; }
   }
+  const __jobsById = {};
+  function jobKey(j){ return String(j.id || (j.source && j.external_id ? j.source + ':' + j.external_id : '') || j.url || `${j.title||''}|${j.company||''}`); }
   function jobCardHTML(j, reason){
+    const key = jobKey(j); __jobsById[key] = j;
     const salary = fmtSalary(j);
     const posted = j.posted_at ? jobTimeAgo(j.posted_at) : '';
     const loc = j.remote ? ('Remote' + (j.location && !/remote/i.test(j.location) ? ' · ' + j.location : '')) : (j.location || '');
@@ -6438,7 +6475,7 @@
     const safeUrl = /^https?:\/\//i.test(j.url || '') ? j.url : '#';
     const reasonHTML = reason ? `<div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--sage-soft);margin-bottom:6px;">✦ Matches your background · ${escapeHtml(reason)}</div>` : '';
     return `
-      <div style="background:var(--ink-soft);border:1px solid var(--line-light);border-radius:14px;padding:18px 20px;margin-bottom:12px;">
+      <div data-jobkey="${escapeHtml(key)}" style="background:var(--ink-soft);border:1px solid var(--line-light);border-radius:14px;padding:18px 20px;margin-bottom:12px;cursor:pointer;">
         ${reasonHTML}
         <div style="display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;">
           <div style="min-width:0;flex:1;">
@@ -6467,7 +6504,7 @@
       if(moreEl) moreEl.innerHTML = '';
       return;
     }
-    listEl.innerHTML = items.map(jobCardHTML).join('');
+    listEl.innerHTML = items.map(j => jobCardHTML(j)).join('');
     if(moreEl){
       moreEl.innerHTML = (__jobsState.offset < __jobsState.total) ? `<button class="ds-nav-btn" id="jobsMoreBtn" type="button">Load more</button>` : '';
       const mb = document.getElementById('jobsMoreBtn'); if(mb) mb.onclick = () => loadJobs(false);
@@ -6482,10 +6519,15 @@
     let res;
     try{
       if(API && API.enabled && API.jobs){
-        res = await API.jobs.list({ limit:PAGE, offset:__jobsState.offset, q:__jobsState.q, remote:__jobsState.remote || null });
+        res = await API.jobs.list({ limit:PAGE, offset:__jobsState.offset, q:__jobsState.q, remote:__jobsState.remote || null, minSalary:__jobsState.minSalary || null, employmentType:__jobsState.employmentType || null });
       } else {
         const q = __jobsState.q.toLowerCase();
-        const filtered = SAMPLE_JOBS.filter(j => (!__jobsState.remote || j.remote) && (!q || `${j.title} ${j.company} ${j.location}`.toLowerCase().includes(q)));
+        const ms = __jobsState.minSalary || 0;
+        const filtered = SAMPLE_JOBS.filter(j =>
+          (!__jobsState.remote || j.remote) &&
+          (!__jobsState.employmentType || j.employment_type === __jobsState.employmentType) &&
+          (!ms || (j.salary_max && j.salary_max >= ms) || (j.salary_min && j.salary_min >= ms)) &&
+          (!q || `${j.title} ${j.company} ${j.location}`.toLowerCase().includes(q)));
         res = { jobs: filtered.slice(__jobsState.offset, __jobsState.offset + PAGE), total: filtered.length };
       }
     }catch(e){ console.warn('jobs load:', e && e.message); res = { jobs: [], total: 0 }; }
@@ -6538,16 +6580,46 @@
   }
   async function showJobs(){
     showScreen('screen-jobs');
-    __jobsState = { q:'', remote:false, offset:0, total:0, items:[], loading:false };
-    const s = document.getElementById('jobSearch'); if(s) s.value = '';
-    const r = document.getElementById('jobRemote'); if(r) r.checked = false;
+    __jobsState = { q:'', remote:false, minSalary:null, employmentType:null, offset:0, total:0, items:[], loading:false };
+    const s = document.getElementById('jbSearch'); if(s) s.value = '';
+    const r = document.getElementById('jbRemote'); if(r) r.checked = false;
+    const sal = document.getElementById('jbSalary'); if(sal) sal.value = '';
+    const ty = document.getElementById('jbType'); if(ty) ty.value = '';
     loadJobs(true);
     loadRecommended();
   }
   window.showJobs = showJobs;
-  { const s=document.getElementById('jobSearch'); if(s) s.addEventListener('input', e => { clearTimeout(__jobsTimer); const v = e.target.value; __jobsTimer = setTimeout(() => { __jobsState.q = v; loadJobs(true); }, 300); }); }
-  { const r=document.getElementById('jobRemote'); if(r) r.onchange = () => { __jobsState.remote = r.checked; loadJobs(true); }; }
+  { const s=document.getElementById('jbSearch'); if(s) s.addEventListener('input', e => { clearTimeout(__jobsTimer); const v = e.target.value; __jobsTimer = setTimeout(() => { __jobsState.q = v; loadJobs(true); }, 300); }); }
+  { const r=document.getElementById('jbRemote'); if(r) r.onchange = () => { __jobsState.remote = r.checked; loadJobs(true); }; }
+  { const sal=document.getElementById('jbSalary'); if(sal) sal.onchange = () => { __jobsState.minSalary = sal.value ? parseInt(sal.value,10) : null; loadJobs(true); }; }
+  { const ty=document.getElementById('jbType'); if(ty) ty.onchange = () => { __jobsState.employmentType = ty.value || null; loadJobs(true); }; }
   { const b=document.getElementById('jobsBack'); if(b) b.onclick = () => navigate('/'); }
+
+  // ---- Job detail view ----
+  function openJobDetail(key){
+    const j = __jobsById[key]; if(!j) return;
+    const loc = j.remote ? ('Remote' + (j.location && !/remote/i.test(j.location) ? ' · ' + j.location : '')) : (j.location || '');
+    const type = j.employment_type ? String(j.employment_type).replace(/_/g,' ') : '';
+    document.getElementById('jdTitle').textContent = j.title || 'Untitled role';
+    document.getElementById('jdMeta').textContent = [j.company, loc, type].filter(Boolean).join(' · ');
+    document.getElementById('jdSalary').textContent = fmtSalary(j) || '';
+    document.getElementById('jdTags').innerHTML = (j.tags || []).map(t => `<span class="jli-tag">${escapeHtml(t)}</span>`).join('');
+    document.getElementById('jdDesc').textContent = j.description || 'No description provided. Use “Apply” to see the full posting on the source site.';
+    const a = document.getElementById('jdApply'); a.href = /^https?:\/\//i.test(j.url || '') ? j.url : '#';
+    document.getElementById('jdSource').textContent = [j.posted_at ? ('Posted ' + jobTimeAgo(j.posted_at)) : '', j.source ? ('via ' + j.source) : ''].filter(Boolean).join(' · ');
+    document.getElementById('jobDetailModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+  function closeJobDetail(){ const m = document.getElementById('jobDetailModal'); if(m) m.style.display = 'none'; document.body.style.overflow = ''; }
+  window.openJobDetail = openJobDetail; window.closeJobDetail = closeJobDetail;
+  // Card click (anywhere except the Apply link) opens the detail view.
+  document.addEventListener('click', e => {
+    if(e.target.closest('a')) return;                 // let apply / links work
+    const card = e.target.closest('[data-jobkey]');
+    if(card) openJobDetail(card.getAttribute('data-jobkey'));
+  });
+  { const b=document.getElementById('jdClose'); if(b) b.onclick = closeJobDetail; }
+  { const m=document.getElementById('jobDetailModal'); if(m) m.addEventListener('click', e => { if(e.target === m || e.target === m.firstElementChild) closeJobDetail(); }); }
 
   function applyRoute(path){
     __applyingRoute = true;

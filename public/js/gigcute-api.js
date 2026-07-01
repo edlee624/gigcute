@@ -721,12 +721,14 @@ const reports = {
 const jobs = {
   // List active jobs, newest first, with optional text search + remote filter.
   // Returns { jobs:[...], total }. total is the full match count (for paging).
-  async list({ limit = 20, offset = 0, q = '', remote = null } = {}) {
+  async list({ limit = 20, offset = 0, q = '', remote = null, minSalary = null, employmentType = null } = {}) {
     let query = requireClient()
       .from('jobs')
       .select('*', { count: 'exact' })
       .eq('is_active', true);
     if (remote === true) query = query.eq('remote', true);
+    if (employmentType) query = query.eq('employment_type', employmentType);
+    if (minSalary) query = query.or(`salary_min.gte.${minSalary},salary_max.gte.${minSalary}`);
     const term = (q || '').trim();
     if (term) {
       // sanitize for PostgREST or() filter; commas/parens would break the grammar
