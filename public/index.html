@@ -6767,8 +6767,16 @@
     if(!API || !API.enabled) return fail('Backend not configured.');
     try{
       await API.auth.signUp({ email, password: pw, role: 'recruiter', fullName: `${first} ${last}` });
-      try{ await API.auth.signIn({ email, password: pw }); }catch(e){}   // if email confirmation is off, we're in
-      showScreen('screen-recruiter-company');
+      let authed = false;
+      try{ await API.auth.signIn({ email, password: pw }); authed = true; }catch(e){}   // works if "Confirm email" is off
+      if(authed){
+        showScreen('screen-recruiter-company');
+      } else if(typeof showSuccess === 'function'){
+        // Email confirmation required — finish after they confirm + log in.
+        showSuccess({ headline:'Check your email.', sub:`We sent a confirmation link to ${email}. Confirm it, then log in to add your company and post your first role.`, primaryText:'Back to login', primaryAction:() => { __postLoginRecruiter = true; showScreen('screen-login-seeker'); } });
+      } else {
+        fail('Account created — confirm your email, then log in to continue.');
+      }
     }catch(e){ fail((e && e.message) || 'Could not create account.'); }
   }
   async function recruiterSaveCompany(){
