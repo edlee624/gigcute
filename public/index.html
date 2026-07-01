@@ -3604,6 +3604,7 @@
       <input id="jobSearch" type="text" placeholder="Search title, company, or location…" style="flex:1; min-width:220px; box-sizing:border-box; background:var(--ink); border:1px solid var(--line-light); border-radius:10px; color:var(--paper); font-family:'Inter',sans-serif; font-size:14px; padding:11px 14px;">
       <label style="display:inline-flex; align-items:center; gap:8px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:10px; padding:0 14px; font-size:13px; color:rgba(251,247,240,0.75); cursor:pointer; user-select:none;"><input type="checkbox" id="jobRemote" style="cursor:pointer;"> Remote only</label>
     </div>
+    <div id="jobsRecommended" style="display:none; margin-bottom:26px;"></div>
     <div id="jobsCount" style="font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:rgba(251,247,240,0.45); margin-bottom:12px;"></div>
     <div id="jobsList"></div>
     <div id="jobsMore" style="text-align:center; margin-top:20px;"></div>
@@ -6427,7 +6428,7 @@
       return Math.floor(d/365) + 'y ago';
     }catch(e){ return ''; }
   }
-  function jobCardHTML(j){
+  function jobCardHTML(j, reason){
     const salary = fmtSalary(j);
     const posted = j.posted_at ? jobTimeAgo(j.posted_at) : '';
     const loc = j.remote ? ('Remote' + (j.location && !/remote/i.test(j.location) ? ' · ' + j.location : '')) : (j.location || '');
@@ -6435,8 +6436,10 @@
     const desc = j.description ? (escapeHtml(j.description.slice(0,180)) + (j.description.length > 180 ? '…' : '')) : '';
     const src = j.source ? `via ${escapeHtml(j.source)}` : '';
     const safeUrl = /^https?:\/\//i.test(j.url || '') ? j.url : '#';
+    const reasonHTML = reason ? `<div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--sage-soft);margin-bottom:6px;">✦ Matches your background · ${escapeHtml(reason)}</div>` : '';
     return `
       <div style="background:var(--ink-soft);border:1px solid var(--line-light);border-radius:14px;padding:18px 20px;margin-bottom:12px;">
+        ${reasonHTML}
         <div style="display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;">
           <div style="min-width:0;flex:1;">
             <div style="font-family:'Fraunces',serif;font-size:17px;color:var(--paper);font-weight:600;">${escapeHtml(j.title || 'Untitled role')}</div>
@@ -6492,12 +6495,54 @@
     __jobsState.offset += res.jobs.length;
     renderJobs();
   }
+  // Build an OR-search query from the logged-in seeker's profile (title + recent
+  // job titles). Returns { terms:[...], query:'a or b or c' } for jobs_search.
+  function seekerJobKeywords(){
+    const stop = new Set(['the','and','of','a','an','to','in','for','at','on','with','senior','junior','lead','staff','principal','sr','jr','associate','i','ii','iii','iv']);
+    const src = [];
+    if(typeof seekerProfile !== 'undefined' && seekerProfile){
+      if(seekerProfile.title) src.push(seekerProfile.title);
+      (seekerProfile.workHistory || []).slice(0,3).forEach(w => { if(w && w.title) src.push(w.title); });
+    }
+    const words = src.join(' ').toLowerCase().replace(/[^a-z0-9+#. ]/g,' ').split(/\s+/)
+      .map(w => w.trim()).filter(w => w.length > 2 && !stop.has(w));
+    const terms = [...new Set(words)].slice(0,10);
+    return { terms, query: terms.join(' or ') };
+  }
+  function jobMatchReason(j, terms){
+    const hay = `${j.title||''} ${j.description||''} ${(j.tags||[]).join(' ')}`.toLowerCase();
+    const hits = terms.filter(t => hay.includes(t)).slice(0,3);
+    return hits.join(', ');
+  }
+  function renderRecommended(items, terms){
+    const el = document.getElementById('jobsRecommended');
+    if(!el) return;
+    if(!items || !items.length){ el.innerHTML = ''; el.style.display = 'none'; return; }
+    el.style.display = '';
+    const cards = items.map(j => jobCardHTML(j, jobMatchReason(j, terms))).join('');
+    el.innerHTML = `<div style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--coral);margin:0 0 12px;">Recommended for you</div>${cards}`;
+  }
+  async function loadRecommended(){
+    const el = document.getElementById('jobsRecommended');
+    if(el){ el.innerHTML = ''; el.style.display = 'none'; }
+    const API = await gcAwaitAPI();
+    if(!API || !API.enabled || !API.jobs || !API.jobs.search) return;   // needs backend
+    let user = null; try{ user = await API.auth.currentUser(); }catch(e){}
+    if(!user) return;                                                   // logged-in seekers only
+    try{ await gcLoadSeekerProfile(API); }catch(e){}                    // ensure fresh profile
+    const kw = seekerJobKeywords();
+    if(!kw.query) return;
+    let items = [];
+    try{ items = await API.jobs.search({ q:kw.query, limit:8 }); }catch(e){ console.warn('recommend:', e && e.message); return; }
+    renderRecommended(items, kw.terms);
+  }
   async function showJobs(){
     showScreen('screen-jobs');
     __jobsState = { q:'', remote:false, offset:0, total:0, items:[], loading:false };
     const s = document.getElementById('jobSearch'); if(s) s.value = '';
     const r = document.getElementById('jobRemote'); if(r) r.checked = false;
     loadJobs(true);
+    loadRecommended();
   }
   window.showJobs = showJobs;
   { const s=document.getElementById('jobSearch'); if(s) s.addEventListener('input', e => { clearTimeout(__jobsTimer); const v = e.target.value; __jobsTimer = setTimeout(() => { __jobsState.q = v; loadJobs(true); }, 300); }); }

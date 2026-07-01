@@ -739,6 +739,18 @@ const jobs = {
     if (error) throw error;
     return { jobs: data || [], total: count ?? 0 };
   },
+  // Relevance-ranked search (jobs_search RPC). Pass the seeker's keywords joined
+  // with " or " for "Recommended for you". Returns an array of jobs, best first.
+  async search({ q = '', remote = null, limit = 12, offset = 0 } = {}) {
+    const { data, error } = await requireClient().rpc('jobs_search', {
+      p_q: q || null,
+      p_remote: remote === true ? true : null,
+      p_limit: limit,
+      p_offset: offset,
+    });
+    if (error) throw error;
+    return data || [];
+  },
 };
 
 window.GigCuteAPI = {
