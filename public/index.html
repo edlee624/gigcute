@@ -5973,8 +5973,9 @@
   }
   function closeProfileView(){
     document.getElementById('profileViewOverlay').classList.remove('open');
-    // From a shared profile, "back" returns to the public landing.
-    if(/^\/profile\//.test(location.pathname)) navigate('/');
+    // Return to the page you came from (e.g. a recruiter's candidate list), or
+    // the landing as a fallback when a shared profile was opened directly.
+    if(/^\/profile\//.test(location.pathname)) goBack('/');
   }
   document.getElementById('pvCloseBtn').onclick = closeProfileView;
   { const b = document.getElementById('pvEditBtn'); if(b) b.onclick = () => { openProfileEdit(); }; }
@@ -7213,9 +7214,9 @@
   { const i=document.getElementById('chatInput'); if(i) i.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); sendChatMessage(); } }); }
   { const b=document.getElementById('candModalClose'); if(b) b.onclick = closeCandidates; }
   { const m=document.getElementById('candidatesModal'); if(m) m.addEventListener('click', e => { if(e.target===m || e.target===m.firstElementChild) closeCandidates(); }); }
-  { const b=document.getElementById('discoverBackBtn'); if(b) b.onclick = () => navigate('/'); }
+  { const b=document.getElementById('discoverBackBtn'); if(b) b.onclick = () => goBack('/jobs'); }
   { const b=document.getElementById('discoverMsgsBtn'); if(b) b.onclick = () => navigate('/messages'); }
-  { const b=document.getElementById('messagesBackBtn'); if(b) b.onclick = () => navigate('/'); }
+  { const b=document.getElementById('messagesBackBtn'); if(b) b.onclick = () => goBack('/jobs'); }
   { const b=document.getElementById('jobsDiscoverBtn'); if(b) b.onclick = () => navigate('/discover'); }
   { const b=document.getElementById('jobsTrackerBtn'); if(b) b.onclick = () => navigate('/tracker'); }
   { const b=document.getElementById('jobsMessagesBtn'); if(b) b.onclick = () => navigate('/messages'); }
@@ -7323,7 +7324,7 @@
   { const b=document.getElementById('applyAskYes'); if(b) b.onclick = () => confirmApplied(true); }
   { const b=document.getElementById('applyAskNo'); if(b) b.onclick = () => confirmApplied(false); }
   { const m=document.getElementById('applyAskModal'); if(m) m.addEventListener('click', e => { if(e.target===m) confirmApplied(false); }); }
-  { const b=document.getElementById('trackerBackBtn'); if(b) b.onclick = () => navigate('/jobs'); }
+  { const b=document.getElementById('trackerBackBtn'); if(b) b.onclick = () => goBack('/jobs'); }
   document.querySelectorAll('#screen-tracker [data-track-filter]').forEach(b => b.onclick = () => {
     document.querySelectorAll('#screen-tracker [data-track-filter]').forEach(x => x.classList.remove('active'));
     b.classList.add('active'); __trackFilter = b.getAttribute('data-track-filter'); renderTracker();
@@ -7347,12 +7348,19 @@
     } finally { __applyingRoute = false; }
   }
   // Programmatic navigation: apply + push a history entry.
+  let __didInAppNav = false;
   function navigate(path){
     if(location.pathname === path){ applyRoute(path); return; }
     window.history.pushState({}, '',path);
+    __didInAppNav = true;
     applyRoute(path);
   }
   window.GigCuteNavigate = navigate; // handy for links/console
+  // Back button: mirror the browser Back so it returns to the ACTUAL previous
+  // page (and keeps browser back/forward in sync). Falls back to a route if the
+  // user deep-linked in and has no in-app history yet.
+  function goBack(fallback){ if(__didInAppNav){ history.back(); } else { navigate(fallback || '/'); } }
+  window.gcGoBack = goBack;
   window.addEventListener('popstate', () => applyRoute(location.pathname));
 
   // ----- Clickable GigCute logo → home, on every page -----
