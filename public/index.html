@@ -6649,7 +6649,11 @@
     a.onclick = () => trackApplyClick(key);
     document.getElementById('jdSource').textContent = [j.posted_at ? ('Posted ' + jobTimeAgo(j.posted_at)) : '', j.source ? ('via ' + j.source) : ''].filter(Boolean).join(' · ');
     const note = document.getElementById('jdFullNote');
-    if(note) note.textContent = j.url ? `This is the summary provided by ${j.source || 'the source'}. Some feeds shorten the description — open “Apply on source” above for the complete posting, requirements, and application.` : '';
+    if(note) note.textContent = j.url
+      ? (j.source === 'adzuna'
+          ? `Adzuna shows a shortened preview of the description — open “Apply on source” above for the complete posting and to apply.`
+          : `Open “Apply on source” above to apply on the company's site.`)
+      : '';
     const modal = document.getElementById('jobDetailModal');
     modal.style.display = 'block'; modal.scrollTop = 0;
     document.body.style.overflow = 'hidden';

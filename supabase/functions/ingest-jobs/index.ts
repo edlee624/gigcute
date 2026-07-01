@@ -76,6 +76,36 @@ function meetsSalary(r: { salary_min: number | null; salary_max: number | null }
          (r.salary_min != null && r.salary_min >= JOB_MIN_SALARY);
 }
 
+// Decode common HTML entities + strip tags to readable plain text (for ATS feeds
+// that return full HTML descriptions).
+function htmlToText(s: string | null | undefined): string | null {
+  if (!s) return null;
+  return s
+    .replace(/<\/(p|div|li|br|h[1-6]|ul|ol|tr)>/gi, "\n")
+    .replace(/<li[^>]*>/gi, "• ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">")
+    .replace(/&#39;|&rsquo;|&apos;/gi, "'").replace(/&quot;|&ldquo;|&rdquo;/gi, '"')
+    .replace(/&mdash;/gi, "—").replace(/&ndash;/gi, "–").replace(/&hellip;/gi, "…")
+    .replace(/&#(\d+);/g, (_m, n) => String.fromCharCode(+n))
+    .replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+}
+// Best-effort salary extraction from free text ($120,000 / $120k / $120K ranges).
+function extractSalary(text: string | null | undefined): { min: number | null; max: number | null } {
+  if (!text) return { min: null, max: null };
+  const nums: number[] = [];
+  const re = /\$\s?(\d{1,3}(?:,\d{3})+|\d{2,3}\s?[kK])\b/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const raw = m[1].replace(/[,\s]/g, "").toLowerCase();
+    const v = raw.endsWith("k") ? parseInt(raw) * 1000 : parseInt(raw);
+    if (v >= 30000 && v <= 1000000) nums.push(v);
+  }
+  if (!nums.length) return { min: null, max: null };
+  return { min: Math.min(...nums), max: Math.max(...nums) };
+}
+type Src = { slug: string; company_name?: string | null };
+
 // ---- Source: Arbeitnow (free, no key) --------------------------------------
 async function fromArbeitnow(): Promise<JobRow[]> {
   const res = await fetch("https://www.arbeitnow.com/api/job-board-api");
@@ -180,10 +210,89 @@ async function fromAdzuna(): Promise<JobRow[]> {
   return out.filter((r) => r.url && r.external_id);
 }
 
-const SOURCES: Record<string, () => Promise<JobRow[]>> = {
-  arbeitnow: fromArbeitnow,
-  adzuna: fromAdzuna,
-};
+// ---- ATS sources (full descriptions; per-company slugs from job_sources) -----
+// Broad: all roles, but only kept when a detected salary meets JOB_MIN_SALARY.
+async function fromGreenhouse(list: Src[]): Promise<JobRow[]> {
+  const out: JobRow[] = [];
+  for (const { slug, company_name } of list) {
+    try {
+      const res = await fetch(`https://boards-api.greenhouse.io/v1/boards/${slug}/jobs?content=true`);
+      if (!res.ok) continue;
+      const json = await res.json();
+      for (const j of (json?.jobs ?? [])) {
+        const desc = htmlToText(j.content);
+        const sal = extractSalary(desc);
+        const row: JobRow = {
+          source: "greenhouse", external_id: `gh:${slug}:${j.id}`,
+          title: j.title ?? "Untitled", company: company_name ?? slug,
+          location: j.location?.name ?? null,
+          remote: /remote/i.test(`${j.title ?? ""} ${j.location?.name ?? ""}`),
+          employment_type: null, category: j.departments?.[0]?.name ?? null,
+          salary_min: sal.min, salary_max: sal.max, salary_currency: "USD",
+          url: j.absolute_url, description: desc,
+          tags: (j.departments ?? []).map((d: any) => d.name).filter(Boolean).slice(0, 4),
+          posted_at: j.updated_at ?? null, is_active: true,
+        };
+        if (row.url && row.external_id && meetsSalary(row)) out.push(row);
+      }
+    } catch (_e) { /* skip bad/embed-only slug */ }
+  }
+  return out;
+}
+async function fromLever(list: Src[]): Promise<JobRow[]> {
+  const out: JobRow[] = [];
+  for (const { slug, company_name } of list) {
+    try {
+      const res = await fetch(`https://api.lever.co/v0/postings/${slug}?mode=json`);
+      if (!res.ok) continue;
+      const arr = await res.json();
+      for (const j of (Array.isArray(arr) ? arr : [])) {
+        const desc = j.descriptionPlain || htmlToText(j.description);
+        const sal = extractSalary(desc);
+        const loc = j.categories?.location ?? null;
+        const row: JobRow = {
+          source: "lever", external_id: `lever:${slug}:${j.id}`,
+          title: j.text ?? "Untitled", company: company_name ?? slug, location: loc,
+          remote: (j.workplaceType === "remote") || /remote/i.test(`${j.text ?? ""} ${loc ?? ""}`),
+          employment_type: j.categories?.commitment ?? null,
+          category: j.categories?.team ?? j.categories?.department ?? null,
+          salary_min: sal.min, salary_max: sal.max, salary_currency: "USD",
+          url: j.hostedUrl, description: desc,
+          tags: [j.categories?.department, j.categories?.team].filter(Boolean).slice(0, 4),
+          posted_at: j.createdAt ? new Date(j.createdAt).toISOString() : null, is_active: true,
+        };
+        if (row.url && row.external_id && meetsSalary(row)) out.push(row);
+      }
+    } catch (_e) { /* skip */ }
+  }
+  return out;
+}
+async function fromAshby(list: Src[]): Promise<JobRow[]> {
+  const out: JobRow[] = [];
+  for (const { slug, company_name } of list) {
+    try {
+      const res = await fetch(`https://api.ashbyhq.com/posting-api/job-board/${slug}?includeCompensation=true`);
+      if (!res.ok) continue;
+      const json = await res.json();
+      for (const j of (json?.jobs ?? [])) {
+        const desc = j.descriptionPlain || htmlToText(j.descriptionHtml);
+        const sal = extractSalary(j.compensation?.compensationTierSummary || desc);
+        const row: JobRow = {
+          source: "ashby", external_id: `ashby:${slug}:${j.id}`,
+          title: j.title ?? "Untitled", company: company_name ?? slug,
+          location: j.location ?? null, remote: !!j.isRemote || /remote/i.test(j.location ?? ""),
+          employment_type: j.employmentType ?? null, category: j.department ?? j.team ?? null,
+          salary_min: sal.min, salary_max: sal.max, salary_currency: "USD",
+          url: j.jobUrl || j.applyUrl, description: desc,
+          tags: [j.department, j.team].filter(Boolean).slice(0, 4),
+          posted_at: j.publishedAt ?? null, is_active: true,
+        };
+        if (row.url && row.external_id && meetsSalary(row)) out.push(row);
+      }
+    } catch (_e) { /* skip */ }
+  }
+  return out;
+}
 
 Deno.serve(async (req) => {
   // Auth: shared-secret header (function is deployed with verify_jwt = false).
@@ -199,8 +308,23 @@ Deno.serve(async (req) => {
     { auth: { persistSession: false } },
   );
 
+  // ATS company slugs to pull full-description jobs from (job_sources table).
+  const slugsBy: Record<string, Src[]> = {};
+  try {
+    const { data } = await supabase.from("job_sources").select("platform, slug, company_name").eq("active", true);
+    for (const r of (data ?? [])) { (slugsBy[r.platform] ??= []).push({ slug: r.slug, company_name: r.company_name }); }
+  } catch (_e) { /* table may not exist yet */ }
+
+  const runners: [string, () => Promise<JobRow[]>][] = [
+    ["arbeitnow", fromArbeitnow],
+    ["adzuna", fromAdzuna],
+    ["greenhouse", () => fromGreenhouse(slugsBy.greenhouse ?? [])],
+    ["lever", () => fromLever(slugsBy.lever ?? [])],
+    ["ashby", () => fromAshby(slugsBy.ashby ?? [])],
+  ];
+
   const report: Record<string, { fetched: number; upserted: number; error?: string }> = {};
-  for (const [name, fn] of Object.entries(SOURCES)) {
+  for (const [name, fn] of runners) {
     try {
       const rows = await fn();
       let upserted = 0;
