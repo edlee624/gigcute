@@ -1,0 +1,5 @@
+# Supabase project config (used by the Supabase CLI).
+# The ingest-jobs function is invoked by the scheduler with a shared-secret
+# header, not a user JWT, so JWT verification is disabled for it.
+[functions.ingest-jobs]
+verify_jwt = false
