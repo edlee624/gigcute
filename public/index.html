@@ -6445,9 +6445,9 @@
     API.auth.currentUser().then(async (user) => {
       if(!user || __inRecovery) return;   // recovery flow handles its own screen
       await gcCompletePending(API);
-      // Deep-link to a specific /profile/<id> or the /admin page is handled by the
-      // route applier; don't override it by entering your own profile.
-      if(/^\/(profile|admin)\b/.test(location.pathname)) return;
+      // Deep-links that the route applier already handles — don't override them by
+      // bouncing a logged-in user to their own profile.
+      if(/^\/(profile|admin|search|jobs|discover|post|hiring|messages|recruit)\b/.test(location.pathname)) return;
       let role = 'seeker';
       try{ const me = await API.profiles.me(); if(me){ if(me.role) role = me.role; if(me.intro_seen) gcHideIntroLocal(); } }catch(e){}
       if(sessionStorage.getItem('gc_oauth_role') === 'recruiter') role = 'recruiter';
