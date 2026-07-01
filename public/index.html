@@ -3719,6 +3719,7 @@
       <button class="ds-nav-btn" id="messagesBackBtn" type="button">← Back</button>
     </div>
     <h1 style="font-family:'Fraunces',serif; font-size:28px; font-weight:600; margin:6px 0 16px;">Messages</h1>
+    <div id="invitesSection" style="display:none; margin-bottom:22px;"></div>
     <div id="conversationList"></div>
   </div>
 </div>
@@ -7030,8 +7031,50 @@
       </div>`;
     }).join('');
     el.querySelectorAll('[data-conv]').forEach(row => row.onclick = () => openChat(row.getAttribute('data-conv'), row.getAttribute('data-peer')));
+    loadInvites();
   }
   window.showMessages = showMessages;
+  // Seeker's pending invitations (recruiter reached out proactively).
+  async function loadInvites(){
+    const el = document.getElementById('invitesSection'); if(!el) return;
+    const API = await gcAwaitAPI();
+    let myId = null; try{ const u = await API.auth.currentUser(); myId = u && u.id; }catch(e){}
+    let invs = [];
+    try{ invs = await API.invites.inbox(); }catch(e){ console.warn('invites:', e && e.message); }
+    invs = (invs || []).filter(iv => iv.seeker_id === myId);   // only invites addressed to me
+    if(!invs.length){ el.innerHTML = ''; el.style.display = 'none'; return; }
+    el.style.display = '';
+    el.innerHTML = `<div style="font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--coral); margin:0 0 10px;">Invitations</div>` + invs.map(iv => {
+      const role = (iv.postings && iv.postings.title) || 'A role';
+      const company = (iv.postings && iv.postings.companies && iv.postings.companies.name) || 'A company';
+      return `<div style="background:var(--ink-soft); border:1px solid var(--coral); border-radius:12px; padding:14px 16px; margin-bottom:10px;">
+        <div style="font-size:12.5px; color:rgba(251,247,240,0.6);">${escapeHtml(company)} invited you to</div>
+        <div style="font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--paper); margin:2px 0 4px;">${escapeHtml(role)}</div>
+        ${iv.note ? `<div style="font-size:12.5px; color:rgba(251,247,240,0.6); margin-bottom:6px;">"${escapeHtml(iv.note)}"</div>` : ''}
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="jli-btn primary" type="button" onclick="respondInvite('${iv.id}','accepted','${iv.posting_id}')">Accept</button>
+          <button class="jli-btn pass" type="button" onclick="respondInvite('${iv.id}','declined')">Decline</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  async function respondInvite(inviteId, status, postingId){
+    const API = await gcAwaitAPI();
+    try{ await API.invites.respond(inviteId, status); }catch(e){ if(typeof showToast==='function') showToast('Could not respond.'); return; }
+    if(status === 'accepted' && postingId){
+      try{ let u = await API.auth.currentUser(); const convId = await API.chat.openConversation(postingId, u.id); showMessages(); openChat(convId, 'Recruiter'); return; }catch(e){}
+    }
+    showMessages();
+  }
+  window.respondInvite = respondInvite;
+  // Recruiter sends a formal invite to a candidate for the open posting.
+  async function recruiterInvite(seekerId){
+    const API = await gcAwaitAPI();
+    try{ await API.invites.send({ postingId: __candPostingId, seekerId, note: 'We would love for you to consider this role.' }); if(typeof showToast==='function') showToast('Invite sent.'); }
+    catch(e){ if(typeof showToast==='function') showToast('Could not send invite.'); }
+    loadCandidates();
+  }
+  window.recruiterInvite = recruiterInvite;
 
   let __swipeQueue = [], __swipeIdx = 0;
   async function showDiscover(){
@@ -7117,7 +7160,8 @@
           <button class="jli-btn" type="button" onclick="GigCuteNavigate('/profile/${escapeHtml(c.seeker_id)}')">View</button>
           ${c.mutual
             ? `<button class="jli-btn primary" type="button" onclick="recruiterMessage('${escapeHtml(c.seeker_id)}','${escapeHtml(name)}')">Message</button>`
-            : `<button class="jli-btn primary" type="button" onclick="recruiterLikeBack('${escapeHtml(c.seeker_id)}')">Like back</button>`}
+            : `<button class="jli-btn primary" type="button" onclick="recruiterLikeBack('${escapeHtml(c.seeker_id)}')">Like back</button>
+               <button class="jli-btn" type="button" onclick="recruiterInvite('${escapeHtml(c.seeker_id)}')">Invite</button>`}
         </div>
       </div>`;
     }).join('');
