@@ -26,6 +26,12 @@ Project Settings → Edge Functions → Secrets (or `supabase secrets set ...`):
 - `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` — optional, to enable Adzuna.
 - `ADZUNA_COUNTRY` (default `us`), `ADZUNA_PAGES` (default `2`) — optional.
 
+Adzuna targeting (optional — narrows results to a person's fit + geography):
+- `ADZUNA_WHAT` — keyword query, e.g. `customer experience analytics` (default).
+- `ADZUNA_WHERE` — comma-separated location anchors, e.g. `New York,Newark,Stamford` (default `New York`).
+- `ADZUNA_DISTANCE_KM` — radius around each anchor (default `120`, ~covers NY/NJ/CT metro).
+Adzuna runs one pass per `WHERE` anchor plus a US-wide remote-only pass.
+
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are provided automatically.
 
 ## 4. Test it once

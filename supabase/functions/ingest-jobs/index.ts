@@ -63,47 +63,71 @@ async function fromArbeitnow(): Promise<JobRow[]> {
   })).filter((r: JobRow) => r.url && r.external_id && r.remote); // US/Remote focus: keep remote roles only
 }
 
-// ---- Source: Adzuna (broad; needs a free app_id + app_key) ------------------
+// ---- Source: Adzuna (targeted; needs a free app_id + app_key) ---------------
+// Tuned to a person's fit + geography via env secrets:
+//   ADZUNA_WHAT          keyword query (relevance-ranked), e.g. "customer experience analytics"
+//   ADZUNA_WHERE         comma-separated location anchors, e.g. "New York,Newark,Stamford"
+//   ADZUNA_DISTANCE_KM   radius around each anchor (default 120 — covers the NY/NJ/CT metro)
+//   ADZUNA_PAGES         pages (×50) per query (default 2)
+//   ADZUNA_COUNTRY       2-letter country (default "us")
+// Runs one pass per location anchor, plus a US-wide remote pass (remote roles only).
 async function fromAdzuna(): Promise<JobRow[]> {
   const id = Deno.env.get("ADZUNA_APP_ID");
   const key = Deno.env.get("ADZUNA_APP_KEY");
   if (!id || !key) return []; // source disabled until keys are set
   const country = (Deno.env.get("ADZUNA_COUNTRY") || "us").toLowerCase();
   const pages = Math.max(1, Math.min(10, parseInt(Deno.env.get("ADZUNA_PAGES") || "2", 10)));
+  const what = (Deno.env.get("ADZUNA_WHAT") || "customer experience analytics").trim();
+  const where = (Deno.env.get("ADZUNA_WHERE") || "New York").split(",").map((s) => s.trim()).filter(Boolean);
+  const distance = (Deno.env.get("ADZUNA_DISTANCE_KM") || "120").trim();
+
+  // One pass per location anchor (kept regardless of remote flag) + one remote pass
+  // (US-wide, remote roles only). keepRemoteOnly drops on-site jobs from that pass.
+  type Pass = { label: string; where?: string; remoteOnly?: boolean };
+  const passes: Pass[] = where.map((w) => ({ label: `loc:${w}`, where: w }));
+  passes.push({ label: "remote", remoteOnly: true });
+
   const out: JobRow[] = [];
-  for (let page = 1; page <= pages; page++) {
-    const u = new URL(`https://api.adzuna.com/v1/api/jobs/${country}/search/${page}`);
-    u.searchParams.set("app_id", id);
-    u.searchParams.set("app_key", key);
-    u.searchParams.set("results_per_page", "50");
-    u.searchParams.set("max_days_old", "30");
-    u.searchParams.set("content-type", "application/json");
-    const res = await fetch(u.toString());
-    if (!res.ok) throw new Error(`adzuna ${res.status} (page ${page})`);
-    const json = await res.json();
-    const items = Array.isArray(json?.results) ? json.results : [];
-    for (const j of items) {
-      const desc = stripHtml(j.description);
-      out.push({
-        source: "adzuna",
-        external_id: String(j.id),
-        title: j.title ?? "Untitled",
-        company: j.company?.display_name ?? null,
-        location: j.location?.display_name ?? null,
-        remote: /remote/i.test(`${j.title ?? ""} ${j.location?.display_name ?? ""} ${desc ?? ""}`),
-        employment_type: j.contract_time ?? j.contract_type ?? null,
-        category: j.category?.label ?? null,
-        salary_min: typeof j.salary_min === "number" ? j.salary_min : null,
-        salary_max: typeof j.salary_max === "number" ? j.salary_max : null,
-        salary_currency: country === "us" ? "USD" : null,
-        url: j.redirect_url,
-        description: desc,
-        tags: j.category?.label ? [j.category.label] : [],
-        posted_at: j.created ?? null,
-        is_active: true,
-      });
+  for (const pass of passes) {
+    for (let page = 1; page <= pages; page++) {
+      const u = new URL(`https://api.adzuna.com/v1/api/jobs/${country}/search/${page}`);
+      u.searchParams.set("app_id", id);
+      u.searchParams.set("app_key", key);
+      u.searchParams.set("results_per_page", "50");
+      u.searchParams.set("max_days_old", "30");
+      u.searchParams.set("sort_by", "relevance");
+      u.searchParams.set("content-type", "application/json");
+      if (what) u.searchParams.set("what", pass.remoteOnly ? `${what} remote` : what);
+      if (pass.where) { u.searchParams.set("where", pass.where); if (distance) u.searchParams.set("distance", distance); }
+      const res = await fetch(u.toString());
+      if (!res.ok) throw new Error(`adzuna ${res.status} (${pass.label} p${page})`);
+      const json = await res.json();
+      const items = Array.isArray(json?.results) ? json.results : [];
+      for (const j of items) {
+        const desc = stripHtml(j.description);
+        const remote = /remote/i.test(`${j.title ?? ""} ${j.location?.display_name ?? ""} ${desc ?? ""}`);
+        if (pass.remoteOnly && !remote) continue;
+        out.push({
+          source: "adzuna",
+          external_id: String(j.id),
+          title: j.title ?? "Untitled",
+          company: j.company?.display_name ?? null,
+          location: j.location?.display_name ?? null,
+          remote,
+          employment_type: j.contract_time ?? j.contract_type ?? null,
+          category: j.category?.label ?? null,
+          salary_min: typeof j.salary_min === "number" ? j.salary_min : null,
+          salary_max: typeof j.salary_max === "number" ? j.salary_max : null,
+          salary_currency: country === "us" ? "USD" : null,
+          url: j.redirect_url,
+          description: desc,
+          tags: j.category?.label ? [j.category.label] : [],
+          posted_at: j.created ?? null,
+          is_active: true,
+        });
+      }
+      if (items.length < 50) break; // no more pages for this pass
     }
-    if (items.length < 50) break; // no more pages
   }
   return out.filter((r) => r.url && r.external_id);
 }
