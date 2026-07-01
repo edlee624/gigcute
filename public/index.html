@@ -3752,6 +3752,36 @@
   </div>
 </div>
 
+<!-- ============ JOB TRACKER ============ -->
+<div class="screen" id="screen-tracker">
+  <div style="max-width:760px; margin:0 auto; padding:22px 20px 60px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+      <div class="wordmark"><img src="/logo.png" class="brand-img" alt="GigCute" style="height:26px;"></div>
+      <button class="ds-nav-btn" id="trackerBackBtn" type="button">← Jobs</button>
+    </div>
+    <h1 style="font-family:'Fraunces',serif; font-size:28px; font-weight:600; margin:6px 0 4px;">Job <em style="color:var(--coral);font-style:italic;">tracker</em></h1>
+    <p style="color:rgba(251,247,240,0.55); font-size:13.5px; margin:0 0 16px;">Everything you've saved and applied to, in one place.</p>
+    <div style="display:flex; gap:8px; margin-bottom:16px;">
+      <button class="quick-chip active" data-track-filter="all" type="button">All</button>
+      <button class="quick-chip" data-track-filter="saved" type="button">Saved</button>
+      <button class="quick-chip" data-track-filter="applied" type="button">Applied</button>
+    </div>
+    <div id="trackerList"></div>
+  </div>
+</div>
+
+<!-- ============ DID YOU APPLY? ============ -->
+<div id="applyAskModal" style="display:none; position:fixed; inset:0; z-index:965; background:rgba(10,11,14,0.85); backdrop-filter:blur(3px); display:none; align-items:center; justify-content:center;">
+  <div style="max-width:400px; margin:0 16px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px; padding:26px 26px 22px; text-align:center;">
+    <div style="font-family:'Fraunces',serif; font-size:20px; font-weight:600; color:var(--paper); margin-bottom:6px;">Did you apply?</div>
+    <div id="applyAskText" style="font-size:13.5px; color:rgba(251,247,240,0.62); line-height:1.5; margin-bottom:18px;"></div>
+    <div style="display:flex; gap:10px;">
+      <button class="ob-primary" id="applyAskYes" type="button" style="flex:1;">Yes, I applied</button>
+      <button class="ds-nav-btn" id="applyAskNo" type="button" style="flex:1;">Not yet</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ JOB DETAIL ============ -->
 <div id="jobDetailModal" style="display:none; position:fixed; inset:0; z-index:950; background:rgba(10,11,14,0.8); backdrop-filter:blur(3px); overflow-y:auto;">
   <div style="max-width:680px; margin:40px auto; padding:0 16px 60px;">
@@ -4124,6 +4154,7 @@
       <div id="dashView">
         <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
           <button class="ds-nav-btn" id="jobsDiscoverBtn" type="button">♥ Discover roles</button>
+          <button class="ds-nav-btn" id="jobsTrackerBtn" type="button">Job tracker</button>
           <button class="ds-nav-btn" id="jobsMessagesBtn" type="button">Messages</button>
         </div>
         <!-- search + filters -->
@@ -6447,7 +6478,7 @@
       await gcCompletePending(API);
       // Deep-links that the route applier already handles — don't override them by
       // bouncing a logged-in user to their own profile.
-      if(/^\/(profile|admin|search|jobs|discover|post|hiring|messages|recruit)\b/.test(location.pathname)) return;
+      if(/^\/(profile|admin|search|jobs|discover|post|hiring|messages|recruit|tracker)\b/.test(location.pathname)) return;
       let role = 'seeker';
       try{ const me = await API.profiles.me(); if(me){ if(me.role) role = me.role; if(me.intro_seen) gcHideIntroLocal(); } }catch(e){}
       if(sessionStorage.getItem('gc_oauth_role') === 'recruiter') role = 'recruiter';
@@ -6625,6 +6656,7 @@
     document.getElementById('jdTags').innerHTML = (j.tags || []).map(t => `<span class="jli-tag">${escapeHtml(t)}</span>`).join('');
     document.getElementById('jdDesc').textContent = j.description || 'No description provided. Use “Apply” to see the full posting on the source site.';
     const a = document.getElementById('jdApply'); a.href = /^https?:\/\//i.test(j.url || '') ? j.url : '#';
+    a.onclick = () => trackApplyClick(key);
     document.getElementById('jdSource').textContent = [j.posted_at ? ('Posted ' + jobTimeAgo(j.posted_at)) : '', j.source ? ('via ' + j.source) : ''].filter(Boolean).join(' · ');
     document.getElementById('jobDetailModal').style.display = 'block';
     document.body.style.overflow = 'hidden';
@@ -6666,7 +6698,8 @@
         ${tags ? `<div class="jli-tags">${tags}</div>` : ''}
       </div>
       <div class="jli-actions">
-        <a class="jli-btn primary" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow" style="text-decoration:none;text-align:center;">Apply ↗</a>
+        <a class="jli-btn primary" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow" onclick="event.stopPropagation(); trackApplyClick('${key}')" style="text-decoration:none;text-align:center;">Apply ↗</a>
+        <button class="jli-btn" type="button" data-savejob="${escapeHtml(j.id||'')}" onclick="event.stopPropagation(); toggleSaveJob('${key}')">${isSaved(j)?'♥ Saved':'♡ Save'}</button>
         <button class="jli-btn" type="button">Details</button>
         ${posted ? `<div style="font-size:10.5px;color:rgba(251,247,240,0.35);text-align:right;">${posted}</div>` : ''}
       </div>
@@ -6803,6 +6836,7 @@
     hideDashRecruiterBits();
     wireDashControls();
     __dash = { q:'', remote:false, minSalary:null, employmentType:null, location:'', keywords:[], sort:'newest', offset:0, total:0, items:[], loading:false };
+    await loadSavedSet();     // so cards show the correct Save state
     loadDashJobs(true);
   }
   window.showJobsDashboard = showJobsDashboard;
@@ -7189,7 +7223,103 @@
   { const b=document.getElementById('discoverMsgsBtn'); if(b) b.onclick = () => navigate('/messages'); }
   { const b=document.getElementById('messagesBackBtn'); if(b) b.onclick = () => navigate('/'); }
   { const b=document.getElementById('jobsDiscoverBtn'); if(b) b.onclick = () => navigate('/discover'); }
+  { const b=document.getElementById('jobsTrackerBtn'); if(b) b.onclick = () => navigate('/tracker'); }
   { const b=document.getElementById('jobsMessagesBtn'); if(b) b.onclick = () => navigate('/messages'); }
+
+  // ===== JOB TRACKER (save / applied) =====
+  let __savedByJob = {};   // job_id -> saved_jobs row (for card state)
+  let __trackFilter = 'all';
+  let __pendingApply = null;
+  async function loadSavedSet(){
+    __savedByJob = {};
+    const API = await gcAwaitAPI();
+    if(!API || !API.enabled || !API.tracker) return;
+    let user=null; try{ user = await API.auth.currentUser(); }catch(e){}
+    if(!user) return;
+    let rows=[]; try{ rows = await API.tracker.list(); }catch(e){ console.warn('tracker:', e && e.message); }
+    rows.forEach(r => { if(r.job_id) __savedByJob[r.job_id] = r; });
+  }
+  function isSaved(job){ return !!(job && job.id && __savedByJob[job.id]); }
+  function refreshSaveBtns(job){
+    if(!job || !job.id) return;
+    document.querySelectorAll('[data-savejob="'+job.id+'"]').forEach(b => b.textContent = isSaved(job) ? '♥ Saved' : '♡ Save');
+  }
+  async function toggleSaveJob(key){
+    const job = __jobsById[key]; if(!job) return;
+    const API = await gcAwaitAPI();
+    let user=null; try{ user = await (API && API.enabled && API.auth.currentUser()); }catch(e){}
+    if(!user){ if(typeof showToast==='function') showToast('Log in to save jobs.'); return; }
+    try{
+      if(isSaved(job)){ await API.tracker.removeByJob(job.id); delete __savedByJob[job.id]; }
+      else { const row = await API.tracker.save(job, 'saved'); if(job.id) __savedByJob[job.id] = row; }
+    }catch(e){ if(typeof showToast==='function') showToast('Could not update.'); }
+    refreshSaveBtns(job);
+  }
+  window.toggleSaveJob = toggleSaveJob;
+  function trackApplyClick(key){
+    const job = __jobsById[key]; if(!job) return;   // the <a> already opened the tab
+    gcAwaitAPI().then(async API => {
+      let user=null; try{ user = await (API && API.enabled && API.auth.currentUser()); }catch(e){}
+      if(!user) return;   // don't prompt logged-out visitors
+      __pendingApply = job;
+      document.getElementById('applyAskText').textContent = `Did you apply to ${job.title||'this role'}${job.company?' at '+job.company:''}?`;
+      const m = document.getElementById('applyAskModal'); if(m) m.style.display = 'flex';
+    });
+  }
+  window.trackApplyClick = trackApplyClick;
+  async function confirmApplied(yes){
+    const m = document.getElementById('applyAskModal'); if(m) m.style.display = 'none';
+    const job = __pendingApply; __pendingApply = null;
+    if(!yes || !job) return;
+    const API = await gcAwaitAPI();
+    try{ const row = await API.tracker.save(job, 'applied'); if(job.id) __savedByJob[job.id] = row; if(typeof showToast==='function') showToast('Marked as applied ✓'); }
+    catch(e){ if(typeof showToast==='function') showToast('Could not update tracker.'); }
+    refreshSaveBtns(job);
+  }
+  async function showTracker(){
+    showScreen('screen-tracker');
+    renderTracker();
+  }
+  window.showTracker = showTracker;
+  async function renderTracker(){
+    const el = document.getElementById('trackerList'); if(!el) return;
+    el.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:24px 0;">Loading…</div>';
+    const API = await gcAwaitAPI();
+    let user=null; try{ user = await (API && API.enabled && API.auth.currentUser()); }catch(e){}
+    if(!user){ el.innerHTML = `<div style="text-align:center; padding:44px 20px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px;"><div style="font-size:14px; color:rgba(251,247,240,0.6); margin-bottom:14px;">Log in to save jobs and track your applications.</div><button class="lm-cta-btn" type="button" onclick="GigCuteNavigate('/login')" style="font-size:14px;padding:11px 20px;">Log in</button></div>`; return; }
+    let rows=[]; try{ rows = await API.tracker.list(); }catch(e){ console.warn('tracker list:', e && e.message); }
+    const filtered = (rows||[]).filter(r => __trackFilter==='all' || r.status===__trackFilter);
+    if(!filtered.length){ el.innerHTML = `<div style="text-align:center; padding:44px 20px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px;"><div style="font-family:'Fraunces',serif; font-size:18px; font-style:italic; margin-bottom:6px;">Nothing here yet</div><div style="font-size:13px; color:rgba(251,247,240,0.55);">Save jobs from the board and they'll show up here.</div></div>`; return; }
+    el.innerHTML = filtered.map(r => {
+      const applied = r.status === 'applied';
+      const safeUrl = /^https?:\/\//i.test(r.url||'') ? r.url : '#';
+      const badge = applied ? `<span style="color:var(--sage);">Applied</span>` : `<span style="color:rgba(251,247,240,0.5);">Saved</span>`;
+      return `<div style="background:var(--ink-soft); border:1px solid var(--line-light); border-radius:14px; padding:16px 18px; margin-bottom:12px; display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+        <div style="min-width:0;">
+          <div style="font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--paper);">${escapeHtml(r.title||'Untitled role')}</div>
+          <div style="font-size:12.5px; color:rgba(251,247,240,0.6); margin-top:2px;">${escapeHtml([r.company, r.location].filter(Boolean).join(' · '))}</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; margin-top:8px;">${badge}</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
+          <a class="jli-btn primary" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow" style="text-decoration:none; text-align:center;">Apply ↗</a>
+          <button class="jli-btn" type="button" onclick="setTrackedStatus('${r.id}','${applied?'saved':'applied'}')">${applied?'Mark unapplied':'Mark applied'}</button>
+          <button class="jli-btn pass" type="button" onclick="removeTracked('${r.id}')">Remove</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  async function setTrackedStatus(id, status){ const API = await gcAwaitAPI(); try{ await API.tracker.setStatus(id, status); }catch(e){ if(typeof showToast==='function') showToast('Could not update.'); } renderTracker(); loadSavedSet(); }
+  window.setTrackedStatus = setTrackedStatus;
+  async function removeTracked(id){ const API = await gcAwaitAPI(); try{ await API.tracker.remove(id); }catch(e){} renderTracker(); loadSavedSet(); }
+  window.removeTracked = removeTracked;
+  { const b=document.getElementById('applyAskYes'); if(b) b.onclick = () => confirmApplied(true); }
+  { const b=document.getElementById('applyAskNo'); if(b) b.onclick = () => confirmApplied(false); }
+  { const m=document.getElementById('applyAskModal'); if(m) m.addEventListener('click', e => { if(e.target===m) confirmApplied(false); }); }
+  { const b=document.getElementById('trackerBackBtn'); if(b) b.onclick = () => navigate('/jobs'); }
+  document.querySelectorAll('#screen-tracker [data-track-filter]').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#screen-tracker [data-track-filter]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active'); __trackFilter = b.getAttribute('data-track-filter'); renderTracker();
+  });
 
   function applyRoute(path){
     __applyingRoute = true;
@@ -7203,6 +7333,7 @@
       else if(path === '/post' || path === '/hiring'){ goRecruiterAfterAuth(); }
       else if(path === '/discover'){ showDiscover(); }
       else if(path === '/messages'){ showMessages(); }
+      else if(path === '/tracker'){ showTracker(); }
       else if(SCREEN_BY_PATH[path]){ showScreen(SCREEN_BY_PATH[path]); }
       else { showScreen('screen-landing'); }
     } finally { __applyingRoute = false; }

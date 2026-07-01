@@ -760,10 +760,51 @@ const jobs = {
   },
 };
 
+// ---- Personal job tracker (saved / applied) — private to each user ----------
+const tracker = {
+  async list() {
+    const c = requireClient(); const { data: u } = await c.auth.getUser();
+    if (!u?.user) return [];
+    const { data, error } = await c.from('tracked_jobs').select('*')
+      .eq('user_id', u.user.id).order('updated_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+  // Upsert a tracked job (from a feed job object) with a status ('saved'|'applied').
+  async save(job, status = 'saved') {
+    const c = requireClient(); const { data: u } = await c.auth.getUser();
+    const row = {
+      user_id: u.user.id, job_id: job.id || null,
+      title: job.title || 'Untitled role', company: job.company || null,
+      location: job.location || null, url: job.url || null,
+      status, applied_at: status === 'applied' ? new Date().toISOString() : null,
+    };
+    const { data, error } = await c.from('tracked_jobs').upsert(row, { onConflict: 'user_id,job_id' }).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async setStatus(id, status) {
+    const { data, error } = await requireClient().from('tracked_jobs')
+      .update({ status, applied_at: status === 'applied' ? new Date().toISOString() : null })
+      .eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async removeByJob(jobId) {
+    const c = requireClient(); const { data: u } = await c.auth.getUser();
+    const { error } = await c.from('tracked_jobs').delete().eq('user_id', u.user.id).eq('job_id', jobId);
+    if (error) throw error;
+  },
+  async remove(id) {
+    const { error } = await requireClient().from('tracked_jobs').delete().eq('id', id);
+    if (error) throw error;
+  },
+};
+
 window.GigCuteAPI = {
   enabled,
   supabase,
-  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat, support, events, jobs,
+  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat, support, events, jobs, tracker,
   isFreeEmailDomain,
 };
 
