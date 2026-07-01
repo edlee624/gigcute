@@ -60,7 +60,7 @@ async function fromArbeitnow(): Promise<JobRow[]> {
     tags: Array.isArray(j.tags) ? j.tags.slice(0, 12).map(String) : [],
     posted_at: j.created_at ? new Date(j.created_at * 1000).toISOString() : null,
     is_active: true,
-  })).filter((r: JobRow) => r.url && r.external_id);
+  })).filter((r: JobRow) => r.url && r.external_id && r.remote); // US/Remote focus: keep remote roles only
 }
 
 // ---- Source: Adzuna (broad; needs a free app_id + app_key) ------------------
