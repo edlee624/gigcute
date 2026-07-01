@@ -26,11 +26,18 @@ Project Settings → Edge Functions → Secrets (or `supabase secrets set ...`):
 - `ADZUNA_APP_ID`, `ADZUNA_APP_KEY` — optional, to enable Adzuna.
 - `ADZUNA_COUNTRY` (default `us`), `ADZUNA_PAGES` (default `2`) — optional.
 
-Adzuna targeting (optional — narrows results to a person's fit + geography):
-- `ADZUNA_WHAT` — keyword query, e.g. `customer experience analytics` (default).
-- `ADZUNA_WHERE` — comma-separated location anchors, e.g. `New York,Newark,Stamford` (default `New York`).
-- `ADZUNA_DISTANCE_KM` — radius around each anchor (default `120`, ~covers NY/NJ/CT metro).
-Adzuna runs one pass per `WHERE` anchor plus a US-wide remote-only pass.
+Targeting (optional — narrows results to a person's fit, geography, and pay):
+- `ADZUNA_WHAT_OR` — broad OR keywords biasing Adzuna's domain (local title filter narrows).
+- `ADZUNA_WHERE` — CSV location anchors, e.g. `New York,Hartford` (default `New York`).
+- `ADZUNA_DISTANCE_KM` — radius per anchor (default `120`, ~covers NY/NJ/CT metro).
+- `JOB_TITLE_ANY` — CSV role phrases; a job's title must contain one. Default:
+  `cx,analyt,product manager,implementation consultant,transformation,management consultant,ai consultant,business analyst,customer experience`
+- `JOB_SENIORITY_ANY` — CSV seniority levels; title must contain one. Default:
+  `senior manager,manager,director,avp,vp,svp,vice president,head of`
+- `JOB_MIN_SALARY` — minimum pay floor (default `100000`; `0` disables). Jobs with
+  no salary data are dropped when a floor is set (so Arbeitnow, which has none, is excluded).
+
+Adzuna runs one pass per `WHERE` anchor plus a US-wide remote-only pass, sorted newest first.
 
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are provided automatically.
 
