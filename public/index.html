@@ -3570,19 +3570,125 @@
 
 <!-- ============ /recruit — recruiter preview (coming soon) ============ -->
 <div class="screen flow-screen" id="screen-recruit">
-  <div class="recruit-overlay" aria-hidden="true"><span>Maybe coming soon...</span><span>Maybe coming soon...</span><span>Maybe coming soon...</span></div>
   <div style="width:100%; max-width:1080px; margin:0 auto; padding:4px 22px 0;">
     <button id="recruitBack" class="ob-back" type="button" style="position:relative; z-index:60;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
   </div>
 
-  <!-- ============ GIGCUTE-RECRUIT (coming soon) ============ -->
+  <!-- ============ GIGCUTE-RECRUIT ============ -->
   <div class="lm-section" style="width:100%; border-top:1px solid var(--line-light);">
     <div class="lm-wide" style="text-align:center;">
-      <div class="lm-eyebrow sage">GigCute-Recruit &middot; In development &amp; coming soon</div>
+      <div class="lm-eyebrow sage">GigCute-Recruit</div>
       <h2 class="lm-h2">For the people doing the <em class="sage">hiring</em>.</h2>
-      <p class="lm-sub">We're building the recruiter side of GigCute. Submit your information to stay informed as we roll it out.</p>
-      <div class="lm-cta-row" style="margin-top:8px;">
-        <a class="lm-cta-btn sage" href="https://forms.gle/w63jhrFDBy44x4SEA" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">Stay informed</a>
+      <p class="lm-sub">Post a role and meet candidates as more than a résumé — see how they actually think through the prompts they answer, then match and chat.</p>
+      <div class="lm-cta-row" style="margin-top:8px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+        <button class="lm-cta-btn sage" id="recruitStartBtn" type="button">Post a job</button>
+        <button id="recruitLoginBtn" type="button" style="background:var(--ink-soft); border:1px solid var(--line-light); color:var(--paper); border-radius:12px; font-family:'Inter',sans-serif; font-size:15px; font-weight:700; padding:15px 30px; cursor:pointer;">Recruiter log in</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ RECRUITER: SIGN UP ============ -->
+<div class="screen flow-screen" id="screen-recruiter-1">
+  <div class="ob-shell">
+    <div class="ob-top"><div class="ob-back" data-back="screen-recruit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div></div>
+    <div class="ob-eyebrow sage">Recruiter · Step 1 of 2</div>
+    <h1 class="ob-h1">Let's set up your <em>hiring</em> account.</h1>
+    <p class="ob-sub">Create your account, then add your company. You'll post your first role next.</p>
+    <div class="field-row" style="display:flex;gap:12px;">
+      <div class="field" style="flex:1;min-width:0;"><label for="rc-first">First name</label><input type="text" id="rc-first" placeholder="First name" autocomplete="given-name"></div>
+      <div class="field" style="flex:1;min-width:0;"><label for="rc-last">Last name</label><input type="text" id="rc-last" placeholder="Last name" autocomplete="family-name"></div>
+    </div>
+    <div class="field"><label for="rc-email">Work email</label><input type="email" id="rc-email" placeholder="you@company.com" autocomplete="email"></div>
+    <div class="field password-field">
+      <label for="rc-password">Create a password</label>
+      <input type="password" id="rc-password" placeholder="At least 8 characters" autocomplete="new-password">
+      <button class="pw-toggle" type="button" data-target="rc-password" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+    </div>
+    <label class="accept-row"><input type="checkbox" id="rc1Terms"><span>I agree to GigCute's <a onclick="openLegal('tos')">Terms of Service</a> and <a onclick="openLegal('privacy')">Privacy Policy</a>.</span></label>
+    <div class="auth-error" id="rc1Error" style="display:none;color:var(--coral);font-size:13px;margin:-4px 0 12px;"></div>
+    <button class="ob-primary" id="rc1Next" type="button">Continue</button>
+  </div>
+</div>
+
+<!-- ============ RECRUITER: COMPANY ============ -->
+<div class="screen flow-screen" id="screen-recruiter-company">
+  <div class="ob-shell">
+    <div class="ob-top"><div class="ob-back" data-back="screen-recruiter-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div></div>
+    <div class="ob-eyebrow sage">Recruiter · Step 2 of 2</div>
+    <h1 class="ob-h1">Tell us about your <em>company</em>.</h1>
+    <p class="ob-sub">This shows on your job postings so candidates know who's hiring.</p>
+    <div class="field"><label for="co-name">Company name</label><input type="text" id="co-name" placeholder="Acme Inc."></div>
+    <div class="field-row" style="display:flex;gap:12px;">
+      <div class="field" style="flex:1;min-width:0;"><label for="co-industry">Industry</label><input type="text" id="co-industry" placeholder="e.g. Software"></div>
+      <div class="field" style="flex:1;min-width:0;"><label for="co-size">Company size</label>
+        <select id="co-size"><option value="">Select…</option><option>1–10</option><option>11–50</option><option>51–200</option><option>201–1000</option><option>1000+</option></select>
+      </div>
+    </div>
+    <div class="field"><label for="co-linkedin">Company website or LinkedIn</label><input type="text" id="co-linkedin" placeholder="https://…"></div>
+    <div class="field"><label for="co-logo">Company logo (optional)</label><input type="file" id="co-logo" accept="image/*"></div>
+    <div class="auth-error" id="coError" style="display:none;color:var(--coral);font-size:13px;margin:-4px 0 12px;"></div>
+    <button class="ob-primary" id="coSaveBtn" type="button">Create company &amp; continue</button>
+  </div>
+</div>
+
+<!-- ============ RECRUITER: DASHBOARD ============ -->
+<div class="screen" id="screen-recruiter-app">
+  <div style="max-width:940px; margin:0 auto; padding:24px 22px 60px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px;">
+      <div class="wordmark"><img src="/logo.png" class="brand-img" alt="GigCute" style="height:26px;"></div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span id="recruiterCoName" style="font-size:13px; color:rgba(251,247,240,0.6);"></span>
+        <button class="ds-nav-btn" id="recruiterLogout" type="button">Log out</button>
+      </div>
+    </div>
+    <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin:8px 0 22px; flex-wrap:wrap;">
+      <div>
+        <h1 style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; margin:0 0 2px;">Your <em style="color:var(--sage);font-style:italic;">postings</em></h1>
+        <p style="color:rgba(251,247,240,0.55); font-size:14px; margin:0;">Create roles and meet candidates who fit.</p>
+      </div>
+      <button class="lm-cta-btn sage" id="newPostingBtn" type="button" style="font-size:14px; padding:11px 20px;">+ Post a job</button>
+    </div>
+    <div id="recruiterPostings"></div>
+  </div>
+</div>
+
+<!-- ============ POSTING FORM ============ -->
+<div id="postingModal" style="display:none; position:fixed; inset:0; z-index:950; background:rgba(10,11,14,0.82); backdrop-filter:blur(3px); overflow-y:auto;">
+  <div style="max-width:640px; margin:34px auto; padding:0 16px 60px;">
+    <div style="background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px; padding:26px 28px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px;">
+        <div id="pfTitle" style="font-family:'Fraunces',serif; font-size:22px; font-weight:600; color:var(--paper);">Post a job</div>
+        <button id="pfClose" type="button" class="ds-nav-btn">✕</button>
+      </div>
+      <div class="field"><label for="pf-title">Role title</label><input type="text" id="pf-title" placeholder="e.g. Senior Product Manager"></div>
+      <div class="field-row" style="display:flex;gap:12px;">
+        <div class="field" style="flex:1;min-width:0;"><label for="pf-dept">Department</label><input type="text" id="pf-dept" placeholder="e.g. Product"></div>
+        <div class="field" style="flex:1;min-width:0;"><label for="pf-seniority">Seniority</label>
+          <select id="pf-seniority"><option value="">Select…</option><option>Entry-level</option><option>Mid-level</option><option>Senior</option><option>Staff / Principal</option><option>Manager</option><option>Director+</option></select>
+        </div>
+      </div>
+      <div class="field-row" style="display:flex;gap:12px;">
+        <div class="field" style="flex:1;min-width:0;"><label for="pf-setup">Work setup</label>
+          <select id="pf-setup"><option value="">Select…</option><option>Remote</option><option>Hybrid</option><option>In-office</option></select>
+        </div>
+        <div class="field" style="flex:1;min-width:0;"><label for="pf-city">City</label><input type="text" id="pf-city" placeholder="e.g. New York, NY"></div>
+      </div>
+      <div class="field-row" style="display:flex;gap:12px;">
+        <div class="field" style="flex:1;min-width:0;"><label for="pf-emp">Job type</label>
+          <select id="pf-emp"><option value="">Select…</option><option>Full-time</option><option>Part-time</option><option>Contract</option></select>
+        </div>
+        <div class="field" style="flex:1;min-width:0;"><label for="pf-salmin">Salary min ($)</label><input type="number" id="pf-salmin" placeholder="120000"></div>
+        <div class="field" style="flex:1;min-width:0;"><label for="pf-salmax">Salary max ($)</label><input type="number" id="pf-salmax" placeholder="160000"></div>
+      </div>
+      <label class="accept-row" style="margin:-2px 0 12px;"><input type="checkbox" id="pf-equity"><span>This role offers equity</span></label>
+      <div class="field"><label for="pf-resp">Key responsibilities <span style="color:rgba(251,247,240,0.4);font-weight:400;">(one per line)</span></label><textarea id="pf-resp" rows="3" placeholder="Own the product roadmap…"></textarea></div>
+      <div class="field"><label for="pf-qual">Qualifications <span style="color:rgba(251,247,240,0.4);font-weight:400;">(one per line)</span></label><textarea id="pf-qual" rows="3" placeholder="5+ years in product…"></textarea></div>
+      <div class="field"><label for="pf-prompts">Prompts you'd love candidates to answer <span style="color:rgba(251,247,240,0.4);font-weight:400;">(one per line)</span></label><textarea id="pf-prompts" rows="2" placeholder="What's a product you improved and how?"></textarea></div>
+      <div class="auth-error" id="pfError" style="display:none;color:var(--coral);font-size:13px;margin:-4px 0 12px;"></div>
+      <div style="display:flex; gap:10px; margin-top:8px; flex-wrap:wrap;">
+        <button class="ob-primary" id="pfPublish" type="button" style="flex:1; min-width:150px;">Publish role</button>
+        <button class="ds-nav-btn" id="pfDraft" type="button">Save as draft</button>
       </div>
     </div>
   </div>
@@ -5580,7 +5686,10 @@
     'screen-seeker-prompts':'Sign-up · 4 · Prompts',
     'screen-seeker-preview':'Sign-up · 5 · Preview',
     'screen-success':'Sign-up · Done',
-    'screen-recruit':'Recruiters (coming soon)',
+    'screen-recruit':'Recruiters · landing',
+    'screen-recruiter-1':'Recruiter · sign-up',
+    'screen-recruiter-company':'Recruiter · company setup',
+    'screen-recruiter-app':'Recruiter · dashboard',
     'screen-admin':'Admin panel',
   };
   function screenLabel(id){ return SCREEN_LABELS[id] || id || '(unknown)'; }
@@ -6311,7 +6420,12 @@
       const email = document.getElementById('seeker-login-email').value.trim();
       const pw = document.getElementById('seeker-login-pw').value;
       document.getElementById('seekerLoginError').classList.remove('show');
-      try{ await API.auth.signIn({ email, password: pw }); await gcCompletePending(API); enterApp('candidate'); gcSyncIntro(); }
+      try{
+        await API.auth.signIn({ email, password: pw }); await gcCompletePending(API);
+        let role = 'seeker'; try{ const me = await API.profiles.me(); if(me && me.role) role = me.role; }catch(e){}
+        if(role === 'recruiter'){ __postLoginRecruiter = false; goRecruiterAfterAuth(); }
+        else { enterApp('candidate'); gcSyncIntro(); }
+      }
       catch(e){ gcAuthError('seekerLoginError', e.message || 'Login failed.'); }
     };
     // (Recruiter login removed — seeker-only build.)
@@ -6631,6 +6745,170 @@
   }
   window.showJobsDashboard = showJobsDashboard;
 
+  // ===== RECRUITER (Phase 2: onboarding + postings) =====
+  let __recruiterCompany = null;
+  let __postingsById = {};
+  let __editingPostingId = null;
+  let __postLoginRecruiter = false;
+
+  async function recruiterSignup(){
+    const err = document.getElementById('rc1Error');
+    const fail = m => { err.textContent = m; err.style.display = 'block'; };
+    err.style.display = 'none';
+    const first = document.getElementById('rc-first').value.trim();
+    const last = document.getElementById('rc-last').value.trim();
+    const email = document.getElementById('rc-email').value.trim();
+    const pw = document.getElementById('rc-password').value;
+    if(!first || !last) return fail('Please enter your name.');
+    if(!/^[^@]+@[^@]+\.[^@]+$/.test(email)) return fail('Enter a valid work email.');
+    if((pw || '').length < 8) return fail('Password must be at least 8 characters.');
+    if(!document.getElementById('rc1Terms').checked) return fail('Please accept the Terms to continue.');
+    const API = await gcAwaitAPI();
+    if(!API || !API.enabled) return fail('Backend not configured.');
+    try{
+      await API.auth.signUp({ email, password: pw, role: 'recruiter', fullName: `${first} ${last}` });
+      try{ await API.auth.signIn({ email, password: pw }); }catch(e){}   // if email confirmation is off, we're in
+      showScreen('screen-recruiter-company');
+    }catch(e){ fail((e && e.message) || 'Could not create account.'); }
+  }
+  async function recruiterSaveCompany(){
+    const err = document.getElementById('coError');
+    const fail = m => { err.textContent = m; err.style.display = 'block'; };
+    err.style.display = 'none';
+    const name = document.getElementById('co-name').value.trim();
+    if(!name) return fail('Please enter your company name.');
+    const API = await gcAwaitAPI();
+    if(!API || !API.enabled) return fail('Backend not configured.');
+    const btn = document.getElementById('coSaveBtn'); const old = btn.textContent; btn.disabled = true; btn.textContent = 'Creating…';
+    try{
+      let logo_url = null;
+      const f = document.getElementById('co-logo').files[0];
+      if(f){ try{ logo_url = await API.companies.uploadLogo(f); }catch(e){} }
+      __recruiterCompany = await API.companies.create({
+        name,
+        industry: document.getElementById('co-industry').value.trim() || null,
+        size: document.getElementById('co-size').value || null,
+        linkedin_url: document.getElementById('co-linkedin').value.trim() || null,
+        logo_url,
+      });
+      showRecruiterApp();
+    }catch(e){ fail((e && e.message) || 'Could not create company. Make sure your email is confirmed.'); btn.disabled = false; btn.textContent = old; }
+  }
+  async function showRecruiterApp(){
+    showScreen('screen-recruiter-app');
+    const API = await gcAwaitAPI();
+    if(!__recruiterCompany && API && API.enabled){ try{ __recruiterCompany = await API.companies.myStatus(); }catch(e){} }
+    const nameEl = document.getElementById('recruiterCoName'); if(nameEl) nameEl.textContent = __recruiterCompany ? __recruiterCompany.name : '';
+    renderRecruiterPostings();
+  }
+  // Route a logged-in recruiter: has a company -> dashboard; else -> company setup.
+  async function goRecruiterAfterAuth(){
+    const API = await gcAwaitAPI();
+    if(!API || !API.enabled){ showScreen('screen-recruiter-company'); return; }
+    let co = null; try{ co = await API.companies.myStatus(); }catch(e){}
+    if(co){ __recruiterCompany = co; showRecruiterApp(); } else showScreen('screen-recruiter-company');
+  }
+  async function renderRecruiterPostings(){
+    const el = document.getElementById('recruiterPostings'); if(!el) return;
+    el.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:24px 0;">Loading…</div>';
+    const API = await gcAwaitAPI();
+    let list = [];
+    try{ list = await API.postings.mine(); }catch(e){ console.warn('postings.mine:', e && e.message); }
+    __postingsById = {};
+    (list || []).forEach(p => { __postingsById[p.id] = p; });
+    if(!list || !list.length){
+      el.innerHTML = `<div style="text-align:center; padding:48px 20px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px;">
+        <div style="font-family:'Fraunces',serif; font-size:20px; font-style:italic; margin-bottom:8px;">No postings yet</div>
+        <div style="font-size:14px; color:rgba(251,247,240,0.55); margin-bottom:16px;">Post your first role to start meeting candidates.</div>
+        <button class="lm-cta-btn sage" type="button" onclick="openPostingForm()" style="font-size:14px;padding:11px 20px;">+ Post a job</button>
+      </div>`;
+      return;
+    }
+    const money = v => v ? ('$' + (v >= 1000 ? Math.round(v/1000) + 'k' : v)) : '';
+    el.innerHTML = list.map(p => {
+      const sal = (p.salary_min || p.salary_max) ? `${money(p.salary_min)}${p.salary_max ? '–' + money(p.salary_max) : '+'}` : '';
+      const loc = [p.location_type, p.city].filter(Boolean).join(' · ');
+      const statusColor = p.status === 'active' ? 'var(--sage)' : 'rgba(251,247,240,0.4)';
+      return `<div style="background:var(--ink-soft); border:1px solid var(--line-light); border-radius:14px; padding:18px 20px; margin-bottom:12px; display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+        <div style="min-width:0;">
+          <div style="font-family:'Fraunces',serif; font-size:17px; font-weight:600; color:var(--paper);">${escapeHtml(p.title || 'Untitled role')}</div>
+          <div style="font-size:12.5px; color:rgba(251,247,240,0.6); margin-top:3px;">${escapeHtml([loc, sal].filter(Boolean).join(' · '))}</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:${statusColor}; margin-top:8px;">${escapeHtml(p.status)}</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
+          <button class="jli-btn" type="button" onclick="openPostingForm('${p.id}')">Edit</button>
+          ${p.status !== 'active' ? `<button class="jli-btn" type="button" onclick="publishPosting('${p.id}')">Publish</button>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  async function publishPosting(id){
+    const API = await gcAwaitAPI();
+    try{ await API.postings.update(id, { status:'active', published_at: new Date().toISOString() }); }catch(e){ if(typeof showToast==='function') showToast('Could not publish.'); }
+    renderRecruiterPostings();
+  }
+  function openPostingForm(idOrObj){
+    const existing = typeof idOrObj === 'string' ? __postingsById[idOrObj] : (idOrObj && idOrObj.id ? idOrObj : null);
+    __editingPostingId = existing ? existing.id : null;
+    document.getElementById('pfTitle').textContent = __editingPostingId ? 'Edit role' : 'Post a job';
+    const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = (v == null ? '' : v); };
+    set('pf-title', existing && existing.title); set('pf-dept', existing && existing.department); set('pf-seniority', existing && existing.seniority);
+    set('pf-setup', existing && existing.location_type); set('pf-city', existing && existing.city); set('pf-emp', existing && existing.employment_type);
+    set('pf-salmin', existing && existing.salary_min); set('pf-salmax', existing && existing.salary_max);
+    document.getElementById('pf-equity').checked = !!(existing && existing.equity);
+    set('pf-resp', (existing && existing.responsibilities || []).join('\n'));
+    set('pf-qual', (existing && existing.qualifications || []).join('\n'));
+    set('pf-prompts', '');
+    document.getElementById('pfError').style.display = 'none';
+    document.getElementById('postingModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+  function closePostingForm(){ const m = document.getElementById('postingModal'); if(m) m.style.display = 'none'; document.body.style.overflow = ''; }
+  async function savePosting(publish){
+    const err = document.getElementById('pfError'); err.style.display = 'none';
+    const fail = m => { err.textContent = m; err.style.display = 'block'; };
+    const title = document.getElementById('pf-title').value.trim();
+    if(!title) return fail('Please enter a role title.');
+    const API = await gcAwaitAPI();
+    if(!API || !API.enabled) return fail('Backend not configured.');
+    if(!__recruiterCompany){ try{ __recruiterCompany = await API.companies.myStatus(); }catch(e){} }
+    if(!__recruiterCompany) return fail('No company found — set up your company first.');
+    const lines = id => document.getElementById(id).value.split('\n').map(s => s.trim()).filter(Boolean);
+    const numOrNull = id => { const v = parseInt(document.getElementById(id).value, 10); return isNaN(v) ? null : v; };
+    const payload = {
+      company_id: __recruiterCompany.id, title,
+      department: document.getElementById('pf-dept').value.trim() || null,
+      seniority: document.getElementById('pf-seniority').value || null,
+      location_type: document.getElementById('pf-setup').value || null,
+      city: document.getElementById('pf-city').value.trim() || null,
+      employment_type: document.getElementById('pf-emp').value || null,
+      salary_min: numOrNull('pf-salmin'), salary_max: numOrNull('pf-salmax'),
+      equity: document.getElementById('pf-equity').checked,
+      responsibilities: lines('pf-resp'), qualifications: lines('pf-qual'),
+      status: publish ? 'active' : 'draft',
+      published_at: publish ? new Date().toISOString() : null,
+    };
+    const prompts = lines('pf-prompts');
+    try{
+      const posting = __editingPostingId ? await API.postings.update(__editingPostingId, payload) : await API.postings.create(payload);
+      if(prompts.length && posting && posting.id){ try{ await API.postings.clearRequestedPrompts(posting.id); await API.postings.addRequestedPrompts(posting.id, prompts); }catch(e){} }
+      closePostingForm();
+      renderRecruiterPostings();
+    }catch(e){ fail((e && e.message) || 'Could not save the posting.'); }
+  }
+  window.openPostingForm = openPostingForm; window.publishPosting = publishPosting; window.showRecruiterApp = showRecruiterApp;
+  // wiring
+  { const b=document.getElementById('recruitStartBtn'); if(b) b.onclick = () => showScreen('screen-recruiter-1'); }
+  { const b=document.getElementById('recruitLoginBtn'); if(b) b.onclick = () => { __postLoginRecruiter = true; showScreen('screen-login-seeker'); }; }
+  { const b=document.getElementById('rc1Next'); if(b) b.onclick = recruiterSignup; }
+  { const b=document.getElementById('coSaveBtn'); if(b) b.onclick = recruiterSaveCompany; }
+  { const b=document.getElementById('newPostingBtn'); if(b) b.onclick = () => openPostingForm(); }
+  { const b=document.getElementById('pfClose'); if(b) b.onclick = closePostingForm; }
+  { const b=document.getElementById('pfPublish'); if(b) b.onclick = () => savePosting(true); }
+  { const b=document.getElementById('pfDraft'); if(b) b.onclick = () => savePosting(false); }
+  { const b=document.getElementById('recruiterLogout'); if(b) b.onclick = async () => { const API=await gcAwaitAPI(); try{ await API.auth.signOut(); }catch(e){} navigate('/'); }; }
+  { const m=document.getElementById('postingModal'); if(m) m.addEventListener('click', e => { if(e.target === m || e.target === m.firstElementChild) closePostingForm(); }); }
+
   function applyRoute(path){
     __applyingRoute = true;
     try{
@@ -6639,6 +6917,8 @@
       else if(path === '/main'){ openProfileView(); }
       else if(path === '/admin'){ showAdmin(); }
       else if(path === '/jobs' || path === '/search'){ showJobsDashboard(); }   // both show the real job board in the dashboard layout
+      else if(path === '/recruit'){ showScreen('screen-recruit'); }
+      else if(path === '/post' || path === '/hiring'){ goRecruiterAfterAuth(); }
       else if(SCREEN_BY_PATH[path]){ showScreen(SCREEN_BY_PATH[path]); }
       else { showScreen('screen-landing'); }
     } finally { __applyingRoute = false; }
