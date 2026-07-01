@@ -721,7 +721,7 @@ const reports = {
 const jobs = {
   // List active jobs, newest first, with optional text search + remote filter.
   // Returns { jobs:[...], total }. total is the full match count (for paging).
-  async list({ limit = 20, offset = 0, q = '', remote = null, minSalary = null, employmentType = null } = {}) {
+  async list({ limit = 20, offset = 0, q = '', remote = null, minSalary = null, employmentType = null, sort = 'newest' } = {}) {
     let query = requireClient()
       .from('jobs')
       .select('*', { count: 'exact' })
@@ -735,8 +735,10 @@ const jobs = {
       const safe = term.replace(/[(),%]/g, ' ').trim();
       if (safe) query = query.or(`title.ilike.%${safe}%,company.ilike.%${safe}%,location.ilike.%${safe}%`);
     }
-    query = query.order('posted_at', { ascending: false, nullsFirst: false })
-                 .range(offset, offset + limit - 1);
+    if (sort === 'salary') query = query.order('salary_max', { ascending: false, nullsFirst: false });
+    else if (sort === 'alpha') query = query.order('title', { ascending: true });
+    else query = query.order('posted_at', { ascending: false, nullsFirst: false }); // newest (default)
+    query = query.range(offset, offset + limit - 1);
     const { data, error, count } = await query;
     if (error) throw error;
     return { jobs: data || [], total: count ?? 0 };

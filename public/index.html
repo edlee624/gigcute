@@ -6621,6 +6621,132 @@
   { const b=document.getElementById('jdClose'); if(b) b.onclick = closeJobDetail; }
   { const m=document.getElementById('jobDetailModal'); if(m) m.addEventListener('click', e => { if(e.target === m || e.target === m.firstElementChild) closeJobDetail(); }); }
 
+  // ===== JOB BOARD — dashboard layout (powers /jobs and /search with real jobs) =====
+  // Renders the real ingested jobs inside the /search candidate-dashboard shell
+  // (sidebar + rich search/filter chrome), un-gated. Recruiter/matching-only bits
+  // (Top matches, invites, department/experience/equity/distance filters) are hidden.
+  let __dash = { q:'', remote:false, minSalary:null, employmentType:null, sort:'newest', offset:0, total:0, items:[], loading:false };
+  let __dashTimer = null;
+  function mapEmpType(v){ return v==='Full-time'?'full_time':v==='Contract'?'contract':v==='Part-time'?'part_time':null; }
+  function dashJobCard(j){
+    const key = jobKey(j); __jobsById[key] = j;
+    const salary = fmtSalary(j);
+    const loc = j.remote ? ('Remote' + (j.location && !/remote/i.test(j.location) ? ' · ' + j.location : '')) : (j.location || '');
+    const initial = (String(j.company || '?').trim().charAt(0) || '?').toUpperCase();
+    const tags = (j.tags || []).slice(0,4).map(t => `<span class="jli-tag">${escapeHtml(t)}</span>`).join('');
+    const posted = j.posted_at ? jobTimeAgo(j.posted_at) : '';
+    const safeUrl = /^https?:\/\//i.test(j.url || '') ? j.url : '#';
+    return `<div class="job-list-item" data-jobkey="${escapeHtml(key)}">
+      <div class="job-logo" style="display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:18px;color:rgba(251,247,240,0.5);">${escapeHtml(initial)}</div>
+      <div style="min-width:0;">
+        <div class="jli-company">${escapeHtml(j.company || '')}${loc ? ` · ${escapeHtml(loc)}` : ''}</div>
+        <div class="jli-role">${escapeHtml(j.title || 'Untitled role')}</div>
+        ${salary ? `<div style="font-size:12.5px;color:var(--sage-soft);margin-bottom:6px;">${salary}</div>` : ''}
+        ${tags ? `<div class="jli-tags">${tags}</div>` : ''}
+      </div>
+      <div class="jli-actions">
+        <a class="jli-btn primary" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow" style="text-decoration:none;text-align:center;">Apply ↗</a>
+        <button class="jli-btn" type="button">Details</button>
+        ${posted ? `<div style="font-size:10.5px;color:rgba(251,247,240,0.35);text-align:right;">${posted}</div>` : ''}
+      </div>
+    </div>`;
+  }
+  function renderDashJobs(){
+    const listEl = document.getElementById('jobList');
+    if(!listEl) return;
+    const countEl = document.getElementById('roleCount'); if(countEl) countEl.textContent = __dash.total ? `${__dash.total} role${__dash.total !== 1 ? 's' : ''}` : '';
+    const heading = document.getElementById('allRolesHeading');
+    if(heading) heading.innerHTML = (__dash.q || __dash.remote || __dash.minSalary || __dash.employmentType) ? 'Search <em>results</em>' : 'All open <em>roles</em>';
+    if(!__dash.items.length){
+      listEl.innerHTML = `<div style="text-align:center;padding:44px 20px;color:rgba(251,247,240,0.4);"><div style="font-family:'Fraunces',serif;font-size:18px;font-style:italic;margin-bottom:6px;">No roles found</div><div style="font-size:13px;">Try adjusting your search or filters.</div></div>`;
+    } else {
+      listEl.innerHTML = __dash.items.map(dashJobCard).join('');
+    }
+    let more = document.getElementById('dashMore');
+    if(!more){ more = document.createElement('div'); more.id = 'dashMore'; more.style.cssText = 'text-align:center;margin-top:18px;'; listEl.parentNode.insertBefore(more, listEl.nextSibling); }
+    more.innerHTML = (__dash.offset < __dash.total) ? `<button class="jli-btn" id="dashMoreBtn" type="button">Load more</button>` : '';
+    const mb = document.getElementById('dashMoreBtn'); if(mb) mb.onclick = () => loadDashJobs(false);
+  }
+  async function loadDashJobs(reset){
+    const listEl = document.getElementById('jobList');
+    if(reset){ __dash.offset = 0; __dash.items = []; if(listEl) listEl.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:30px 0;">Loading roles…</div>'; }
+    const API = await gcAwaitAPI();
+    const PAGE = 20;
+    let res;
+    try{
+      if(API && API.enabled && API.jobs){
+        res = await API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType || null, sort:__dash.sort });
+      } else {
+        const q = __dash.q.toLowerCase(); const ms = __dash.minSalary || 0;
+        let f = SAMPLE_JOBS.filter(j => (!__dash.remote || j.remote) && (!__dash.employmentType || j.employment_type === __dash.employmentType) && (!ms || (j.salary_max && j.salary_max >= ms) || (j.salary_min && j.salary_min >= ms)) && (!q || `${j.title} ${j.company} ${j.location}`.toLowerCase().includes(q)));
+        if(__dash.sort === 'salary') f = f.slice().sort((a,b) => (b.salary_max||0) - (a.salary_max||0));
+        else if(__dash.sort === 'alpha') f = f.slice().sort((a,b) => (a.title||'').localeCompare(b.title||''));
+        res = { jobs: f.slice(__dash.offset, __dash.offset + PAGE), total: f.length };
+      }
+    }catch(e){ console.warn('dash jobs:', e && e.message); res = { jobs: [], total: 0 }; }
+    __dash.total = res.total; __dash.items = __dash.items.concat(res.jobs); __dash.offset += res.jobs.length;
+    renderDashJobs();
+  }
+  function syncDashFilters(){
+    const activeQuick = new Set([...document.querySelectorAll('#dashView .quick-chip.active')].map(c => c.dataset.quick));
+    const setupRemote = !!document.querySelector('#advFilterPanel .adv-chip[data-filter="setup"][data-value="Remote"].active');
+    __dash.remote = activeQuick.has('Remote') || setupRemote;
+    const slider = document.getElementById('salarySlider'); const sv = slider ? parseInt(slider.value,10) : 0;
+    __dash.minSalary = activeQuick.has('$100K+') ? 100000 : (sv > 0 ? sv * 1000 : null);
+    const empChip = document.querySelector('#advFilterPanel .adv-chip[data-filter="empType"].active');
+    __dash.employmentType = activeQuick.has('Full-time') ? 'full_time' : (empChip ? mapEmpType(empChip.dataset.value) : null);
+    const s = document.getElementById('jobSearch'); __dash.q = s ? s.value.trim() : '';
+    const so = document.getElementById('jobSortSelect'); __dash.sort = so ? so.value : 'newest';
+  }
+  function clearDashFilters(){
+    document.querySelectorAll('#dashView .quick-chip.active, #advFilterPanel .adv-chip.active').forEach(c => c.classList.remove('active'));
+    const sl = document.getElementById('salarySlider'); if(sl){ sl.value = 0; const sd = document.getElementById('salaryDisplay'); if(sd) sd.textContent = 'Any'; }
+    const s = document.getElementById('jobSearch'); if(s) s.value = '';
+    const so = document.getElementById('jobSortSelect'); if(so) so.value = 'newest';
+    syncDashFilters(); loadDashJobs(true);
+  }
+  function wireDashControls(){
+    const once = (el, fn) => { if(el && !el.__jbwired){ el.__jbwired = 1; fn(el); } };
+    once(document.getElementById('jobSearch'), s => s.addEventListener('input', () => { clearTimeout(__dashTimer); __dashTimer = setTimeout(() => { syncDashFilters(); loadDashJobs(true); }, 300); }));
+    once(document.getElementById('jobSearchBtn'), b => b.onclick = () => { syncDashFilters(); loadDashJobs(true); });
+    once(document.getElementById('jobSortSelect'), so => so.onchange = () => { syncDashFilters(); loadDashJobs(true); });
+    once(document.getElementById('advFilterToggle'), ft => ft.onclick = () => { const p = document.getElementById('advFilterPanel'); if(p) p.classList.toggle('open'); ft.classList.toggle('active'); });
+    once(document.getElementById('clearAllFilters'), c => c.onclick = clearDashFilters);
+    once(document.getElementById('salarySlider'), sl => { sl.oninput = () => { const v = parseInt(sl.value,10); const sd = document.getElementById('salaryDisplay'); if(sd) sd.textContent = v ? ('$' + v + 'k+') : 'Any'; }; sl.onchange = () => { syncDashFilters(); loadDashJobs(true); }; });
+    document.querySelectorAll('#dashView .quick-chip').forEach(chip => once(chip, c => c.onclick = () => { c.classList.toggle('active'); syncDashFilters(); loadDashJobs(true); }));
+    document.querySelectorAll('#advFilterPanel .adv-chip[data-filter="setup"], #advFilterPanel .adv-chip[data-filter="empType"]').forEach(chip => once(chip, c => c.onclick = () => {
+      const group = c.getAttribute('data-filter'); const wasActive = c.classList.contains('active');
+      document.querySelectorAll(`#advFilterPanel .adv-chip[data-filter="${group}"]`).forEach(x => x.classList.remove('active'));
+      if(!wasActive) c.classList.add('active');
+      syncDashFilters(); loadDashJobs(true);
+    }));
+  }
+  function hideDashRecruiterBits(){
+    const hide = el => { if(el) el.style.display = 'none'; };
+    hide(document.getElementById('matchStrip'));
+    hide(document.getElementById('inviteInboxSection'));
+    hide(document.getElementById('inviteDivider'));
+    const topHead = document.querySelector('#dashView .cd-section-head'); if(topHead) topHead.style.display = 'none';   // "Top matches"
+    const firstDivider = document.querySelector('#dashView .cd-divider'); if(firstDivider) firstDivider.style.display = 'none';
+    document.querySelectorAll('#advFilterPanel .adv-filter-group').forEach(g => {
+      const dfEl = g.querySelector('[data-filter]'); const df = dfEl && dfEl.getAttribute('data-filter');
+      if(df === 'dept' || df === 'seniority' || df === 'equity' || g.querySelector('#jobLocationInput')) g.style.display = 'none';
+    });
+  }
+  async function showJobsDashboard(){
+    showScreen('screen-app');
+    setMode('candidate');
+    const nr = document.querySelector('.ds-nav-right'); if(nr) nr.style.display = '';
+    if(typeof gcResetAppLayout === 'function') gcResetAppLayout();
+    const cs = document.getElementById('searchComingSoon'); if(cs) cs.style.display = 'none';   // un-gate
+    renderDashboard();          // hydrate the sidebar (async; sidebar only)
+    hideDashRecruiterBits();
+    wireDashControls();
+    __dash = { q:'', remote:false, minSalary:null, employmentType:null, sort:'newest', offset:0, total:0, items:[], loading:false };
+    loadDashJobs(true);
+  }
+  window.showJobsDashboard = showJobsDashboard;
+
   function applyRoute(path){
     __applyingRoute = true;
     try{
@@ -6628,8 +6754,7 @@
       if(pm){ showProfilePage(decodeURIComponent(pm[1])); }
       else if(path === '/main'){ openProfileView(); }
       else if(path === '/admin'){ showAdmin(); }
-      else if(path === '/jobs'){ showJobs(); }
-      else if(path === '/search'){ showScreen('screen-app'); setMode('candidate'); const nr = document.querySelector('.ds-nav-right'); if(nr) nr.style.display = ''; gcResetAppLayout(); if(typeof renderDashboard === 'function') renderDashboard(); const cs = document.getElementById('searchComingSoon'); if(cs) cs.style.display = 'flex'; }   // search is gated behind "coming soon"
+      else if(path === '/jobs' || path === '/search'){ showJobsDashboard(); }   // both show the real job board in the dashboard layout
       else if(SCREEN_BY_PATH[path]){ showScreen(SCREEN_BY_PATH[path]); }
       else { showScreen('screen-landing'); }
     } finally { __applyingRoute = false; }
