@@ -3459,6 +3459,7 @@
     <h1 class="ob-h1" style="text-align:center; font-size:30px; line-height:1.15; margin:14px auto 28px; max-width:460px;">You're more than a <em>resume</em>. Build a profile that proves it.</h1>
     <button class="lm-cta-btn" id="lmSeekerCta" type="button" style="display:block; margin:0 auto;">Create a profile now</button>
     <button id="seeSampleBtn" type="button" style="display:block; margin:12px auto 0; background:var(--ink-soft); border:1px solid var(--line-light); color:var(--paper); border-radius:12px; font-family:'Inter',sans-serif; font-size:14px; font-weight:600; padding:12px 26px; cursor:pointer;">See sample profile</button>
+    <button id="browseJobsBtn" type="button" style="display:block; margin:12px auto 0; background:none; border:none; color:var(--coral); font-family:'Inter',sans-serif; font-size:14px; font-weight:700; padding:4px 10px; cursor:pointer;">Browse jobs →</button>
     <div style="text-align:center; font-size:13px; color:rgba(251,247,240,0.45); margin-top:14px;">Already have an account? <button id="loginSeeker" type="button" style="background:none; border:none; color:var(--coral); font:inherit; font-weight:700; cursor:pointer; padding:0;">Log in</button></div>
   </div>
 
@@ -3584,6 +3585,28 @@
         <a class="lm-cta-btn sage" href="https://forms.gle/w63jhrFDBy44x4SEA" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">Stay informed</a>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ============ JOB BOARD / JOB SEARCH (seeker-facing) ============ -->
+<div class="screen" id="screen-jobs">
+  <div style="width:100%; max-width:900px; margin:0 auto; padding:22px 20px 60px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
+      <div class="wordmark"><img src="/logo.png" class="brand-img" alt="GigCute" style="height:26px;"></div>
+      <button class="ds-nav-btn" id="jobsBack" type="button">← Home</button>
+    </div>
+    <h1 style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; margin:6px 0 4px;">Find your <em style="font-style:italic; color:var(--coral);">next role</em></h1>
+    <p style="color:rgba(251,247,240,0.55); font-size:14px; margin:0 0 14px;">Jobs from around the web, updated automatically.</p>
+    <div style="background:var(--ink-soft); border:1px solid var(--line-light); border-radius:10px; padding:10px 14px; font-size:11.5px; color:rgba(251,247,240,0.5); line-height:1.5; margin-bottom:18px;">
+      Listings are aggregated from third-party job sites and updated automatically. GigCute is not the employer and doesn't manage these postings — always verify details and apply on the original site.
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
+      <input id="jobSearch" type="text" placeholder="Search title, company, or location…" style="flex:1; min-width:220px; box-sizing:border-box; background:var(--ink); border:1px solid var(--line-light); border-radius:10px; color:var(--paper); font-family:'Inter',sans-serif; font-size:14px; padding:11px 14px;">
+      <label style="display:inline-flex; align-items:center; gap:8px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:10px; padding:0 14px; font-size:13px; color:rgba(251,247,240,0.75); cursor:pointer; user-select:none;"><input type="checkbox" id="jobRemote" style="cursor:pointer;"> Remote only</label>
+    </div>
+    <div id="jobsCount" style="font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:rgba(251,247,240,0.45); margin-bottom:12px;"></div>
+    <div id="jobsList"></div>
+    <div id="jobsMore" style="text-align:center; margin-top:20px;"></div>
   </div>
 </div>
 
@@ -4365,6 +4388,7 @@
     'screen-login-seeker':'/login',
     'screen-seeker-1':'/signup',
     'screen-admin':'/admin',
+    'screen-jobs':'/jobs',
   };
   const SCREEN_BY_PATH = Object.fromEntries(Object.entries(PATH_BY_SCREEN).map(([s,p]) => [p,s]));
 
@@ -4394,6 +4418,7 @@
   { const a=document.getElementById('pickSeeker'); if(a) a.onclick = () => showScreen('screen-seeker-1'); }
   { const a=document.getElementById('skipToDemo'); if(a) a.onclick = () => { demoMode = true; showScreen('screen-app'); setMode('candidate'); }; }
   { const a=document.getElementById('lmSeekerCta'); if(a) a.onclick = () => showScreen('screen-seeker-1'); }
+  { const a=document.getElementById('browseJobsBtn'); if(a) a.onclick = () => navigate('/jobs'); }
 
   // ---- Landing: login shortcuts ----
   document.getElementById('loginSeeker').onclick = () => showScreen('screen-login-seeker');
@@ -6374,6 +6399,111 @@
   else window.addEventListener('gigcute-api-ready', wireBackendAuth);
 
   // ================= URL ROUTING (apply + history) =================
+  // ===== JOB BOARD (seeker-facing search over ingested jobs) =====
+  // Shown to anyone (logged in or not). Data comes from the public `jobs` table
+  // populated by the ingest-jobs Edge Function. Falls back to a tiny demo list
+  // when no backend is configured (local demo mode).
+  const SAMPLE_JOBS = [
+    { title:'Junior Product Designer', company:'Northwind', location:'New York, NY', remote:false, salary_min:70000, salary_max:95000, salary_currency:'USD', url:'https://example.com', description:'Work across the product design lifecycle with a small, senior team. Figma, prototyping, and a love of clean UI required.', tags:['Design','Figma','Entry-level'], posted_at:'2026-06-28T00:00:00Z', source:'demo' },
+    { title:'Data Analyst', company:'Brightloom', location:'Remote', remote:true, salary_min:80000, salary_max:110000, salary_currency:'USD', url:'https://example.com', description:'Turn messy data into clear stories. SQL + a BI tool; bonus for Python.', tags:['Data','SQL','Remote'], posted_at:'2026-06-29T00:00:00Z', source:'demo' },
+    { title:'Frontend Engineer', company:'Lattice Cloud', location:'San Francisco, CA', remote:true, salary_min:120000, salary_max:160000, salary_currency:'USD', url:'https://example.com', description:'Build fast, accessible interfaces in a modern TS/React stack.', tags:['Engineering','React','TypeScript'], posted_at:'2026-06-30T00:00:00Z', source:'demo' },
+  ];
+  let __jobsState = { q:'', remote:false, offset:0, total:0, items:[], loading:false };
+  let __jobsTimer = null;
+
+  function fmtSalary(j){
+    const c = j.salary_currency === 'USD' ? '$' : (j.salary_currency ? j.salary_currency + ' ' : '');
+    const k = v => { v = Math.round(v); return v >= 1000 ? (v/1000) + 'k' : String(v); };
+    if(j.salary_min && j.salary_max) return `${c}${k(j.salary_min)}–${c}${k(j.salary_max)}`;
+    if(j.salary_min) return `${c}${k(j.salary_min)}+`;
+    if(j.salary_max) return `up to ${c}${k(j.salary_max)}`;
+    return '';
+  }
+  function jobTimeAgo(iso){
+    try{ const d = (Date.now() - new Date(iso).getTime()) / 86400000;
+      if(d < 1) return 'today'; if(d < 2) return 'yesterday';
+      if(d < 30) return Math.floor(d) + 'd ago';
+      if(d < 365) return Math.floor(d/30) + 'mo ago';
+      return Math.floor(d/365) + 'y ago';
+    }catch(e){ return ''; }
+  }
+  function jobCardHTML(j){
+    const salary = fmtSalary(j);
+    const posted = j.posted_at ? jobTimeAgo(j.posted_at) : '';
+    const loc = j.remote ? ('Remote' + (j.location && !/remote/i.test(j.location) ? ' · ' + j.location : '')) : (j.location || '');
+    const tags = (j.tags || []).slice(0,5).map(t => `<span class="jli-tag">${escapeHtml(t)}</span>`).join('');
+    const desc = j.description ? (escapeHtml(j.description.slice(0,180)) + (j.description.length > 180 ? '…' : '')) : '';
+    const src = j.source ? `via ${escapeHtml(j.source)}` : '';
+    const safeUrl = /^https?:\/\//i.test(j.url || '') ? j.url : '#';
+    return `
+      <div style="background:var(--ink-soft);border:1px solid var(--line-light);border-radius:14px;padding:18px 20px;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;">
+          <div style="min-width:0;flex:1;">
+            <div style="font-family:'Fraunces',serif;font-size:17px;color:var(--paper);font-weight:600;">${escapeHtml(j.title || 'Untitled role')}</div>
+            <div style="font-size:13.5px;color:rgba(251,247,240,0.7);margin-top:2px;">${escapeHtml(j.company || '')}${loc ? ` · ${escapeHtml(loc)}` : ''}</div>
+            ${salary ? `<div style="font-size:12.5px;color:var(--sage-soft);margin-top:3px;">${salary}</div>` : ''}
+            ${tags ? `<div class="jli-tags" style="margin-top:8px;">${tags}</div>` : ''}
+            ${desc ? `<div style="font-size:12.5px;color:rgba(251,247,240,0.5);margin-top:8px;line-height:1.5;">${desc}</div>` : ''}
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;white-space:nowrap;">
+            <a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow" class="lm-cta-btn" style="text-decoration:none;font-size:13px;padding:9px 16px;">Apply ↗</a>
+            <div style="font-size:11px;color:rgba(251,247,240,0.35);">${[posted, src].filter(Boolean).join(' · ')}</div>
+          </div>
+        </div>
+      </div>`;
+  }
+  function renderJobs(){
+    const listEl = document.getElementById('jobsList');
+    const moreEl = document.getElementById('jobsMore');
+    const countEl = document.getElementById('jobsCount');
+    if(!listEl) return;
+    const items = __jobsState.items;
+    if(countEl) countEl.textContent = __jobsState.total ? `${__jobsState.total} job${__jobsState.total !== 1 ? 's' : ''}` : '';
+    if(!items.length){
+      listEl.innerHTML = `<div style="text-align:center;padding:44px 20px;color:rgba(251,247,240,0.4);"><div style="font-family:'Fraunces',serif;font-size:18px;font-style:italic;margin-bottom:6px;">No jobs found</div><div style="font-size:13px;">Try a different search, or check back soon as new roles are added.</div></div>`;
+      if(moreEl) moreEl.innerHTML = '';
+      return;
+    }
+    listEl.innerHTML = items.map(jobCardHTML).join('');
+    if(moreEl){
+      moreEl.innerHTML = (__jobsState.offset < __jobsState.total) ? `<button class="ds-nav-btn" id="jobsMoreBtn" type="button">Load more</button>` : '';
+      const mb = document.getElementById('jobsMoreBtn'); if(mb) mb.onclick = () => loadJobs(false);
+    }
+  }
+  async function loadJobs(reset){
+    const listEl = document.getElementById('jobsList');
+    if(reset){ __jobsState.offset = 0; __jobsState.items = []; if(listEl) listEl.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:30px 0;">Loading jobs…</div>'; }
+    __jobsState.loading = true;
+    const API = await gcAwaitAPI();
+    const PAGE = 20;
+    let res;
+    try{
+      if(API && API.enabled && API.jobs){
+        res = await API.jobs.list({ limit:PAGE, offset:__jobsState.offset, q:__jobsState.q, remote:__jobsState.remote || null });
+      } else {
+        const q = __jobsState.q.toLowerCase();
+        const filtered = SAMPLE_JOBS.filter(j => (!__jobsState.remote || j.remote) && (!q || `${j.title} ${j.company} ${j.location}`.toLowerCase().includes(q)));
+        res = { jobs: filtered.slice(__jobsState.offset, __jobsState.offset + PAGE), total: filtered.length };
+      }
+    }catch(e){ console.warn('jobs load:', e && e.message); res = { jobs: [], total: 0 }; }
+    __jobsState.loading = false;
+    __jobsState.total = res.total;
+    __jobsState.items = __jobsState.items.concat(res.jobs);
+    __jobsState.offset += res.jobs.length;
+    renderJobs();
+  }
+  async function showJobs(){
+    showScreen('screen-jobs');
+    __jobsState = { q:'', remote:false, offset:0, total:0, items:[], loading:false };
+    const s = document.getElementById('jobSearch'); if(s) s.value = '';
+    const r = document.getElementById('jobRemote'); if(r) r.checked = false;
+    loadJobs(true);
+  }
+  window.showJobs = showJobs;
+  { const s=document.getElementById('jobSearch'); if(s) s.addEventListener('input', e => { clearTimeout(__jobsTimer); const v = e.target.value; __jobsTimer = setTimeout(() => { __jobsState.q = v; loadJobs(true); }, 300); }); }
+  { const r=document.getElementById('jobRemote'); if(r) r.onchange = () => { __jobsState.remote = r.checked; loadJobs(true); }; }
+  { const b=document.getElementById('jobsBack'); if(b) b.onclick = () => navigate('/'); }
+
   function applyRoute(path){
     __applyingRoute = true;
     try{
@@ -6381,6 +6511,7 @@
       if(pm){ showProfilePage(decodeURIComponent(pm[1])); }
       else if(path === '/main'){ openProfileView(); }
       else if(path === '/admin'){ showAdmin(); }
+      else if(path === '/jobs'){ showJobs(); }
       else if(path === '/search'){ showScreen('screen-app'); setMode('candidate'); const nr = document.querySelector('.ds-nav-right'); if(nr) nr.style.display = ''; gcResetAppLayout(); if(typeof renderDashboard === 'function') renderDashboard(); const cs = document.getElementById('searchComingSoon'); if(cs) cs.style.display = 'flex'; }   // search is gated behind "coming soon"
       else if(SCREEN_BY_PATH[path]){ showScreen(SCREEN_BY_PATH[path]); }
       else { showScreen('screen-landing'); }

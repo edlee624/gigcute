@@ -717,10 +717,34 @@ const reports = {
   },
 };
 
+// ---- Job board (public read; jobs ingested by the ingest-jobs Edge Function) --
+const jobs = {
+  // List active jobs, newest first, with optional text search + remote filter.
+  // Returns { jobs:[...], total }. total is the full match count (for paging).
+  async list({ limit = 20, offset = 0, q = '', remote = null } = {}) {
+    let query = requireClient()
+      .from('jobs')
+      .select('*', { count: 'exact' })
+      .eq('is_active', true);
+    if (remote === true) query = query.eq('remote', true);
+    const term = (q || '').trim();
+    if (term) {
+      // sanitize for PostgREST or() filter; commas/parens would break the grammar
+      const safe = term.replace(/[(),%]/g, ' ').trim();
+      if (safe) query = query.or(`title.ilike.%${safe}%,company.ilike.%${safe}%,location.ilike.%${safe}%`);
+    }
+    query = query.order('posted_at', { ascending: false, nullsFirst: false })
+                 .range(offset, offset + limit - 1);
+    const { data, error, count } = await query;
+    if (error) throw error;
+    return { jobs: data || [], total: count ?? 0 };
+  },
+};
+
 window.GigCuteAPI = {
   enabled,
   supabase,
-  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat, support, events,
+  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat, support, events, jobs,
   isFreeEmailDomain,
 };
 
