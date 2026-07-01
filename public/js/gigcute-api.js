@@ -721,7 +721,8 @@ const reports = {
 const jobs = {
   // List active jobs, newest first, with optional text search + remote filter.
   // Returns { jobs:[...], total }. total is the full match count (for paging).
-  async list({ limit = 20, offset = 0, q = '', remote = null, minSalary = null, employmentType = null, sort = 'newest' } = {}) {
+  async list({ limit = 20, offset = 0, q = '', remote = null, minSalary = null, employmentType = null, location = null, keywords = null, sort = 'newest' } = {}) {
+    const clean = s => String(s || '').replace(/[(),%]/g, ' ').trim();
     let query = requireClient()
       .from('jobs')
       .select('*', { count: 'exact' })
@@ -729,12 +730,14 @@ const jobs = {
     if (remote === true) query = query.eq('remote', true);
     if (employmentType) query = query.eq('employment_type', employmentType);
     if (minSalary) query = query.or(`salary_min.gte.${minSalary},salary_max.gte.${minSalary}`);
-    const term = (q || '').trim();
-    if (term) {
-      // sanitize for PostgREST or() filter; commas/parens would break the grammar
-      const safe = term.replace(/[(),%]/g, ' ').trim();
-      if (safe) query = query.or(`title.ilike.%${safe}%,company.ilike.%${safe}%,location.ilike.%${safe}%`);
-    }
+    const term = clean(q);
+    if (term) query = query.or(`title.ilike.%${term}%,company.ilike.%${term}%,location.ilike.%${term}%`);
+    const loc = clean(location);
+    if (loc) query = query.ilike('location', `%${loc}%`);
+    // each keyword (e.g. department/experience) must appear in title or description
+    (keywords || []).map(clean).filter(Boolean).forEach(kw => {
+      query = query.or(`title.ilike.%${kw}%,description.ilike.%${kw}%`);
+    });
     if (sort === 'salary') query = query.order('salary_max', { ascending: false, nullsFirst: false });
     else if (sort === 'alpha') query = query.order('title', { ascending: true });
     else query = query.order('posted_at', { ascending: false, nullsFirst: false }); // newest (default)

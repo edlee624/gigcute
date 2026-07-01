@@ -3588,43 +3588,6 @@
   </div>
 </div>
 
-<!-- ============ JOB BOARD / JOB SEARCH (seeker-facing) ============ -->
-<div class="screen" id="screen-jobs">
-  <div style="width:100%; max-width:900px; margin:0 auto; padding:22px 20px 60px;">
-    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
-      <div class="wordmark"><img src="/logo.png" class="brand-img" alt="GigCute" style="height:26px;"></div>
-      <button class="ds-nav-btn" id="jobsBack" type="button">← Home</button>
-    </div>
-    <h1 style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; margin:6px 0 4px;">Find your <em style="font-style:italic; color:var(--coral);">next role</em></h1>
-    <p style="color:rgba(251,247,240,0.55); font-size:14px; margin:0 0 14px;">Jobs from around the web, updated automatically.</p>
-    <div style="background:var(--ink-soft); border:1px solid var(--line-light); border-radius:10px; padding:10px 14px; font-size:11.5px; color:rgba(251,247,240,0.5); line-height:1.5; margin-bottom:18px;">
-      Listings are aggregated from third-party job sites and updated automatically. GigCute is not the employer and doesn't manage these postings — always verify details and apply on the original site.
-    </div>
-    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
-      <input id="jbSearch" type="text" placeholder="Search title, company, or location…" style="flex:1; min-width:200px; box-sizing:border-box; background:var(--ink); border:1px solid var(--line-light); border-radius:10px; color:var(--paper); font-family:'Inter',sans-serif; font-size:14px; padding:11px 14px;">
-      <select id="jbSalary" class="ds-nav-btn" style="cursor:pointer;">
-        <option value="">Any salary</option>
-        <option value="100000">$100k+</option>
-        <option value="150000">$150k+</option>
-        <option value="200000">$200k+</option>
-        <option value="250000">$250k+</option>
-      </select>
-      <select id="jbType" class="ds-nav-btn" style="cursor:pointer;">
-        <option value="">Any type</option>
-        <option value="full_time">Full-time</option>
-        <option value="part_time">Part-time</option>
-        <option value="contract">Contract</option>
-        <option value="permanent">Permanent</option>
-      </select>
-      <label style="display:inline-flex; align-items:center; gap:8px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:10px; padding:0 14px; font-size:13px; color:rgba(251,247,240,0.75); cursor:pointer; user-select:none;"><input type="checkbox" id="jbRemote" style="cursor:pointer;"> Remote only</label>
-    </div>
-    <div id="jobsRecommended" style="display:none; margin-bottom:26px;"></div>
-    <div id="jobsCount" style="font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:rgba(251,247,240,0.45); margin-bottom:12px;"></div>
-    <div id="jobsList"></div>
-    <div id="jobsMore" style="text-align:center; margin-top:20px;"></div>
-  </div>
-</div>
-
 <!-- ============ JOB DETAIL ============ -->
 <div id="jobDetailModal" style="display:none; position:fixed; inset:0; z-index:950; background:rgba(10,11,14,0.8); backdrop-filter:blur(3px); overflow-y:auto;">
   <div style="max-width:680px; margin:40px auto; padding:0 16px 60px;">
@@ -4423,7 +4386,6 @@
     'screen-login-seeker':'/login',
     'screen-seeker-1':'/signup',
     'screen-admin':'/admin',
-    'screen-jobs':'/jobs',
   };
   const SCREEN_BY_PATH = Object.fromEntries(Object.entries(PATH_BY_SCREEN).map(([s,p]) => [p,s]));
 
@@ -6443,8 +6405,6 @@
     { title:'Data Analyst', company:'Brightloom', location:'Remote', remote:true, salary_min:80000, salary_max:110000, salary_currency:'USD', url:'https://example.com', description:'Turn messy data into clear stories. SQL + a BI tool; bonus for Python.', tags:['Data','SQL','Remote'], posted_at:'2026-06-29T00:00:00Z', source:'demo' },
     { title:'Frontend Engineer', company:'Lattice Cloud', location:'San Francisco, CA', remote:true, salary_min:120000, salary_max:160000, salary_currency:'USD', url:'https://example.com', description:'Build fast, accessible interfaces in a modern TS/React stack.', tags:['Engineering','React','TypeScript'], posted_at:'2026-06-30T00:00:00Z', source:'demo' },
   ];
-  let __jobsState = { q:'', remote:false, offset:0, total:0, items:[], loading:false };
-  let __jobsTimer = null;
 
   function fmtSalary(j){
     const c = j.salary_currency === 'USD' ? '$' : (j.salary_currency ? j.salary_currency + ' ' : '');
@@ -6464,81 +6424,8 @@
   }
   const __jobsById = {};
   function jobKey(j){ return String(j.id || (j.source && j.external_id ? j.source + ':' + j.external_id : '') || j.url || `${j.title||''}|${j.company||''}`); }
-  function jobCardHTML(j, reason){
-    const key = jobKey(j); __jobsById[key] = j;
-    const salary = fmtSalary(j);
-    const posted = j.posted_at ? jobTimeAgo(j.posted_at) : '';
-    const loc = j.remote ? ('Remote' + (j.location && !/remote/i.test(j.location) ? ' · ' + j.location : '')) : (j.location || '');
-    const tags = (j.tags || []).slice(0,5).map(t => `<span class="jli-tag">${escapeHtml(t)}</span>`).join('');
-    const desc = j.description ? (escapeHtml(j.description.slice(0,180)) + (j.description.length > 180 ? '…' : '')) : '';
-    const src = j.source ? `via ${escapeHtml(j.source)}` : '';
-    const safeUrl = /^https?:\/\//i.test(j.url || '') ? j.url : '#';
-    const reasonHTML = reason ? `<div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--sage-soft);margin-bottom:6px;">✦ Matches your background · ${escapeHtml(reason)}</div>` : '';
-    return `
-      <div data-jobkey="${escapeHtml(key)}" style="background:var(--ink-soft);border:1px solid var(--line-light);border-radius:14px;padding:18px 20px;margin-bottom:12px;cursor:pointer;">
-        ${reasonHTML}
-        <div style="display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;">
-          <div style="min-width:0;flex:1;">
-            <div style="font-family:'Fraunces',serif;font-size:17px;color:var(--paper);font-weight:600;">${escapeHtml(j.title || 'Untitled role')}</div>
-            <div style="font-size:13.5px;color:rgba(251,247,240,0.7);margin-top:2px;">${escapeHtml(j.company || '')}${loc ? ` · ${escapeHtml(loc)}` : ''}</div>
-            ${salary ? `<div style="font-size:12.5px;color:var(--sage-soft);margin-top:3px;">${salary}</div>` : ''}
-            ${tags ? `<div class="jli-tags" style="margin-top:8px;">${tags}</div>` : ''}
-            ${desc ? `<div style="font-size:12.5px;color:rgba(251,247,240,0.5);margin-top:8px;line-height:1.5;">${desc}</div>` : ''}
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;white-space:nowrap;">
-            <a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow" class="lm-cta-btn" style="text-decoration:none;font-size:13px;padding:9px 16px;">Apply ↗</a>
-            <div style="font-size:11px;color:rgba(251,247,240,0.35);">${[posted, src].filter(Boolean).join(' · ')}</div>
-          </div>
-        </div>
-      </div>`;
-  }
-  function renderJobs(){
-    const listEl = document.getElementById('jobsList');
-    const moreEl = document.getElementById('jobsMore');
-    const countEl = document.getElementById('jobsCount');
-    if(!listEl) return;
-    const items = __jobsState.items;
-    if(countEl) countEl.textContent = __jobsState.total ? `${__jobsState.total} job${__jobsState.total !== 1 ? 's' : ''}` : '';
-    if(!items.length){
-      listEl.innerHTML = `<div style="text-align:center;padding:44px 20px;color:rgba(251,247,240,0.4);"><div style="font-family:'Fraunces',serif;font-size:18px;font-style:italic;margin-bottom:6px;">No jobs found</div><div style="font-size:13px;">Try a different search, or check back soon as new roles are added.</div></div>`;
-      if(moreEl) moreEl.innerHTML = '';
-      return;
-    }
-    listEl.innerHTML = items.map(j => jobCardHTML(j)).join('');
-    if(moreEl){
-      moreEl.innerHTML = (__jobsState.offset < __jobsState.total) ? `<button class="ds-nav-btn" id="jobsMoreBtn" type="button">Load more</button>` : '';
-      const mb = document.getElementById('jobsMoreBtn'); if(mb) mb.onclick = () => loadJobs(false);
-    }
-  }
-  async function loadJobs(reset){
-    const listEl = document.getElementById('jobsList');
-    if(reset){ __jobsState.offset = 0; __jobsState.items = []; if(listEl) listEl.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:30px 0;">Loading jobs…</div>'; }
-    __jobsState.loading = true;
-    const API = await gcAwaitAPI();
-    const PAGE = 20;
-    let res;
-    try{
-      if(API && API.enabled && API.jobs){
-        res = await API.jobs.list({ limit:PAGE, offset:__jobsState.offset, q:__jobsState.q, remote:__jobsState.remote || null, minSalary:__jobsState.minSalary || null, employmentType:__jobsState.employmentType || null });
-      } else {
-        const q = __jobsState.q.toLowerCase();
-        const ms = __jobsState.minSalary || 0;
-        const filtered = SAMPLE_JOBS.filter(j =>
-          (!__jobsState.remote || j.remote) &&
-          (!__jobsState.employmentType || j.employment_type === __jobsState.employmentType) &&
-          (!ms || (j.salary_max && j.salary_max >= ms) || (j.salary_min && j.salary_min >= ms)) &&
-          (!q || `${j.title} ${j.company} ${j.location}`.toLowerCase().includes(q)));
-        res = { jobs: filtered.slice(__jobsState.offset, __jobsState.offset + PAGE), total: filtered.length };
-      }
-    }catch(e){ console.warn('jobs load:', e && e.message); res = { jobs: [], total: 0 }; }
-    __jobsState.loading = false;
-    __jobsState.total = res.total;
-    __jobsState.items = __jobsState.items.concat(res.jobs);
-    __jobsState.offset += res.jobs.length;
-    renderJobs();
-  }
   // Build an OR-search query from the logged-in seeker's profile (title + recent
-  // job titles). Returns { terms:[...], query:'a or b or c' } for jobs_search.
+  // job titles). Returns { terms:[...], query:'a or b or c' } — used by "Best match".
   function seekerJobKeywords(){
     const stop = new Set(['the','and','of','a','an','to','in','for','at','on','with','senior','junior','lead','staff','principal','sr','jr','associate','i','ii','iii','iv']);
     const src = [];
@@ -6551,50 +6438,6 @@
     const terms = [...new Set(words)].slice(0,10);
     return { terms, query: terms.join(' or ') };
   }
-  function jobMatchReason(j, terms){
-    const hay = `${j.title||''} ${j.description||''} ${(j.tags||[]).join(' ')}`.toLowerCase();
-    const hits = terms.filter(t => hay.includes(t)).slice(0,3);
-    return hits.join(', ');
-  }
-  function renderRecommended(items, terms){
-    const el = document.getElementById('jobsRecommended');
-    if(!el) return;
-    if(!items || !items.length){ el.innerHTML = ''; el.style.display = 'none'; return; }
-    el.style.display = '';
-    const cards = items.map(j => jobCardHTML(j, jobMatchReason(j, terms))).join('');
-    el.innerHTML = `<div style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--coral);margin:0 0 12px;">Recommended for you</div>${cards}`;
-  }
-  async function loadRecommended(){
-    const el = document.getElementById('jobsRecommended');
-    if(el){ el.innerHTML = ''; el.style.display = 'none'; }
-    const API = await gcAwaitAPI();
-    if(!API || !API.enabled || !API.jobs || !API.jobs.search) return;   // needs backend
-    let user = null; try{ user = await API.auth.currentUser(); }catch(e){}
-    if(!user) return;                                                   // logged-in seekers only
-    try{ await gcLoadSeekerProfile(API); }catch(e){}                    // ensure fresh profile
-    const kw = seekerJobKeywords();
-    if(!kw.query) return;
-    let items = [];
-    try{ items = await API.jobs.search({ q:kw.query, limit:8 }); }catch(e){ console.warn('recommend:', e && e.message); return; }
-    renderRecommended(items, kw.terms);
-  }
-  async function showJobs(){
-    showScreen('screen-jobs');
-    __jobsState = { q:'', remote:false, minSalary:null, employmentType:null, offset:0, total:0, items:[], loading:false };
-    const s = document.getElementById('jbSearch'); if(s) s.value = '';
-    const r = document.getElementById('jbRemote'); if(r) r.checked = false;
-    const sal = document.getElementById('jbSalary'); if(sal) sal.value = '';
-    const ty = document.getElementById('jbType'); if(ty) ty.value = '';
-    loadJobs(true);
-    loadRecommended();
-  }
-  window.showJobs = showJobs;
-  { const s=document.getElementById('jbSearch'); if(s) s.addEventListener('input', e => { clearTimeout(__jobsTimer); const v = e.target.value; __jobsTimer = setTimeout(() => { __jobsState.q = v; loadJobs(true); }, 300); }); }
-  { const r=document.getElementById('jbRemote'); if(r) r.onchange = () => { __jobsState.remote = r.checked; loadJobs(true); }; }
-  { const sal=document.getElementById('jbSalary'); if(sal) sal.onchange = () => { __jobsState.minSalary = sal.value ? parseInt(sal.value,10) : null; loadJobs(true); }; }
-  { const ty=document.getElementById('jbType'); if(ty) ty.onchange = () => { __jobsState.employmentType = ty.value || null; loadJobs(true); }; }
-  { const b=document.getElementById('jobsBack'); if(b) b.onclick = () => navigate('/'); }
-
   // ---- Job detail view ----
   function openJobDetail(key){
     const j = __jobsById[key]; if(!j) return;
@@ -6625,9 +6468,11 @@
   // Renders the real ingested jobs inside the /search candidate-dashboard shell
   // (sidebar + rich search/filter chrome), un-gated. Recruiter/matching-only bits
   // (Top matches, invites, department/experience/equity/distance filters) are hidden.
-  let __dash = { q:'', remote:false, minSalary:null, employmentType:null, sort:'newest', offset:0, total:0, items:[], loading:false };
+  let __dash = { q:'', remote:false, minSalary:null, employmentType:null, location:'', keywords:[], sort:'newest', offset:0, total:0, items:[], loading:false };
   let __dashTimer = null;
   function mapEmpType(v){ return v==='Full-time'?'full_time':v==='Contract'?'contract':v==='Part-time'?'part_time':null; }
+  function deptMap(v){ return ({Engineering:'engineer',Product:'product',Design:'design',Data:'data',Marketing:'marketing',Finance:'financ',Legal:'legal',People:'people'})[v] || String(v).toLowerCase(); }
+  function senMap(v){ return ({'Entry-level':'entry','Mid-level':'mid',Senior:'senior','Staff / Principal':'staff',Manager:'manager','Director+':'director'})[v] || String(v).toLowerCase(); }
   function dashJobCard(j){
     const key = jobKey(j); __jobsById[key] = j;
     const salary = fmtSalary(j);
@@ -6675,17 +6520,47 @@
     let res;
     try{
       if(API && API.enabled && API.jobs){
-        res = await API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType || null, sort:__dash.sort });
+        if(__dash.sort === 'match'){
+          res = await loadMatchSorted(API, PAGE, reset);
+        } else {
+          res = await API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType || null, location:__dash.location || null, keywords:__dash.keywords || null, sort:__dash.sort });
+        }
       } else {
-        const q = __dash.q.toLowerCase(); const ms = __dash.minSalary || 0;
-        let f = SAMPLE_JOBS.filter(j => (!__dash.remote || j.remote) && (!__dash.employmentType || j.employment_type === __dash.employmentType) && (!ms || (j.salary_max && j.salary_max >= ms) || (j.salary_min && j.salary_min >= ms)) && (!q || `${j.title} ${j.company} ${j.location}`.toLowerCase().includes(q)));
-        if(__dash.sort === 'salary') f = f.slice().sort((a,b) => (b.salary_max||0) - (a.salary_max||0));
-        else if(__dash.sort === 'alpha') f = f.slice().sort((a,b) => (a.title||'').localeCompare(b.title||''));
-        res = { jobs: f.slice(__dash.offset, __dash.offset + PAGE), total: f.length };
+        res = filterSampleJobs(PAGE);
       }
     }catch(e){ console.warn('dash jobs:', e && e.message); res = { jobs: [], total: 0 }; }
     __dash.total = res.total; __dash.items = __dash.items.concat(res.jobs); __dash.offset += res.jobs.length;
     renderDashJobs();
+  }
+  // "Best match": relevance-rank via jobs_search (profile keywords + typed query),
+  // then apply the structured filters the RPC doesn't support, client-side.
+  async function loadMatchSorted(API, PAGE, reset){
+    if(!reset) return { jobs: [], total: __dash.total };   // match view is a single ranked page
+    const kw = (typeof seekerJobKeywords === 'function') ? seekerJobKeywords() : { query:'' };
+    const q = [kw.query, __dash.q].filter(Boolean).join(' or ');
+    if(!q) return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType || null, location:__dash.location || null, keywords:__dash.keywords || null, sort:'newest' });
+    let ranked = [];
+    try{ ranked = await API.jobs.search({ q, remote:__dash.remote || null, limit:50 }); }catch(e){ ranked = []; }
+    const ms = __dash.minSalary || 0, loc = (__dash.location || '').toLowerCase(), kws = (__dash.keywords || []).map(k => k.toLowerCase());
+    ranked = ranked.filter(j => {
+      if(__dash.employmentType && j.employment_type !== __dash.employmentType) return false;
+      if(ms && !((j.salary_max && j.salary_max >= ms) || (j.salary_min && j.salary_min >= ms))) return false;
+      if(loc && !String(j.location || '').toLowerCase().includes(loc)) return false;
+      if(kws.length){ const hay = `${j.title||''} ${j.description||''}`.toLowerCase(); if(!kws.every(k => hay.includes(k))) return false; }
+      return true;
+    });
+    return { jobs: ranked, total: ranked.length };
+  }
+  function filterSampleJobs(PAGE){
+    const q = __dash.q.toLowerCase(); const ms = __dash.minSalary || 0; const loc = (__dash.location||'').toLowerCase(); const kws = (__dash.keywords||[]).map(k=>k.toLowerCase());
+    let f = SAMPLE_JOBS.filter(j => (!__dash.remote || j.remote) && (!__dash.employmentType || j.employment_type === __dash.employmentType)
+      && (!ms || (j.salary_max && j.salary_max >= ms) || (j.salary_min && j.salary_min >= ms))
+      && (!loc || `${j.location||''}`.toLowerCase().includes(loc))
+      && (!kws.length || kws.every(k => `${j.title||''} ${(j.tags||[]).join(' ')}`.toLowerCase().includes(k)))
+      && (!q || `${j.title} ${j.company} ${j.location}`.toLowerCase().includes(q)));
+    if(__dash.sort === 'salary') f = f.slice().sort((a,b) => (b.salary_max||0) - (a.salary_max||0));
+    else if(__dash.sort === 'alpha') f = f.slice().sort((a,b) => (a.title||'').localeCompare(b.title||''));
+    return { jobs: f.slice(__dash.offset, __dash.offset + PAGE), total: f.length };
   }
   function syncDashFilters(){
     const activeQuick = new Set([...document.querySelectorAll('#dashView .quick-chip.active')].map(c => c.dataset.quick));
@@ -6695,12 +6570,17 @@
     __dash.minSalary = activeQuick.has('$100K+') ? 100000 : (sv > 0 ? sv * 1000 : null);
     const empChip = document.querySelector('#advFilterPanel .adv-chip[data-filter="empType"].active');
     __dash.employmentType = activeQuick.has('Full-time') ? 'full_time' : (empChip ? mapEmpType(empChip.dataset.value) : null);
+    const deptChip = document.querySelector('#advFilterPanel .adv-chip[data-filter="dept"].active');
+    const senChip = document.querySelector('#advFilterPanel .adv-chip[data-filter="seniority"].active');
+    __dash.keywords = [deptChip && deptMap(deptChip.dataset.value), senChip && senMap(senChip.dataset.value)].filter(Boolean);
+    const li = document.getElementById('jobLocationInput'); __dash.location = li ? li.value.trim() : '';
     const s = document.getElementById('jobSearch'); __dash.q = s ? s.value.trim() : '';
     const so = document.getElementById('jobSortSelect'); __dash.sort = so ? so.value : 'newest';
   }
   function clearDashFilters(){
     document.querySelectorAll('#dashView .quick-chip.active, #advFilterPanel .adv-chip.active').forEach(c => c.classList.remove('active'));
     const sl = document.getElementById('salarySlider'); if(sl){ sl.value = 0; const sd = document.getElementById('salaryDisplay'); if(sd) sd.textContent = 'Any'; }
+    const li = document.getElementById('jobLocationInput'); if(li) li.value = '';
     const s = document.getElementById('jobSearch'); if(s) s.value = '';
     const so = document.getElementById('jobSortSelect'); if(so) so.value = 'newest';
     syncDashFilters(); loadDashJobs(true);
@@ -6713,8 +6593,10 @@
     once(document.getElementById('advFilterToggle'), ft => ft.onclick = () => { const p = document.getElementById('advFilterPanel'); if(p) p.classList.toggle('open'); ft.classList.toggle('active'); });
     once(document.getElementById('clearAllFilters'), c => c.onclick = clearDashFilters);
     once(document.getElementById('salarySlider'), sl => { sl.oninput = () => { const v = parseInt(sl.value,10); const sd = document.getElementById('salaryDisplay'); if(sd) sd.textContent = v ? ('$' + v + 'k+') : 'Any'; }; sl.onchange = () => { syncDashFilters(); loadDashJobs(true); }; });
+    once(document.getElementById('jobLocationInput'), li => li.addEventListener('input', () => { clearTimeout(__dashTimer); __dashTimer = setTimeout(() => { syncDashFilters(); loadDashJobs(true); }, 350); }));
     document.querySelectorAll('#dashView .quick-chip').forEach(chip => once(chip, c => c.onclick = () => { c.classList.toggle('active'); syncDashFilters(); loadDashJobs(true); }));
-    document.querySelectorAll('#advFilterPanel .adv-chip[data-filter="setup"], #advFilterPanel .adv-chip[data-filter="empType"]').forEach(chip => once(chip, c => c.onclick = () => {
+    // advanced-panel chips: single-select within each group (work setup, job type, department, experience)
+    document.querySelectorAll('#advFilterPanel .adv-chip[data-filter="setup"], #advFilterPanel .adv-chip[data-filter="empType"], #advFilterPanel .adv-chip[data-filter="dept"], #advFilterPanel .adv-chip[data-filter="seniority"]').forEach(chip => once(chip, c => c.onclick = () => {
       const group = c.getAttribute('data-filter'); const wasActive = c.classList.contains('active');
       document.querySelectorAll(`#advFilterPanel .adv-chip[data-filter="${group}"]`).forEach(x => x.classList.remove('active'));
       if(!wasActive) c.classList.add('active');
@@ -6728,10 +6610,12 @@
     hide(document.getElementById('inviteDivider'));
     const topHead = document.querySelector('#dashView .cd-section-head'); if(topHead) topHead.style.display = 'none';   // "Top matches"
     const firstDivider = document.querySelector('#dashView .cd-divider'); if(firstDivider) firstDivider.style.display = 'none';
+    // Only the equity group has no feed data; distance needs geocoding — hide those two.
     document.querySelectorAll('#advFilterPanel .adv-filter-group').forEach(g => {
       const dfEl = g.querySelector('[data-filter]'); const df = dfEl && dfEl.getAttribute('data-filter');
-      if(df === 'dept' || df === 'seniority' || df === 'equity' || g.querySelector('#jobLocationInput')) g.style.display = 'none';
+      if(df === 'equity') g.style.display = 'none';
     });
+    const dist = document.getElementById('jobRadius'); if(dist) dist.style.display = 'none';
   }
   async function showJobsDashboard(){
     showScreen('screen-app');
@@ -6742,7 +6626,7 @@
     renderDashboard();          // hydrate the sidebar (async; sidebar only)
     hideDashRecruiterBits();
     wireDashControls();
-    __dash = { q:'', remote:false, minSalary:null, employmentType:null, sort:'newest', offset:0, total:0, items:[], loading:false };
+    __dash = { q:'', remote:false, minSalary:null, employmentType:null, location:'', keywords:[], sort:'newest', offset:0, total:0, items:[], loading:false };
     loadDashJobs(true);
   }
   window.showJobsDashboard = showJobsDashboard;
