@@ -210,88 +210,98 @@ async function fromAdzuna(): Promise<JobRow[]> {
   return out.filter((r) => r.url && r.external_id);
 }
 
+// Run an async mapper over items with bounded concurrency; per-item errors are
+// swallowed (a dead slug shouldn't sink the whole batch). Flattens the results.
+async function mapLimit<T>(items: T[], limit: number, fn: (x: T) => Promise<JobRow[]>): Promise<JobRow[]> {
+  const out: JobRow[] = [];
+  let i = 0;
+  const worker = async () => {
+    while (i < items.length) {
+      const item = items[i++];
+      try { const r = await fn(item); for (const x of r) out.push(x); } catch (_e) { /* skip */ }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+}
+
 // ---- ATS sources (full descriptions; per-company slugs from job_sources) -----
 // Broad: all roles, but only kept when a detected salary meets JOB_MIN_SALARY.
-async function fromGreenhouse(list: Src[]): Promise<JobRow[]> {
-  const out: JobRow[] = [];
-  for (const { slug, company_name } of list) {
-    try {
-      const res = await fetch(`https://boards-api.greenhouse.io/v1/boards/${slug}/jobs?content=true`);
-      if (!res.ok) continue;
-      const json = await res.json();
-      for (const j of (json?.jobs ?? [])) {
-        const desc = htmlToText(j.content);
-        const sal = extractSalary(desc);
-        const row: JobRow = {
-          source: "greenhouse", external_id: `gh:${slug}:${j.id}`,
-          title: j.title ?? "Untitled", company: company_name ?? slug,
-          location: j.location?.name ?? null,
-          remote: /remote/i.test(`${j.title ?? ""} ${j.location?.name ?? ""}`),
-          employment_type: null, category: j.departments?.[0]?.name ?? null,
-          salary_min: sal.min, salary_max: sal.max, salary_currency: "USD",
-          url: j.absolute_url, description: desc,
-          tags: (j.departments ?? []).map((d: any) => d.name).filter(Boolean).slice(0, 4),
-          posted_at: j.updated_at ?? null, is_active: true,
-        };
-        if (row.url && row.external_id && meetsSalary(row)) out.push(row);
-      }
-    } catch (_e) { /* skip bad/embed-only slug */ }
-  }
-  return out;
+// Companies are fetched concurrently (bounded) so hourly runs stay fast at scale.
+function fromGreenhouse(list: Src[]): Promise<JobRow[]> {
+  return mapLimit(list, 10, async ({ slug, company_name }) => {
+    const rows: JobRow[] = [];
+    const res = await fetch(`https://boards-api.greenhouse.io/v1/boards/${slug}/jobs?content=true`);
+    if (!res.ok) return rows;
+    const json = await res.json();
+    for (const j of (json?.jobs ?? [])) {
+      const desc = htmlToText(j.content);
+      const sal = extractSalary(desc);
+      const row: JobRow = {
+        source: "greenhouse", external_id: `gh:${slug}:${j.id}`,
+        title: j.title ?? "Untitled", company: company_name ?? slug,
+        location: j.location?.name ?? null,
+        remote: /remote/i.test(`${j.title ?? ""} ${j.location?.name ?? ""}`),
+        employment_type: null, category: j.departments?.[0]?.name ?? null,
+        salary_min: sal.min, salary_max: sal.max, salary_currency: "USD",
+        url: j.absolute_url, description: desc,
+        tags: (j.departments ?? []).map((d: any) => d.name).filter(Boolean).slice(0, 4),
+        posted_at: j.updated_at ?? null, is_active: true,
+      };
+      if (row.url && row.external_id && meetsSalary(row)) rows.push(row);
+    }
+    return rows;
+  });
 }
-async function fromLever(list: Src[]): Promise<JobRow[]> {
-  const out: JobRow[] = [];
-  for (const { slug, company_name } of list) {
-    try {
-      const res = await fetch(`https://api.lever.co/v0/postings/${slug}?mode=json`);
-      if (!res.ok) continue;
-      const arr = await res.json();
-      for (const j of (Array.isArray(arr) ? arr : [])) {
-        const desc = j.descriptionPlain || htmlToText(j.description);
-        const sal = extractSalary(desc);
-        const loc = j.categories?.location ?? null;
-        const row: JobRow = {
-          source: "lever", external_id: `lever:${slug}:${j.id}`,
-          title: j.text ?? "Untitled", company: company_name ?? slug, location: loc,
-          remote: (j.workplaceType === "remote") || /remote/i.test(`${j.text ?? ""} ${loc ?? ""}`),
-          employment_type: j.categories?.commitment ?? null,
-          category: j.categories?.team ?? j.categories?.department ?? null,
-          salary_min: sal.min, salary_max: sal.max, salary_currency: "USD",
-          url: j.hostedUrl, description: desc,
-          tags: [j.categories?.department, j.categories?.team].filter(Boolean).slice(0, 4),
-          posted_at: j.createdAt ? new Date(j.createdAt).toISOString() : null, is_active: true,
-        };
-        if (row.url && row.external_id && meetsSalary(row)) out.push(row);
-      }
-    } catch (_e) { /* skip */ }
-  }
-  return out;
+function fromLever(list: Src[]): Promise<JobRow[]> {
+  return mapLimit(list, 10, async ({ slug, company_name }) => {
+    const rows: JobRow[] = [];
+    const res = await fetch(`https://api.lever.co/v0/postings/${slug}?mode=json`);
+    if (!res.ok) return rows;
+    const arr = await res.json();
+    for (const j of (Array.isArray(arr) ? arr : [])) {
+      const desc = j.descriptionPlain || htmlToText(j.description);
+      const sal = extractSalary(desc);
+      const loc = j.categories?.location ?? null;
+      const row: JobRow = {
+        source: "lever", external_id: `lever:${slug}:${j.id}`,
+        title: j.text ?? "Untitled", company: company_name ?? slug, location: loc,
+        remote: (j.workplaceType === "remote") || /remote/i.test(`${j.text ?? ""} ${loc ?? ""}`),
+        employment_type: j.categories?.commitment ?? null,
+        category: j.categories?.team ?? j.categories?.department ?? null,
+        salary_min: sal.min, salary_max: sal.max, salary_currency: "USD",
+        url: j.hostedUrl, description: desc,
+        tags: [j.categories?.department, j.categories?.team].filter(Boolean).slice(0, 4),
+        posted_at: j.createdAt ? new Date(j.createdAt).toISOString() : null, is_active: true,
+      };
+      if (row.url && row.external_id && meetsSalary(row)) rows.push(row);
+    }
+    return rows;
+  });
 }
-async function fromAshby(list: Src[]): Promise<JobRow[]> {
-  const out: JobRow[] = [];
-  for (const { slug, company_name } of list) {
-    try {
-      const res = await fetch(`https://api.ashbyhq.com/posting-api/job-board/${slug}?includeCompensation=true`);
-      if (!res.ok) continue;
-      const json = await res.json();
-      for (const j of (json?.jobs ?? [])) {
-        const desc = j.descriptionPlain || htmlToText(j.descriptionHtml);
-        const sal = extractSalary(j.compensation?.compensationTierSummary || desc);
-        const row: JobRow = {
-          source: "ashby", external_id: `ashby:${slug}:${j.id}`,
-          title: j.title ?? "Untitled", company: company_name ?? slug,
-          location: j.location ?? null, remote: !!j.isRemote || /remote/i.test(j.location ?? ""),
-          employment_type: j.employmentType ?? null, category: j.department ?? j.team ?? null,
-          salary_min: sal.min, salary_max: sal.max, salary_currency: "USD",
-          url: j.jobUrl || j.applyUrl, description: desc,
-          tags: [j.department, j.team].filter(Boolean).slice(0, 4),
-          posted_at: j.publishedAt ?? null, is_active: true,
-        };
-        if (row.url && row.external_id && meetsSalary(row)) out.push(row);
-      }
-    } catch (_e) { /* skip */ }
-  }
-  return out;
+function fromAshby(list: Src[]): Promise<JobRow[]> {
+  return mapLimit(list, 10, async ({ slug, company_name }) => {
+    const rows: JobRow[] = [];
+    const res = await fetch(`https://api.ashbyhq.com/posting-api/job-board/${slug}?includeCompensation=true`);
+    if (!res.ok) return rows;
+    const json = await res.json();
+    for (const j of (json?.jobs ?? [])) {
+      const desc = j.descriptionPlain || htmlToText(j.descriptionHtml);
+      const sal = extractSalary(j.compensation?.compensationTierSummary || desc);
+      const row: JobRow = {
+        source: "ashby", external_id: `ashby:${slug}:${j.id}`,
+        title: j.title ?? "Untitled", company: company_name ?? slug,
+        location: j.location ?? null, remote: !!j.isRemote || /remote/i.test(j.location ?? ""),
+        employment_type: j.employmentType ?? null, category: j.department ?? j.team ?? null,
+        salary_min: sal.min, salary_max: sal.max, salary_currency: "USD",
+        url: j.jobUrl || j.applyUrl, description: desc,
+        tags: [j.department, j.team].filter(Boolean).slice(0, 4),
+        posted_at: j.publishedAt ?? null, is_active: true,
+      };
+      if (row.url && row.external_id && meetsSalary(row)) rows.push(row);
+    }
+    return rows;
+  });
 }
 
 Deno.serve(async (req) => {
