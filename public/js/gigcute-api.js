@@ -721,7 +721,7 @@ const reports = {
 const jobs = {
   // List active jobs, newest first, with optional text search + remote filter.
   // Returns { jobs:[...], total }. total is the full match count (for paging).
-  async list({ limit = 20, offset = 0, q = '', remote = null, minSalary = null, employmentType = null, location = null, keywords = null, keywordGroups = null, sort = 'newest' } = {}) {
+  async list({ limit = 20, offset = 0, q = '', remote = null, minSalary = null, employmentType = null, location = null, keywords = null, keywordGroups = null, locationTokens = null, locationOrRemote = false, sort = 'newest' } = {}) {
     const clean = s => String(s || '').replace(/[(),%]/g, ' ').trim();
     let query = requireClient()
       .from('jobs')
@@ -737,6 +737,14 @@ const jobs = {
     if (term) query = query.or(`title.ilike.%${term}%,company.ilike.%${term}%,location.ilike.%${term}%`);
     const loc = clean(location);
     if (loc) query = query.ilike('location', `%${loc}%`);
+    // Location tokens (a metro area's cities and/or a typed city): match any token
+    // against the location, OR'd with remote so remote roles always surface.
+    const locToks = (locationTokens || []).map(clean).filter(Boolean);
+    if (locToks.length) {
+      const ors = locToks.map(t => `location.ilike.%${t}%`);
+      if (locationOrRemote) ors.push('remote.eq.true');
+      query = query.or(ors.join(','));
+    }
     // keyword GROUPS (e.g. departments, seniority): OR within a group, AND across
     // groups. Falls back to treating a flat `keywords` array as one AND'd group.
     const groups = keywordGroups || (keywords ? [keywords] : []);

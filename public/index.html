@@ -4182,6 +4182,31 @@
           <div class="adv-filter-panel" id="advFilterPanel">
             <div class="adv-filter-grid">
 
+              <div class="adv-filter-group" style="grid-column:1 / -1;">
+                <label>Location</label>
+                <div class="loc-add-row">
+                  <select id="jobMetro" class="loc-dist" style="width:auto;min-width:210px;">
+                    <option value="">Any location</option>
+                    <option value="__remote">Remote only</option>
+                    <optgroup label="Metro areas (within ~75 mi)">
+                      <option value="nyc">New York Metro Area</option>
+                      <option value="sf">San Francisco Bay Area</option>
+                      <option value="la">Los Angeles Metro</option>
+                      <option value="boston">Boston Metro</option>
+                      <option value="seattle">Seattle Metro</option>
+                      <option value="chicago">Chicago Metro</option>
+                      <option value="dc">Washington, DC Metro</option>
+                      <option value="austin">Austin Metro</option>
+                      <option value="denver">Denver Metro</option>
+                      <option value="atlanta">Atlanta Metro</option>
+                    </optgroup>
+                  </select>
+                  <input type="text" id="jobLocationInput" placeholder="Or a city / state — e.g. Austin, TX">
+                  <button type="button" id="useMyLocationBtn" class="jli-btn">📍 Use my location</button>
+                </div>
+                <div id="locHint" style="font-size:11px;color:rgba(251,247,240,0.4);margin-top:6px;">Remote roles always match. Metro areas cover ~75 miles from the city center.</div>
+              </div>
+
               <div class="adv-filter-group">
                 <label>Work setup</label>
                 <div class="adv-filter-chips">
@@ -6712,7 +6737,7 @@
     if(!listEl) return;
     const countEl = document.getElementById('roleCount'); if(countEl) countEl.textContent = __dash.total ? `${__dash.total} role${__dash.total !== 1 ? 's' : ''}` : '';
     const heading = document.getElementById('allRolesHeading');
-    if(heading) heading.innerHTML = (__dash.q || __dash.remote || __dash.minSalary || (__dash.employmentType && __dash.employmentType.length) || (__dash.keywordGroups && __dash.keywordGroups.length)) ? 'Search <em>results</em>' : 'All open <em>roles</em>';
+    if(heading) heading.innerHTML = (__dash.q || __dash.remote || __dash.minSalary || (__dash.employmentType && __dash.employmentType.length) || (__dash.keywordGroups && __dash.keywordGroups.length) || (__dash.locationTokens && __dash.locationTokens.length)) ? 'Search <em>results</em>' : 'All open <em>roles</em>';
     if(!__dash.items.length){
       listEl.innerHTML = `<div style="text-align:center;padding:44px 20px;color:rgba(251,247,240,0.4);"><div style="font-family:'Fraunces',serif;font-size:18px;font-style:italic;margin-bottom:6px;">No roles found</div><div style="font-size:13px;">Try adjusting your search or filters.</div></div>`;
     } else {
@@ -6734,7 +6759,7 @@
         if(__dash.sort === 'match'){
           res = await loadMatchSorted(API, PAGE, reset);
         } else {
-          res = await API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, sort:__dash.sort });
+          res = await API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, sort:__dash.sort });
         }
       } else {
         res = filterSampleJobs(PAGE);
@@ -6758,19 +6783,73 @@
     const norm = s => String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
     return `${norm(j.company)}|${norm(j.title)}|${norm((j.location||'').replace(/remote/ig,''))}`;
   }
+  // Metro areas ≈ 75 mi from center. Jobs store location as free text (no coords),
+  // so a metro is a token list matched against job.location (OR), plus a center
+  // lat/lng used only to auto-pick the nearest metro from the browser's location.
+  const METROS = {
+    nyc:     { label:'New York Metro Area', lat:40.71, lng:-74.00, tokens:['New York','Brooklyn','Queens','Bronx','Manhattan','Staten Island','Long Island','Newark','Jersey City','Hoboken','New Jersey','Stamford','White Plains','Yonkers','Westchester',' NY',' NJ',' CT'] },
+    sf:      { label:'San Francisco Bay Area', lat:37.77, lng:-122.42, tokens:['San Francisco','Oakland','Berkeley','San Jose','Palo Alto','Mountain View','Sunnyvale','Santa Clara','Menlo Park','Redwood City','South San Francisco','Bay Area','Cupertino','Fremont','Alameda'] },
+    la:      { label:'Los Angeles Metro', lat:34.05, lng:-118.24, tokens:['Los Angeles','Santa Monica','Pasadena','Long Beach','Burbank','Glendale','Culver City','Anaheim','Irvine','Torrance','El Segundo','Hollywood'] },
+    boston:  { label:'Boston Metro', lat:42.36, lng:-71.06, tokens:['Boston','Cambridge','Somerville','Waltham','Burlington','Newton','Quincy','Brookline','Watertown','Lexington','Woburn','Massachusetts',' MA'] },
+    seattle: { label:'Seattle Metro', lat:47.61, lng:-122.33, tokens:['Seattle','Bellevue','Redmond','Kirkland','Tacoma','Everett','Renton',' WA'] },
+    chicago: { label:'Chicago Metro', lat:41.88, lng:-87.63, tokens:['Chicago','Evanston','Naperville','Schaumburg','Oak Brook','Illinois',' IL'] },
+    dc:      { label:'Washington, DC Metro', lat:38.90, lng:-77.04, tokens:['Washington, D','Arlington','Alexandria','Bethesda','Rockville','McLean','Reston','Tysons','Silver Spring','Fairfax',' DC',' VA',' MD'] },
+    austin:  { label:'Austin Metro', lat:30.27, lng:-97.74, tokens:['Austin','Round Rock','Cedar Park','Georgetown','Pflugerville'] },
+    denver:  { label:'Denver Metro', lat:39.74, lng:-104.99, tokens:['Denver','Boulder','Aurora','Lakewood','Broomfield','Centennial','Colorado',' CO'] },
+    atlanta: { label:'Atlanta Metro', lat:33.75, lng:-84.39, tokens:['Atlanta','Alpharetta','Marietta','Sandy Springs','Roswell','Decatur','Georgia',' GA'] },
+  };
+  function nearestMetro(lat, lng){
+    const R = 3959; // mi
+    const rad = d => d * Math.PI / 180;
+    let best = null, bestD = Infinity;
+    for(const [k, m] of Object.entries(METROS)){
+      const dLat = rad(m.lat - lat), dLng = rad(m.lng - lng);
+      const a = Math.sin(dLat/2)**2 + Math.cos(rad(lat))*Math.cos(rad(m.lat))*Math.sin(dLng/2)**2;
+      const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      if(d < bestD){ bestD = d; best = k; }
+    }
+    return bestD <= 75 ? best : null;   // only if within the ~75 mi radius
+  }
+  async function useMyLocation(){
+    const btn = document.getElementById('useMyLocationBtn');
+    const hint = document.getElementById('locHint');
+    if(!navigator.geolocation){ if(hint) hint.textContent = 'Location is not available in this browser — type a city instead.'; return; }
+    if(btn){ btn.disabled = true; btn.textContent = '📍 Locating…'; }
+    navigator.geolocation.getCurrentPosition(async pos => {
+      try{
+        const { latitude, longitude } = pos.coords;
+        const r = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`);
+        const d = await r.json();
+        const state = (d.principalSubdivisionCode || '').replace(/^US-/,'') || d.principalSubdivision || '';
+        const city = d.city || d.locality || '';
+        const input = document.getElementById('jobLocationInput'); if(input) input.value = [city, state].filter(Boolean).join(', ');
+        const metro = nearestMetro(latitude, longitude);
+        const sel = document.getElementById('jobMetro');
+        if(metro && sel){ sel.value = metro; if(input) input.value = ''; if(hint) hint.textContent = `Showing roles in the ${METROS[metro].label} (within ~75 mi) plus remote.`; }
+        else if(hint){ hint.textContent = 'No metro preset near you — filtering by your city. Remote roles always match.'; }
+        syncDashFilters(); loadDashJobs(true);
+      }catch(_e){ if(hint) hint.textContent = 'Could not look up your location — type a city instead.'; }
+      finally{ if(btn){ btn.disabled = false; btn.textContent = '📍 Use my location'; } }
+    }, _err => {
+      if(hint) hint.textContent = 'Location permission denied — type a city instead.';
+      if(btn){ btn.disabled = false; btn.textContent = '📍 Use my location'; }
+    }, { timeout: 8000 });
+  }
   // "Best match": relevance-rank via jobs_search (profile keywords + typed query),
   // then apply the structured filters the RPC doesn't support, client-side.
   async function loadMatchSorted(API, PAGE, reset){
     if(!reset) return { jobs: [], total: __dash.total };   // match view is a single ranked page
     const kw = (typeof seekerJobKeywords === 'function') ? seekerJobKeywords() : { query:'' };
     const q = [kw.query, __dash.q].filter(Boolean).join(' or ');
-    if(!q) return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, sort:'newest' });
+    if(!q) return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, sort:'newest' });
     let ranked = [];
     try{ ranked = await API.jobs.search({ q, remote:__dash.remote || null, limit:50 }); }catch(e){ ranked = []; }
     const ms = __dash.minSalary || 0, empTypes = __dash.employmentType || [], groups = __dash.keywordGroups || [];
+    const locToks = (__dash.locationTokens || []).map(t => t.toLowerCase());
     ranked = ranked.filter(j => {
       if(empTypes.length && !empTypes.includes(j.employment_type)) return false;
       if(ms && !((j.salary_max && j.salary_max >= ms) || (j.salary_min && j.salary_min >= ms))) return false;
+      if(locToks.length && !((__dash.locationOrRemote && j.remote) || locToks.some(t => String(j.location||'').toLowerCase().includes(t)))) return false;
       const hay = `${j.title||''} ${j.description||''}`.toLowerCase();
       if(!groups.every(g => g.some(k => hay.includes(k.toLowerCase())))) return false;
       return true;
@@ -6779,8 +6858,10 @@
   }
   function filterSampleJobs(PAGE){
     const q = __dash.q.toLowerCase(); const ms = __dash.minSalary || 0; const empTypes = __dash.employmentType || []; const groups = __dash.keywordGroups || [];
+    const locToks = (__dash.locationTokens || []).map(t => t.toLowerCase());
     let f = SAMPLE_JOBS.filter(j => (!__dash.remote || j.remote) && (!empTypes.length || empTypes.includes(j.employment_type))
       && (!ms || (j.salary_max && j.salary_max >= ms) || (j.salary_min && j.salary_min >= ms))
+      && (!locToks.length || (__dash.locationOrRemote && j.remote) || locToks.some(t => String(j.location||'').toLowerCase().includes(t)))
       && groups.every(g => g.some(k => `${j.title||''} ${(j.tags||[]).join(' ')}`.toLowerCase().includes(k.toLowerCase())))
       && (!q || `${j.title} ${j.company} ${j.location}`.toLowerCase().includes(q)));
     if(__dash.sort === 'salary') f = f.slice().sort((a,b) => (b.salary_max||0) - (a.salary_max||0));
@@ -6789,10 +6870,19 @@
   }
   function syncDashFilters(){
     const activeQuick = new Set([...document.querySelectorAll('#dashView .quick-chip.active')].map(c => c.dataset.quick));
+    // Location: metro preset (token list) and/or free-text city — matched against
+    // job.location, OR'd with remote so remote roles always surface.
+    const metroSel = document.getElementById('jobMetro'); const metroVal = metroSel ? metroSel.value : '';
+    const locInput = document.getElementById('jobLocationInput'); const locText = locInput ? locInput.value.trim() : '';
+    let tokens = [];
+    if(metroVal && metroVal !== '__remote' && METROS[metroVal]) tokens = tokens.concat(METROS[metroVal].tokens);
+    if(locText) tokens.push(locText);
+    __dash.locationTokens = tokens;
+    __dash.locationOrRemote = tokens.length > 0;
     // Work setup is multi-select: only filter to remote when Remote is chosen and
-    // no on-site setup (Hybrid / In-office) is also chosen.
+    // no on-site setup (Hybrid / In-office) is also chosen. "Remote only" forces it.
     const setupVals = [...document.querySelectorAll('#advFilterPanel .adv-chip[data-filter="setup"].active')].map(c => c.dataset.value);
-    __dash.remote = (activeQuick.has('Remote') || setupVals.includes('Remote')) && !setupVals.includes('Hybrid') && !setupVals.includes('In-office');
+    __dash.remote = metroVal === '__remote' || ((activeQuick.has('Remote') || setupVals.includes('Remote')) && !setupVals.includes('Hybrid') && !setupVals.includes('In-office'));
     const slider = document.getElementById('salarySlider'); const sv = slider ? parseInt(slider.value,10) : 0;
     __dash.minSalary = activeQuick.has('$100K+') ? 100000 : (sv > 0 ? sv * 1000 : null);
     const empVals = [...document.querySelectorAll('#advFilterPanel .adv-chip[data-filter="empType"].active')].map(c => mapEmpType(c.dataset.value)).filter(Boolean);
@@ -6810,6 +6900,9 @@
     const sl = document.getElementById('salarySlider'); if(sl){ sl.value = 0; const sd = document.getElementById('salaryDisplay'); if(sd) sd.textContent = 'Any'; }
     const s = document.getElementById('jobSearch'); if(s) s.value = '';
     const so = document.getElementById('jobSortSelect'); if(so) so.value = 'newest';
+    const mt = document.getElementById('jobMetro'); if(mt) mt.value = '';
+    const li = document.getElementById('jobLocationInput'); if(li) li.value = '';
+    const lh = document.getElementById('locHint'); if(lh) lh.textContent = 'Remote roles always match. Metro areas cover ~75 miles from the city center.';
     syncDashFilters(); loadDashJobs(true);
   }
   function wireDashControls(){
@@ -6820,6 +6913,9 @@
     once(document.getElementById('advFilterToggle'), ft => ft.onclick = () => { const p = document.getElementById('advFilterPanel'); if(p) p.classList.toggle('open'); ft.classList.toggle('active'); });
     once(document.getElementById('clearAllFilters'), c => c.onclick = clearDashFilters);
     once(document.getElementById('salarySlider'), sl => { sl.oninput = () => { const v = parseInt(sl.value,10); const sd = document.getElementById('salaryDisplay'); if(sd) sd.textContent = v ? ('$' + v + 'k+') : 'Any'; }; sl.onchange = () => { syncDashFilters(); loadDashJobs(true); }; });
+    once(document.getElementById('jobMetro'), mt => mt.onchange = () => { const li = document.getElementById('jobLocationInput'); if(li && mt.value) li.value = ''; syncDashFilters(); loadDashJobs(true); });
+    once(document.getElementById('jobLocationInput'), li => li.addEventListener('input', () => { clearTimeout(__dashTimer); __dashTimer = setTimeout(() => { syncDashFilters(); loadDashJobs(true); }, 350); }));
+    once(document.getElementById('useMyLocationBtn'), b => b.onclick = useMyLocation);
     document.querySelectorAll('#dashView .quick-chip').forEach(chip => once(chip, c => c.onclick = () => { c.classList.toggle('active'); syncDashFilters(); loadDashJobs(true); }));
     // advanced-panel chips: multi-select — each chip toggles independently.
     document.querySelectorAll('#advFilterPanel .adv-chip[data-filter="setup"], #advFilterPanel .adv-chip[data-filter="empType"], #advFilterPanel .adv-chip[data-filter="dept"], #advFilterPanel .adv-chip[data-filter="seniority"]').forEach(chip => once(chip, c => c.onclick = () => {
@@ -6851,7 +6947,7 @@
     renderDashboard();          // hydrate the sidebar (async; sidebar only)
     hideDashRecruiterBits();
     wireDashControls();
-    __dash = { q:'', remote:false, minSalary:null, employmentType:[], keywordGroups:[], sort:'newest', offset:0, total:0, items:[], loading:false };
+    __dash = { q:'', remote:false, minSalary:null, employmentType:[], keywordGroups:[], locationTokens:[], locationOrRemote:false, sort:'newest', offset:0, total:0, items:[], loading:false };
     await loadSavedSet();     // so cards show the correct Save state
     loadDashJobs(true);
   }
