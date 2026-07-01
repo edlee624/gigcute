@@ -3765,6 +3765,7 @@
       <button class="quick-chip active" data-track-filter="all" type="button">All</button>
       <button class="quick-chip" data-track-filter="saved" type="button">Saved</button>
       <button class="quick-chip" data-track-filter="applied" type="button">Applied</button>
+      <button class="quick-chip" data-track-filter="dismissed" type="button">Removed</button>
     </div>
     <div id="trackerList"></div>
   </div>
@@ -4863,19 +4864,8 @@
     const sb = document.getElementById('superInviteBadge'); if(sb){ sb.style.display = ''; sb.textContent = '⭐ 1 super'; }
     const rb = document.getElementById('regularInviteBadge'); if(rb){ rb.style.display = ''; rb.textContent = '2 new'; }
 
-    const jobs = [
-      { company:'Vela', role:'Principal Product Designer', tags:['Remote','$190k+','Series C'], match:'92%', grad:'linear-gradient(135deg,#5B6CB8,#23262E)' },
-      { company:'Foundry Labs', role:'Senior UX Designer', tags:['Hybrid · NYC','$160k+'], match:'90%', grad:'linear-gradient(135deg,#3D5A4C,#23262E)' },
-      { company:'Brightwave', role:'Product Designer II', tags:['Remote','$140k+','Equity'], match:'86%', grad:'linear-gradient(135deg,#C9893E,#23262E)' },
-      { company:'Orbit', role:'Design Systems Lead', tags:['Remote','$175k+'], match:'84%', grad:'linear-gradient(135deg,#FF5A3C,#23262E)' },
-    ];
-    set('jobList', jobs.map(j => `
-      <div class="job-list-item">
-        <div class="job-logo" style="background:${j.grad}"></div>
-        <div><div class="jli-company">${j.company}</div><div class="jli-role">${j.role}</div><div class="jli-tags">${j.tags.map(t => `<span class="jli-tag">${t}</span>`).join('')}</div></div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:700;color:var(--sage-soft);white-space:nowrap;">${j.match} match</div>
-      </div>`).join(''));
-    const rc = document.getElementById('roleCount'); if(rc) rc.textContent = '48 open roles';
+    // NOTE: #jobList + roleCount are now driven by the real job board
+    // (renderDashJobs); the demo job seeding was removed so it doesn't override.
 
     const pill = 'font-family:\'JetBrains Mono\',monospace;font-size:10.5px;font-weight:700;border-radius:5px;padding:3px 9px;';
     const tracker = [
@@ -6701,6 +6691,7 @@
         <a class="jli-btn primary" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow" onclick="event.stopPropagation(); trackApplyClick('${key}')" style="text-decoration:none;text-align:center;">Apply ↗</a>
         <button class="jli-btn" type="button" data-savejob="${escapeHtml(j.id||'')}" onclick="event.stopPropagation(); toggleSaveJob('${key}')">${isSaved(j)?'♥ Saved':'♡ Save'}</button>
         <button class="jli-btn" type="button">Details</button>
+        <button class="jli-btn pass" type="button" title="Not interested — hide this job" onclick="event.stopPropagation(); dismissJob('${key}')" style="font-size:11px;padding:5px 10px;">Remove</button>
         ${posted ? `<div style="font-size:10.5px;color:rgba(251,247,240,0.35);text-align:right;">${posted}</div>` : ''}
       </div>
     </div>`;
@@ -6738,7 +6729,8 @@
         res = filterSampleJobs(PAGE);
       }
     }catch(e){ console.warn('dash jobs:', e && e.message); res = { jobs: [], total: 0 }; }
-    __dash.total = res.total; __dash.items = __dash.items.concat(res.jobs); __dash.offset += res.jobs.length;
+    const fresh = (res.jobs || []).filter(j => !isDismissed(j));   // hide jobs the user removed
+    __dash.total = res.total; __dash.items = __dash.items.concat(fresh); __dash.offset += (res.jobs || []).length;
     renderDashJobs();
   }
   // "Best match": relevance-rank via jobs_search (profile keywords + typed query),
@@ -6817,8 +6809,10 @@
     hide(document.getElementById('matchStrip'));
     hide(document.getElementById('inviteInboxSection'));
     hide(document.getElementById('inviteDivider'));
-    const topHead = document.querySelector('#dashView .cd-section-head'); if(topHead) topHead.style.display = 'none';   // "Top matches"
-    const firstDivider = document.querySelector('#dashView .cd-divider'); if(firstDivider) firstDivider.style.display = 'none';
+    // Hide all leftover demo sections: "Top matches" + "Job tracker" heads,
+    // their dividers, and the old in-dashboard demo tracker table.
+    document.querySelectorAll('#dashView .cd-section-head, #dashView .cd-divider').forEach(el => el.style.display = 'none');
+    const tb = document.getElementById('trackerBody'); if(tb){ const box = tb.closest('div'); if(box) box.style.display = 'none'; }
     // Only the equity group has no feed data; distance needs geocoding — hide those two.
     document.querySelectorAll('#advFilterPanel .adv-filter-group').forEach(g => {
       const dfEl = g.querySelector('[data-filter]'); const df = dfEl && dfEl.getAttribute('data-filter');
@@ -7239,7 +7233,20 @@
     let rows=[]; try{ rows = await API.tracker.list(); }catch(e){ console.warn('tracker:', e && e.message); }
     rows.forEach(r => { if(r.job_id) __savedByJob[r.job_id] = r; });
   }
-  function isSaved(job){ return !!(job && job.id && __savedByJob[job.id]); }
+  function isSaved(job){ return !!(job && job.id && __savedByJob[job.id] && __savedByJob[job.id].status !== 'dismissed'); }
+  function isDismissed(job){ return !!(job && job.id && __savedByJob[job.id] && __savedByJob[job.id].status === 'dismissed'); }
+  async function dismissJob(key){
+    const job = __jobsById[key]; if(!job) return;
+    const API = await gcAwaitAPI();
+    let user=null; try{ user = await (API && API.enabled && API.auth.currentUser()); }catch(e){}
+    if(!user){ if(typeof showToast==='function') showToast('Log in to manage jobs.'); return; }
+    try{ const row = await API.tracker.save(job, 'dismissed'); if(job.id) __savedByJob[job.id] = row; }catch(e){ if(typeof showToast==='function') showToast('Could not remove.'); return; }
+    // drop it from the current board view
+    __dash.items = __dash.items.filter(j => j.id !== job.id);
+    if(__dash.total) __dash.total = Math.max(0, __dash.total - 1);
+    renderDashJobs();
+  }
+  window.dismissJob = dismissJob;
   function refreshSaveBtns(job){
     if(!job || !job.id) return;
     document.querySelectorAll('[data-savejob="'+job.id+'"]').forEach(b => b.textContent = isSaved(job) ? '♥ Saved' : '♡ Save');
@@ -7288,23 +7295,24 @@
     let user=null; try{ user = await (API && API.enabled && API.auth.currentUser()); }catch(e){}
     if(!user){ el.innerHTML = `<div style="text-align:center; padding:44px 20px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px;"><div style="font-size:14px; color:rgba(251,247,240,0.6); margin-bottom:14px;">Log in to save jobs and track your applications.</div><button class="lm-cta-btn" type="button" onclick="GigCuteNavigate('/login')" style="font-size:14px;padding:11px 20px;">Log in</button></div>`; return; }
     let rows=[]; try{ rows = await API.tracker.list(); }catch(e){ console.warn('tracker list:', e && e.message); }
-    const filtered = (rows||[]).filter(r => __trackFilter==='all' || r.status===__trackFilter);
+    const filtered = (rows||[]).filter(r => __trackFilter==='all' ? r.status!=='dismissed' : r.status===__trackFilter);
     if(!filtered.length){ el.innerHTML = `<div style="text-align:center; padding:44px 20px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px;"><div style="font-family:'Fraunces',serif; font-size:18px; font-style:italic; margin-bottom:6px;">Nothing here yet</div><div style="font-size:13px; color:rgba(251,247,240,0.55);">Save jobs from the board and they'll show up here.</div></div>`; return; }
     el.innerHTML = filtered.map(r => {
-      const applied = r.status === 'applied';
+      const applied = r.status === 'applied', dismissed = r.status === 'dismissed';
       const safeUrl = /^https?:\/\//i.test(r.url||'') ? r.url : '#';
-      const badge = applied ? `<span style="color:var(--sage);">Applied</span>` : `<span style="color:rgba(251,247,240,0.5);">Saved</span>`;
+      const badge = dismissed ? `<span style="color:rgba(251,247,240,0.4);">Removed</span>` : (applied ? `<span style="color:var(--sage);">Applied</span>` : `<span style="color:rgba(251,247,240,0.5);">Saved</span>`);
+      const actions = dismissed
+        ? `<button class="jli-btn primary" type="button" onclick="removeTracked('${r.id}')">Restore</button>`
+        : `<a class="jli-btn primary" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow" style="text-decoration:none; text-align:center;">Apply ↗</a>
+           <button class="jli-btn" type="button" onclick="setTrackedStatus('${r.id}','${applied?'saved':'applied'}')">${applied?'Mark unapplied':'Mark applied'}</button>
+           <button class="jli-btn pass" type="button" onclick="removeTracked('${r.id}')">Remove</button>`;
       return `<div style="background:var(--ink-soft); border:1px solid var(--line-light); border-radius:14px; padding:16px 18px; margin-bottom:12px; display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap;">
         <div style="min-width:0;">
           <div style="font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--paper);">${escapeHtml(r.title||'Untitled role')}</div>
           <div style="font-size:12.5px; color:rgba(251,247,240,0.6); margin-top:2px;">${escapeHtml([r.company, r.location].filter(Boolean).join(' · '))}</div>
           <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; margin-top:8px;">${badge}</div>
         </div>
-        <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
-          <a class="jli-btn primary" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow" style="text-decoration:none; text-align:center;">Apply ↗</a>
-          <button class="jli-btn" type="button" onclick="setTrackedStatus('${r.id}','${applied?'saved':'applied'}')">${applied?'Mark unapplied':'Mark applied'}</button>
-          <button class="jli-btn pass" type="button" onclick="removeTracked('${r.id}')">Remove</button>
-        </div>
+        <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">${actions}</div>
       </div>`;
     }).join('');
   }

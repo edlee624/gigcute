@@ -10,7 +10,7 @@ create table if not exists public.tracked_jobs (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null references public.profiles(id) on delete cascade,
   job_id     uuid references public.jobs(id) on delete set null,
-  status     text not null default 'saved' check (status in ('saved','applied')),
+  status     text not null default 'saved' check (status in ('saved','applied','dismissed')),
   title      text not null,
   company    text,
   location   text,
