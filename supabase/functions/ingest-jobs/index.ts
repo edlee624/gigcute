@@ -252,11 +252,18 @@ Deno.serve(async (req) => {
   }
   const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
+  // Process only a BATCH of ATS companies per run (oldest-ingested first) so one
+  // invocation stays under the worker limit; the hourly cron cycles through them
+  // all. Scales to thousands of slugs. Tune with the ATS_BATCH secret.
+  const BATCH = Math.max(1, parseInt(Deno.env.get("ATS_BATCH") || "8", 10));
   const slugsBy: Record<string, Src[]> = {};
+  const batchIds: string[] = [];
   try {
-    const { data } = await supabase.from("job_sources").select("platform, slug, company_name").eq("active", true);
-    for (const r of (data ?? [])) { (slugsBy[r.platform] ??= []).push({ slug: r.slug, company_name: r.company_name }); }
-  } catch (_e) { /* table may not exist yet */ }
+    const { data } = await supabase.from("job_sources")
+      .select("id, platform, slug, company_name").eq("active", true)
+      .order("last_ingested_at", { ascending: true, nullsFirst: true }).limit(BATCH);
+    for (const r of (data ?? [])) { (slugsBy[r.platform] ??= []).push({ slug: r.slug, company_name: r.company_name }); batchIds.push(r.id); }
+  } catch (_e) { /* table/column may not exist yet */ }
 
   const runners: [string, () => Promise<Report>][] = [
     ["arbeitnow", () => fromArbeitnow(supabase)],
@@ -270,5 +277,9 @@ Deno.serve(async (req) => {
     try { report[name] = await fn(); }
     catch (e) { report[name] = { fetched: 0, upserted: 0, error: String((e as Error)?.message ?? e) }; }
   }
-  return new Response(JSON.stringify({ ok: true, report }, null, 2), { headers: { "content-type": "application/json" } });
+  // Mark this batch as ingested so the next run rotates to the next companies.
+  if (batchIds.length) {
+    try { await supabase.from("job_sources").update({ last_ingested_at: new Date().toISOString() }).in("id", batchIds); } catch (_e) { /* ignore */ }
+  }
+  return new Response(JSON.stringify({ ok: true, report, atsBatch: batchIds.length }, null, 2), { headers: { "content-type": "application/json" } });
 });

@@ -10,9 +10,11 @@ create table if not exists public.job_sources (
   slug         text not null,
   company_name text,
   active       boolean not null default true,
+  last_ingested_at timestamptz,   -- rotation cursor: oldest gets ingested next
   created_at   timestamptz not null default now(),
   unique (platform, slug)
 );
+alter table public.job_sources add column if not exists last_ingested_at timestamptz;
 alter table public.job_sources enable row level security;
 drop policy if exists "job_sources: read" on public.job_sources;
 create policy "job_sources: read" on public.job_sources for select using (true);
