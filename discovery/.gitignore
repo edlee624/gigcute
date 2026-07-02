@@ -1,0 +1,8 @@
+# Discovery data files are local-only (they grow per machine); scripts + docs are committed.
+urls.txt
+candidates.csv
+tested.txt
+confirmed.csv
+job_sources_insert.sql
+*.sql
+__pycache__/
