@@ -9,7 +9,8 @@
 // upserts INCREMENTALLY (per company / per page) rather than accumulating all
 // rows in memory — otherwise the worker hits its memory limit (error 546).
 //
-// Sources: Arbeitnow + ATS boards (Greenhouse / Lever / Ashby). Adzuna removed.
+// Sources: direct company ATS boards only (Greenhouse / Lever / Ashby).
+// Aggregators (Adzuna, Arbeitnow) removed — each source is one company's board.
 //
 // Env (Project Settings → Edge Functions → Secrets):
 //   CRON_SECRET, ATS_BATCH (companies/run, default 20), JOB_TITLE_ANY,
@@ -30,9 +31,6 @@ type Report = { fetched: number; upserted: number; error?: string };
 
 const DESC_CAP = 16000; // keep full ads but bound extreme outliers (memory)
 const cap = (s: string | null): string | null => (s && s.length > DESC_CAP ? s.slice(0, DESC_CAP) + "…" : s);
-
-const stripHtml = (s: string | null | undefined): string | null =>
-  s ? s.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() : null;
 
 function csvEnv(name: string, def: string): string[] {
   return (Deno.env.get(name) || def).split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
@@ -111,22 +109,6 @@ async function runLimit<T>(items: T[], limit: number, fn: (x: T) => Promise<void
   let i = 0;
   const worker = async () => { while (i < items.length) { const it = items[i++]; try { await fn(it); } catch (_e) { /* skip */ } } };
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
-}
-
-// deno-lint-ignore no-explicit-any
-async function fromArbeitnow(supabase: any): Promise<Report> {
-  const res = await fetch("https://www.arbeitnow.com/api/job-board-api");
-  if (!res.ok) throw new Error(`arbeitnow ${res.status}`);
-  const json = await res.json();
-  const rows: JobRow[] = (Array.isArray(json?.data) ? json.data : []).map((j: any): JobRow => ({
-    source: "arbeitnow", external_id: String(j.slug ?? j.url), title: j.title ?? "Untitled",
-    company: j.company_name ?? null, location: j.location ?? null, remote: !!j.remote,
-    employment_type: Array.isArray(j.job_types) ? (j.job_types[0] ?? null) : null, category: null,
-    salary_min: null, salary_max: null, salary_currency: null, url: j.url, description: cap(stripHtml(j.description)),
-    tags: Array.isArray(j.tags) ? j.tags.slice(0, 12).map(String) : [],
-    posted_at: j.created_at ? new Date(j.created_at * 1000).toISOString() : null, is_active: true,
-  })).filter((r: JobRow) => r.url && r.external_id && r.remote && fitsCriteria(r.title) && meetsSalary(r) && isRecent(r.posted_at));
-  return { fetched: rows.length, upserted: await upsert(supabase, rows) };
 }
 
 // ---- ATS sources — full descriptions, upserted per company (low memory) ------
@@ -235,7 +217,6 @@ Deno.serve(async (req) => {
   } catch (_e) { /* table/column may not exist yet */ }
 
   const runners: [string, () => Promise<Report>][] = [
-    ["arbeitnow", () => fromArbeitnow(supabase)],
     ["greenhouse", () => fromGreenhouse(supabase, slugsBy.greenhouse ?? [])],
     ["lever", () => fromLever(supabase, slugsBy.lever ?? [])],
     ["ashby", () => fromAshby(supabase, slugsBy.ashby ?? [])],

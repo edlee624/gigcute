@@ -3,8 +3,8 @@
 -- Safe to re-run. Run in the Supabase SQL editor.
 -- ============================================================================
 
--- 1. Remove the Adzuna source entirely (feed no longer ingests it).
-delete from public.jobs where source = 'adzuna';
+-- 1. Remove aggregator sources entirely (feed is direct-company ATS only now).
+delete from public.jobs where source in ('adzuna', 'arbeitnow');
 
 -- 2. Remove jobs older than 30 days (retention window).
 delete from public.jobs where posted_at < now() - interval '30 days';
