@@ -274,19 +274,22 @@ Deno.serve(async (req) => {
   // all. Scales to thousands of slugs. Tune with the ATS_BATCH secret.
   const BATCH = Math.max(1, parseInt(Deno.env.get("ATS_BATCH") || "20", 10));
   const WD_PER_RUN = Math.max(1, parseInt(Deno.env.get("WORKDAY_PER_RUN") || "6", 10));
+  const SEL = "id, platform, slug, company_name, datacenter, site";
   const slugsBy: Record<string, Src[]> = {};
   let batchIds: string[] = [];
   try {
-    const { data } = await supabase.from("job_sources")
-      .select("id, platform, slug, company_name, datacenter, site").eq("active", true)
-      .order("last_ingested_at", { ascending: true, nullsFirst: true }).limit(BATCH);
-    for (const r of (data ?? [])) { (slugsBy[r.platform] ??= []).push({ id: r.id, slug: r.slug, company_name: r.company_name, datacenter: r.datacenter, site: r.site }); }
-    // Workday boards are heavy (paginate + per-job detail), so process at most
-    // WD_PER_RUN per invocation; the rest keep their cursor and come up on later
-    // runs. Prevents a batch of 20 Workday boards from OOM'ing the worker (546).
-    if (slugsBy.workday && slugsBy.workday.length > WD_PER_RUN) slugsBy.workday = slugsBy.workday.slice(0, WD_PER_RUN);
+    // Guarantee Workday gets slots every run: they're heavy AND numerous, so in a
+    // shared oldest-first rotation they'd sit buried behind hundreds of other
+    // never-ingested rows for many runs. Pull WD_PER_RUN Workday boards directly,
+    // then fill the rest of the batch from the general (non-Workday) rotation.
+    const wd = (await supabase.from("job_sources").select(SEL).eq("active", true).eq("platform", "workday")
+      .order("last_ingested_at", { ascending: true, nullsFirst: true }).limit(WD_PER_RUN)).data ?? [];
+    const restN = Math.max(0, BATCH - wd.length);
+    const rest = restN > 0 ? ((await supabase.from("job_sources").select(SEL).eq("active", true).neq("platform", "workday")
+      .order("last_ingested_at", { ascending: true, nullsFirst: true }).limit(restN)).data ?? []) : [];
+    for (const r of [...wd, ...rest]) { (slugsBy[r.platform] ??= []).push({ id: r.id, slug: r.slug, company_name: r.company_name, datacenter: r.datacenter, site: r.site }); }
     // Only mark the companies we actually process this run as ingested.
-    batchIds = Object.values(slugsBy).flat().map((s) => s.id).filter((x): x is string => !!x);
+    batchIds = [...wd, ...rest].map((r: { id: string }) => r.id).filter((x): x is string => !!x);
   } catch (_e) { /* table/column may not exist yet */ }
 
   const runners: [string, () => Promise<Report>][] = [
