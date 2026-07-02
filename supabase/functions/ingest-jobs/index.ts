@@ -51,6 +51,15 @@ function meetsSalary(r: { salary_min: number | null; salary_max: number | null }
   return (r.salary_max != null && r.salary_max >= JOB_MIN_SALARY) ||
          (r.salary_min != null && r.salary_min >= JOB_MIN_SALARY);
 }
+// Only ingest recently-posted jobs (default 7 days). A job with no/unparseable
+// date is treated as too old (excluded) so the board stays fresh while testing.
+const MAX_AGE_DAYS = Math.max(1, parseInt(Deno.env.get("JOB_MAX_AGE_DAYS") || "7", 10) || 7);
+function isRecent(iso: string | null): boolean {
+  if (!iso) return false;
+  const t = Date.parse(iso);
+  if (isNaN(t)) return false;
+  return (Date.now() - t) <= MAX_AGE_DAYS * 86400000;
+}
 function decodeEntities(s: string): string {
   return s
     .replace(/&#x([0-9a-f]+);/gi, (_m, n) => String.fromCharCode(parseInt(n, 16)))
@@ -113,7 +122,7 @@ async function fromArbeitnow(supabase: any): Promise<Report> {
     salary_min: null, salary_max: null, salary_currency: null, url: j.url, description: cap(stripHtml(j.description)),
     tags: Array.isArray(j.tags) ? j.tags.slice(0, 12).map(String) : [],
     posted_at: j.created_at ? new Date(j.created_at * 1000).toISOString() : null, is_active: true,
-  })).filter((r: JobRow) => r.url && r.external_id && r.remote && fitsCriteria(r.title) && meetsSalary(r));
+  })).filter((r: JobRow) => r.url && r.external_id && r.remote && fitsCriteria(r.title) && meetsSalary(r) && isRecent(r.posted_at));
   return { fetched: rows.length, upserted: await upsert(supabase, rows) };
 }
 
@@ -135,7 +144,7 @@ async function fromAdzuna(supabase: any): Promise<Report> {
     for (let page = 1; page <= pages; page++) {
       const u = new URL(`https://api.adzuna.com/v1/api/jobs/${country}/search/${page}`);
       u.searchParams.set("app_id", id); u.searchParams.set("app_key", key);
-      u.searchParams.set("results_per_page", "50"); u.searchParams.set("max_days_old", "30");
+      u.searchParams.set("results_per_page", "50"); u.searchParams.set("max_days_old", String(MAX_AGE_DAYS));
       u.searchParams.set("sort_by", "date"); u.searchParams.set("content-type", "application/json");
       if (JOB_MIN_SALARY > 0) u.searchParams.set("salary_min", String(JOB_MIN_SALARY));
       if (whatOr) u.searchParams.set("what_or", whatOr);
@@ -153,6 +162,7 @@ async function fromAdzuna(supabase: any): Promise<Report> {
         const salMin = typeof j.salary_min === "number" ? j.salary_min : null;
         const salMax = typeof j.salary_max === "number" ? j.salary_max : null;
         if (!meetsSalary({ salary_min: salMin, salary_max: salMax })) continue;
+        if (!isRecent(j.created ?? null)) continue;
         rows.push({
           source: "adzuna", external_id: String(j.id), title: j.title ?? "Untitled",
           company: j.company?.display_name ?? null, location: j.location?.display_name ?? null, remote,
@@ -191,7 +201,7 @@ async function fromGreenhouse(supabase: any, list: Src[]): Promise<Report> {
         tags: (j.departments ?? []).map((d: any) => d.name).filter(Boolean).slice(0, 4),
         posted_at: j.updated_at ?? null, is_active: true,
       };
-      if (row.url && row.external_id && meetsSalary(row)) rows.push(row);
+      if (row.url && row.external_id && fitsCriteria(row.title) && meetsSalary(row) && isRecent(row.posted_at)) rows.push(row);
     }
     fetched += rows.length; upserted += await upsert(supabase, rows);
   });
@@ -219,7 +229,7 @@ async function fromLever(supabase: any, list: Src[]): Promise<Report> {
         tags: [j.categories?.department, j.categories?.team].filter(Boolean).slice(0, 4),
         posted_at: j.createdAt ? new Date(j.createdAt).toISOString() : null, is_active: true,
       };
-      if (row.url && row.external_id && meetsSalary(row)) rows.push(row);
+      if (row.url && row.external_id && fitsCriteria(row.title) && meetsSalary(row) && isRecent(row.posted_at)) rows.push(row);
     }
     fetched += rows.length; upserted += await upsert(supabase, rows);
   });
@@ -246,7 +256,7 @@ async function fromAshby(supabase: any, list: Src[]): Promise<Report> {
         tags: [j.department, j.team].filter(Boolean).slice(0, 4),
         posted_at: j.publishedAt ?? null, is_active: true,
       };
-      if (row.url && row.external_id && meetsSalary(row)) rows.push(row);
+      if (row.url && row.external_id && fitsCriteria(row.title) && meetsSalary(row) && isRecent(row.posted_at)) rows.push(row);
     }
     fetched += rows.length; upserted += await upsert(supabase, rows);
   });
