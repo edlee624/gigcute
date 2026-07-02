@@ -26,7 +26,7 @@ type JobRow = {
   salary_currency: string | null; url: string; description: string | null;
   tags: string[]; posted_at: string | null; is_active: boolean;
 };
-type Src = { slug: string; company_name?: string | null; datacenter?: string | null; site?: string | null };
+type Src = { id?: string; slug: string; company_name?: string | null; datacenter?: string | null; site?: string | null };
 type Report = { fetched: number; upserted: number; error?: string };
 
 const DESC_CAP = 16000; // keep full ads but bound extreme outliers (memory)
@@ -273,13 +273,20 @@ Deno.serve(async (req) => {
   // invocation stays under the worker limit; the hourly cron cycles through them
   // all. Scales to thousands of slugs. Tune with the ATS_BATCH secret.
   const BATCH = Math.max(1, parseInt(Deno.env.get("ATS_BATCH") || "20", 10));
+  const WD_PER_RUN = Math.max(1, parseInt(Deno.env.get("WORKDAY_PER_RUN") || "6", 10));
   const slugsBy: Record<string, Src[]> = {};
-  const batchIds: string[] = [];
+  let batchIds: string[] = [];
   try {
     const { data } = await supabase.from("job_sources")
       .select("id, platform, slug, company_name, datacenter, site").eq("active", true)
       .order("last_ingested_at", { ascending: true, nullsFirst: true }).limit(BATCH);
-    for (const r of (data ?? [])) { (slugsBy[r.platform] ??= []).push({ slug: r.slug, company_name: r.company_name, datacenter: r.datacenter, site: r.site }); batchIds.push(r.id); }
+    for (const r of (data ?? [])) { (slugsBy[r.platform] ??= []).push({ id: r.id, slug: r.slug, company_name: r.company_name, datacenter: r.datacenter, site: r.site }); }
+    // Workday boards are heavy (paginate + per-job detail), so process at most
+    // WD_PER_RUN per invocation; the rest keep their cursor and come up on later
+    // runs. Prevents a batch of 20 Workday boards from OOM'ing the worker (546).
+    if (slugsBy.workday && slugsBy.workday.length > WD_PER_RUN) slugsBy.workday = slugsBy.workday.slice(0, WD_PER_RUN);
+    // Only mark the companies we actually process this run as ingested.
+    batchIds = Object.values(slugsBy).flat().map((s) => s.id).filter((x): x is string => !!x);
   } catch (_e) { /* table/column may not exist yet */ }
 
   const runners: [string, () => Promise<Report>][] = [
