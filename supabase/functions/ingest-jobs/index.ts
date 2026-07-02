@@ -26,7 +26,7 @@ type JobRow = {
   salary_currency: string | null; url: string; description: string | null;
   tags: string[]; posted_at: string | null; is_active: boolean;
 };
-type Src = { slug: string; company_name?: string | null };
+type Src = { slug: string; company_name?: string | null; datacenter?: string | null; site?: string | null };
 type Report = { fetched: number; upserted: number; error?: string };
 
 const DESC_CAP = 16000; // keep full ads but bound extreme outliers (memory)
@@ -195,6 +195,72 @@ async function fromAshby(supabase: any, list: Src[]): Promise<Report> {
   return { fetched, upserted };
 }
 
+// ---- Workday — enterprise boards. Each row carries tenant(slug)+datacenter+site.
+// Listing is POST /wday/cxs/{tenant}/{site}/jobs (paginated); full description is a
+// second GET on externalPath. Boards are huge, so we drive with searchText on the
+// target titles (keeps each company to a few relevant pages) and only fetch detail
+// for title-fitting, not-obviously-stale postings — bounding requests + memory.
+const WD_SEARCH = ["product manager", "business analyst", "customer experience",
+  "implementation consultant", "management consultant", "transformation", "analytics"];
+const WD_HEADERS = { "content-type": "application/json", "accept": "application/json", "user-agent": "Mozilla/5.0 (gigcute)" };
+function wdMaybeRecent(postedOn: string | null | undefined): boolean {
+  // Listing gives relative text ("Posted Today", "Posted 30+ Days Ago"). Cheap
+  // pre-filter to skip clearly-old postings before the detail call; startDate is
+  // the real gate. Unknown formats pass through to the detail check.
+  if (!postedOn) return true;
+  const s = postedOn.toLowerCase();
+  if (s.includes("today") || s.includes("yesterday")) return true;
+  const m = s.match(/(\d+)\s*\+?\s*day/);
+  return m ? parseInt(m[1], 10) <= MAX_AGE_DAYS : true;
+}
+// deno-lint-ignore no-explicit-any
+async function fromWorkday(supabase: any, list: Src[]): Promise<Report> {
+  let fetched = 0, upserted = 0;
+  await runLimit(list, 2, async ({ slug: tenant, company_name, datacenter: dc, site }) => {
+    if (!dc || !site) return;
+    const base = `https://${tenant}.${dc}.myworkdayjobs.com/wday/cxs/${tenant}/${site}`;
+    const seen = new Set<string>();
+    let details = 0;                       // per-company detail-fetch cap (bounds cost)
+    for (const term of WD_SEARCH) {
+      for (let offset = 0; offset < 40; offset += 20) {   // up to 2 pages per term
+        let res: Response;
+        try { res = await fetch(`${base}/jobs`, { method: "POST", headers: WD_HEADERS, body: JSON.stringify({ appliedFacets: {}, limit: 20, offset, searchText: term }) }); }
+        catch { break; }
+        if (!res.ok) break;
+        const j = await res.json();
+        const posts = j?.jobPostings ?? [];
+        if (!posts.length) break;
+        const rows: JobRow[] = [];
+        for (const p of posts) {
+          if (details >= 40) break;
+          if (!fitsCriteria(p.title) || !wdMaybeRecent(p.postedOn)) continue;
+          if (!p.externalPath || seen.has(p.externalPath)) continue;
+          seen.add(p.externalPath); details++;
+          let info: any = {};
+          try { const d = await fetch(`${base}${p.externalPath}`, { headers: WD_HEADERS }); if (!d.ok) continue; info = (await d.json())?.jobPostingInfo ?? {}; }
+          catch { continue; }
+          const desc = htmlToText(info.jobDescription);
+          const sal = extractSalary(desc);
+          const loc = info.location ?? p.locationsText ?? null;
+          const row: JobRow = {
+            source: "workday", external_id: `wd:${tenant}:${info.id ?? info.jobReqId ?? p.externalPath}`,
+            title: info.title ?? p.title ?? "Untitled", company: company_name ?? tenant, location: loc,
+            remote: /remote/i.test(`${info.remoteType ?? ""} ${p.remoteType ?? ""} ${loc ?? ""}`),
+            employment_type: info.timeType ?? null, category: null,
+            salary_min: sal.min, salary_max: sal.max, salary_currency: "USD",
+            url: info.externalUrl || `https://${tenant}.${dc}.myworkdayjobs.com/${site}${p.externalPath}`,
+            description: cap(desc), tags: [], posted_at: info.startDate ?? null, is_active: true,
+          };
+          if (row.url && meetsSalary(row) && isRecent(row.posted_at)) rows.push(row);
+        }
+        if (rows.length) { fetched += rows.length; upserted += await upsert(supabase, rows); }
+        if (posts.length < 20 || details >= 40) break;
+      }
+    }
+  });
+  return { fetched, upserted };
+}
+
 Deno.serve(async (req) => {
   const secret = Deno.env.get("CRON_SECRET");
   const given = req.headers.get("x-cron-secret") || new URL(req.url).searchParams.get("secret");
@@ -211,15 +277,16 @@ Deno.serve(async (req) => {
   const batchIds: string[] = [];
   try {
     const { data } = await supabase.from("job_sources")
-      .select("id, platform, slug, company_name").eq("active", true)
+      .select("id, platform, slug, company_name, datacenter, site").eq("active", true)
       .order("last_ingested_at", { ascending: true, nullsFirst: true }).limit(BATCH);
-    for (const r of (data ?? [])) { (slugsBy[r.platform] ??= []).push({ slug: r.slug, company_name: r.company_name }); batchIds.push(r.id); }
+    for (const r of (data ?? [])) { (slugsBy[r.platform] ??= []).push({ slug: r.slug, company_name: r.company_name, datacenter: r.datacenter, site: r.site }); batchIds.push(r.id); }
   } catch (_e) { /* table/column may not exist yet */ }
 
   const runners: [string, () => Promise<Report>][] = [
     ["greenhouse", () => fromGreenhouse(supabase, slugsBy.greenhouse ?? [])],
     ["lever", () => fromLever(supabase, slugsBy.lever ?? [])],
     ["ashby", () => fromAshby(supabase, slugsBy.ashby ?? [])],
+    ["workday", () => fromWorkday(supabase, slugsBy.workday ?? [])],
   ];
   const report: Record<string, Report> = {};
   for (const [name, fn] of runners) {
