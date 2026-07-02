@@ -9,10 +9,12 @@
 // upserts INCREMENTALLY (per company / per page) rather than accumulating all
 // rows in memory — otherwise the worker hits its memory limit (error 546).
 //
+// Sources: Arbeitnow + ATS boards (Greenhouse / Lever / Ashby). Adzuna removed.
+//
 // Env (Project Settings → Edge Functions → Secrets):
-//   CRON_SECRET, ADZUNA_APP_ID, ADZUNA_APP_KEY, ADZUNA_COUNTRY, ADZUNA_PAGES,
-//   ADZUNA_WHAT_OR, ADZUNA_WHERE, ADZUNA_DISTANCE_KM, JOB_TITLE_ANY,
-//   JOB_SENIORITY_ANY, JOB_MIN_SALARY (default 100000; 0 = off)
+//   CRON_SECRET, ATS_BATCH (companies/run, default 20), JOB_TITLE_ANY,
+//   JOB_SENIORITY_ANY, JOB_MIN_SALARY (default 100000; 0 = off),
+//   JOB_MAX_AGE_DAYS (intake cap, default 7), JOB_RETENTION_DAYS (default 30)
 // ============================================================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -54,6 +56,7 @@ function meetsSalary(r: { salary_min: number | null; salary_max: number | null }
 // Only ingest recently-posted jobs (default 7 days). A job with no/unparseable
 // date is treated as too old (excluded) so the board stays fresh while testing.
 const MAX_AGE_DAYS = Math.max(1, parseInt(Deno.env.get("JOB_MAX_AGE_DAYS") || "7", 10) || 7);
+const RETENTION_DAYS = Math.max(1, parseInt(Deno.env.get("JOB_RETENTION_DAYS") || "30", 10) || 30);
 function isRecent(iso: string | null): boolean {
   if (!iso) return false;
   const t = Date.parse(iso);
@@ -124,59 +127,6 @@ async function fromArbeitnow(supabase: any): Promise<Report> {
     posted_at: j.created_at ? new Date(j.created_at * 1000).toISOString() : null, is_active: true,
   })).filter((r: JobRow) => r.url && r.external_id && r.remote && fitsCriteria(r.title) && meetsSalary(r) && isRecent(r.posted_at));
   return { fetched: rows.length, upserted: await upsert(supabase, rows) };
-}
-
-// deno-lint-ignore no-explicit-any
-async function fromAdzuna(supabase: any): Promise<Report> {
-  const id = Deno.env.get("ADZUNA_APP_ID"), key = Deno.env.get("ADZUNA_APP_KEY");
-  if (!id || !key) return { fetched: 0, upserted: 0 };
-  const country = (Deno.env.get("ADZUNA_COUNTRY") || "us").toLowerCase();
-  const pages = Math.max(1, Math.min(10, parseInt(Deno.env.get("ADZUNA_PAGES") || "3", 10)));
-  const whatOr = (Deno.env.get("ADZUNA_WHAT_OR") ||
-    "analytics product consultant transformation strategy customer experience implementation").trim();
-  const where = (Deno.env.get("ADZUNA_WHERE") || "New York").split(",").map((s) => s.trim()).filter(Boolean);
-  const distance = (Deno.env.get("ADZUNA_DISTANCE_KM") || "120").trim();
-  type Pass = { where?: string; remoteOnly?: boolean };
-  const passes: Pass[] = where.map((w) => ({ where: w }));
-  passes.push({ remoteOnly: true });
-  let fetched = 0, upserted = 0;
-  for (const pass of passes) {
-    for (let page = 1; page <= pages; page++) {
-      const u = new URL(`https://api.adzuna.com/v1/api/jobs/${country}/search/${page}`);
-      u.searchParams.set("app_id", id); u.searchParams.set("app_key", key);
-      u.searchParams.set("results_per_page", "50"); u.searchParams.set("max_days_old", String(MAX_AGE_DAYS));
-      u.searchParams.set("sort_by", "date"); u.searchParams.set("content-type", "application/json");
-      if (JOB_MIN_SALARY > 0) u.searchParams.set("salary_min", String(JOB_MIN_SALARY));
-      if (whatOr) u.searchParams.set("what_or", whatOr);
-      if (pass.where) { u.searchParams.set("where", pass.where); if (distance) u.searchParams.set("distance", distance); }
-      const res = await fetch(u.toString());
-      if (!res.ok) throw new Error(`adzuna ${res.status}`);
-      const json = await res.json();
-      const items = Array.isArray(json?.results) ? json.results : [];
-      const rows: JobRow[] = [];
-      for (const j of items) {
-        const desc = stripHtml(j.description);
-        const remote = /remote/i.test(`${j.title ?? ""} ${j.location?.display_name ?? ""} ${desc ?? ""}`);
-        if (pass.remoteOnly && !remote) continue;
-        if (!fitsCriteria(j.title)) continue;
-        const salMin = typeof j.salary_min === "number" ? j.salary_min : null;
-        const salMax = typeof j.salary_max === "number" ? j.salary_max : null;
-        if (!meetsSalary({ salary_min: salMin, salary_max: salMax })) continue;
-        if (!isRecent(j.created ?? null)) continue;
-        rows.push({
-          source: "adzuna", external_id: String(j.id), title: j.title ?? "Untitled",
-          company: j.company?.display_name ?? null, location: j.location?.display_name ?? null, remote,
-          employment_type: j.contract_time ?? j.contract_type ?? null, category: j.category?.label ?? null,
-          salary_min: salMin, salary_max: salMax, salary_currency: country === "us" ? "USD" : null,
-          url: j.redirect_url, description: cap(desc), tags: j.category?.label ? [j.category.label] : [],
-          posted_at: j.created ?? null, is_active: true,
-        });
-      }
-      fetched += rows.length; upserted += await upsert(supabase, rows);
-      if (items.length < 50) break;
-    }
-  }
-  return { fetched, upserted };
 }
 
 // ---- ATS sources — full descriptions, upserted per company (low memory) ------
@@ -274,7 +224,7 @@ Deno.serve(async (req) => {
   // Process only a BATCH of ATS companies per run (oldest-ingested first) so one
   // invocation stays under the worker limit; the hourly cron cycles through them
   // all. Scales to thousands of slugs. Tune with the ATS_BATCH secret.
-  const BATCH = Math.max(1, parseInt(Deno.env.get("ATS_BATCH") || "8", 10));
+  const BATCH = Math.max(1, parseInt(Deno.env.get("ATS_BATCH") || "20", 10));
   const slugsBy: Record<string, Src[]> = {};
   const batchIds: string[] = [];
   try {
@@ -286,7 +236,6 @@ Deno.serve(async (req) => {
 
   const runners: [string, () => Promise<Report>][] = [
     ["arbeitnow", () => fromArbeitnow(supabase)],
-    ["adzuna", () => fromAdzuna(supabase)],
     ["greenhouse", () => fromGreenhouse(supabase, slugsBy.greenhouse ?? [])],
     ["lever", () => fromLever(supabase, slugsBy.lever ?? [])],
     ["ashby", () => fromAshby(supabase, slugsBy.ashby ?? [])],
@@ -300,5 +249,13 @@ Deno.serve(async (req) => {
   if (batchIds.length) {
     try { await supabase.from("job_sources").update({ last_ingested_at: new Date().toISOString() }).in("id", batchIds); } catch (_e) { /* ignore */ }
   }
-  return new Response(JSON.stringify({ ok: true, report, atsBatch: batchIds.length }, null, 2), { headers: { "content-type": "application/json" } });
+  // Retention: drop jobs older than JOB_RETENTION_DAYS (default 30) so the board
+  // stays current. (Intake caps at MAX_AGE_DAYS; this removes rows that have since aged.)
+  let purged = 0;
+  try {
+    const cutoff = new Date(Date.now() - RETENTION_DAYS * 86400000).toISOString();
+    const { data } = await supabase.from("jobs").delete().lt("posted_at", cutoff).select("id");
+    purged = (data ?? []).length;
+  } catch (_e) { /* ignore */ }
+  return new Response(JSON.stringify({ ok: true, report, atsBatch: batchIds.length, purged }, null, 2), { headers: { "content-type": "application/json" } });
 });
