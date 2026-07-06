@@ -1691,6 +1691,11 @@
     background:var(--ink); border:1px solid var(--line-light); border-radius:5px;
     padding:3px 7px; color:rgba(251,247,240,0.55);
   }
+  /* Relevance score chip + reusable hover info bubble */
+  .rel-chip{ display:inline-flex; align-items:center; gap:5px; font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700; letter-spacing:0.04em; color:#9fc2ad; background:rgba(61,90,76,0.22); border:1px solid rgba(61,90,76,0.55); border-radius:6px; padding:3px 8px; margin-bottom:6px; }
+  .gc-info{ position:relative; display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; border:1px solid currentColor; font-family:'Fraunces',serif; font-size:10px; font-style:italic; cursor:help; opacity:0.9; }
+  .gc-info .gc-tip{ position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%); width:236px; max-width:70vw; background:var(--ink); color:rgba(251,247,240,0.9); border:1px solid var(--line-light); border-radius:10px; padding:10px 12px; font-family:'Inter',sans-serif; font-size:12px; font-weight:500; font-style:normal; line-height:1.5; letter-spacing:0; text-transform:none; box-shadow:0 12px 30px rgba(0,0,0,0.5); opacity:0; visibility:hidden; transition:opacity .15s ease, visibility .15s ease; z-index:60; pointer-events:none; }
+  .gc-info:hover .gc-tip, .gc-info:focus .gc-tip{ opacity:1; visibility:visible; }
   .jli-prompts{ display:flex; flex-direction:column; gap:6px; }
   .jli-prompt{
     background:var(--paper); border-radius:8px; padding:8px 10px;
@@ -3819,9 +3824,9 @@
     <div class="ob-top" style="justify-content:flex-start;">
       <div class="ob-back" data-back="screen-landing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div>
     </div>
-    <div class="ob-eyebrow">Job seeker</div>
+    <div class="ob-eyebrow" id="loginEyebrow">Job seeker</div>
     <h1 class="ob-h1">Welcome <em>back</em>.</h1>
-    <p class="ob-sub">Log in to pick up where you left off.</p>
+    <p class="ob-sub" id="loginSub">Log in to pick up where you left off.</p>
 
     <div class="auth-error" id="seekerLoginError">Incorrect email or password. Please try again.</div>
 
@@ -4636,7 +4641,7 @@
   { const a=document.getElementById('browseJobsBtn'); if(a) a.onclick = () => navigate('/jobs'); }
 
   // ---- Landing: login shortcuts ----
-  document.getElementById('loginSeeker').onclick = () => showScreen('screen-login-seeker');
+  document.getElementById('loginSeeker').onclick = () => { setLoginMode(false); showScreen('screen-login-seeker'); };
   { const a=document.getElementById('goRecruit'); if(a) a.onclick = () => navigate('/recruit'); }
   { const a=document.getElementById('recruitBack'); if(a) a.onclick = () => showScreen('screen-landing'); }
   { const a=document.getElementById('seeSampleBtn'); if(a) a.onclick = () => { navigate('/profile/sample'); }; }
@@ -4684,8 +4689,17 @@
     if(e.key === 'Enter') document.getElementById('seekerLoginBtn').click();
   });
 
+  // The shared login screen serves both seekers and recruiters; setLoginMode
+  // re-brands it and routes its "Create one" link + post-login flow correctly.
+  function setLoginMode(isRecruiter){
+    __postLoginRecruiter = !!isRecruiter;
+    const eb = document.getElementById('loginEyebrow');
+    const sub = document.getElementById('loginSub');
+    if(eb){ eb.textContent = isRecruiter ? 'Recruiter' : 'Job seeker'; eb.classList.toggle('sage', !!isRecruiter); }
+    if(sub){ sub.textContent = isRecruiter ? 'Log in to your hiring account.' : 'Log in to pick up where you left off.'; }
+  }
   document.getElementById('seekerSignupLink').onclick = e => {
-    e.preventDefault(); showScreen('screen-seeker-1');
+    e.preventDefault(); showScreen(__postLoginRecruiter ? 'screen-recruiter-1' : 'screen-seeker-1');
   };
   document.getElementById('seekerForgotBtn').onclick = () => {
     document.getElementById('forgotPwBack').dataset.back = 'screen-login-seeker';
@@ -4856,9 +4870,9 @@
   function gcRenderPreviewActivity(){
     const set = (id, html) => { const el = document.getElementById(id); if(el) el.innerHTML = html; };
     const matches = [
-      { company:'Lumen Health', role:'Senior Product Designer', tags:['94% match','Remote','$170k+'], grad:'linear-gradient(135deg,#3D5A4C,#23262E)' },
-      { company:'Northbeam',    role:'Staff Product Designer',  tags:['91% match','Hybrid','Equity'], grad:'linear-gradient(135deg,#FF5A3C,#23262E)' },
-      { company:'Cedar',        role:'Design Lead',             tags:['88% match','Remote'],          grad:'linear-gradient(135deg,#5B6CB8,#23262E)' },
+      { company:'Lumen Health', role:'Senior Product Designer', tags:['Relevance 94','Remote','$170k+'], grad:'linear-gradient(135deg,#3D5A4C,#23262E)' },
+      { company:'Northbeam',    role:'Staff Product Designer',  tags:['Relevance 91','Hybrid','Equity'], grad:'linear-gradient(135deg,#FF5A3C,#23262E)' },
+      { company:'Cedar',        role:'Design Lead',             tags:['Relevance 88','Remote'],          grad:'linear-gradient(135deg,#5B6CB8,#23262E)' },
     ];
     set('matchStrip', matches.map(m => `
       <div class="match-strip-card matched">
@@ -6612,7 +6626,7 @@
         } else {
           // email confirmation pending: stash text data; it's saved on your first login.
           gcPendingSet({ kind:'seeker', payload });
-          showSuccess({ headline:"Check your email.", sub:`We sent a verification link to ${email}. Confirm it, then log in to finish setting up your profile.`, primaryText:"Back to login", primaryAction:()=>showScreen('screen-login-seeker') });
+          showSuccess({ headline:"Check your email.", sub:`We sent a verification link to ${email}. Confirm it, then log in to finish setting up your profile.`, primaryText:"Back to login", primaryAction:()=>{ setLoginMode(false); showScreen('screen-login-seeker'); } });
         }
       }catch(e){ showToast(e.message || 'Could not create your account.'); }
     };
@@ -6767,6 +6781,9 @@
       showScreen('screen-login-seeker');
     }
   };
+  function relChipHTML(score){
+    return `<div class="rel-chip">Relevance ${score}<span class="gc-info" tabindex="0" aria-label="What is a relevance score?">i<span class="gc-tip">Relevance score estimates how closely this role matches the keywords in your profile and your search — a guide to help you prioritize, not a guarantee of fit.</span></span></div>`;
+  }
   function dashJobCard(j){
     const key = jobKey(j); __jobsById[key] = j;
     const salary = fmtSalary(j);
@@ -6775,9 +6792,11 @@
     const tags = (j.tags || []).slice(0,4).map(t => `<span class="jli-tag">${escapeHtml(t)}</span>`).join('');
     const posted = j.posted_at ? jobTimeAgo(j.posted_at) : '';
     const safeUrl = /^https?:\/\//i.test(j.url || '') ? j.url : '#';
+    const rel = (j.__relevance != null) ? relChipHTML(j.__relevance) : '';
     return `<div class="job-list-item" data-jobkey="${escapeHtml(key)}">
       <div class="job-logo" style="display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:18px;color:rgba(251,247,240,0.5);">${escapeHtml(initial)}</div>
       <div style="min-width:0;">
+        ${rel}
         <div class="jli-company">${escapeHtml(j.company || '')}${loc ? ` · ${escapeHtml(loc)}` : ''}</div>
         <div class="jli-role">${escapeHtml(j.title || 'Untitled role')}</div>
         ${salary ? `<div style="font-size:12.5px;color:var(--sage-soft);margin-bottom:6px;">${salary}</div>` : ''}
@@ -6918,6 +6937,15 @@
       if(!groups.every(g => g.some(k => hay.includes(k.toLowerCase())))) return false;
       return true;
     });
+    // Attach an explainable relevance score (0–99): how many of the seeker's
+    // profile keywords appear, weighted toward title matches. Shown as a chip.
+    const relTerms = (kw.terms || []).map(t => t.toLowerCase()).filter(Boolean);
+    ranked.forEach(j => {
+      if(!relTerms.length){ j.__relevance = null; return; }
+      const t = (j.title||'').toLowerCase(), d = (j.description||'').toLowerCase();
+      let hits = 0; relTerms.forEach(term => { if(t.includes(term)) hits += 2; else if(d.includes(term)) hits += 1; });
+      j.__relevance = Math.max(1, Math.min(99, Math.round(hits / (relTerms.length * 2) * 100)));
+    });
     return { jobs: ranked, total: ranked.length };
   }
   function filterSampleJobs(PAGE){
@@ -7045,7 +7073,7 @@
         showScreen('screen-recruiter-company');
       } else if(typeof showSuccess === 'function'){
         // Email confirmation required — finish after they confirm + log in.
-        showSuccess({ headline:'Check your email.', sub:`We sent a confirmation link to ${email}. Confirm it, then log in to add your company and post your first role.`, primaryText:'Back to login', primaryAction:() => { __postLoginRecruiter = true; showScreen('screen-login-seeker'); } });
+        showSuccess({ headline:'Check your email.', sub:`We sent a confirmation link to ${email}. Confirm it, then log in to add your company and post your first role.`, primaryText:'Back to login', primaryAction:() => { setLoginMode(true); showScreen('screen-login-seeker'); } });
       } else {
         fail('Account created — confirm your email, then log in to continue.');
       }
@@ -7182,7 +7210,7 @@
   window.openPostingForm = openPostingForm; window.publishPosting = publishPosting; window.showRecruiterApp = showRecruiterApp;
   // wiring
   { const b=document.getElementById('recruitStartBtn'); if(b) b.onclick = () => showScreen('screen-recruiter-1'); }
-  { const b=document.getElementById('recruitLoginBtn'); if(b) b.onclick = () => { __postLoginRecruiter = true; showScreen('screen-login-seeker'); }; }
+  { const b=document.getElementById('recruitLoginBtn'); if(b) b.onclick = () => { setLoginMode(true); showScreen('screen-login-seeker'); }; }
   { const b=document.getElementById('rc1Next'); if(b) b.onclick = recruiterSignup; }
   { const b=document.getElementById('coSaveBtn'); if(b) b.onclick = recruiterSaveCompany; }
   { const b=document.getElementById('newPostingBtn'); if(b) b.onclick = () => openPostingForm(); }
