@@ -3742,6 +3742,7 @@
       <button class="ds-nav-btn" id="messagesBackBtn" type="button">← Back</button>
     </div>
     <h1 style="font-family:'Fraunces',serif; font-size:28px; font-weight:600; margin:6px 0 16px;">Messages</h1>
+    <div id="matchesSection" style="display:none; margin-bottom:22px;"></div>
     <div id="invitesSection" style="display:none; margin-bottom:22px;"></div>
     <div id="conversationList"></div>
   </div>
@@ -6038,7 +6039,11 @@
     __shownProfileId = shareId;
     ov.classList.add('open');
     window.scrollTo(0,0);
-    if(location.pathname !== '/profile/'+shareId) window.history.pushState({}, '', '/profile/'+shareId);
+    // Canonicalize to the short share-id URL by REPLACING the entry navigate()
+    // just pushed (using pushState here would create a 2nd profile entry, so one
+    // browser-back would bounce between the uuid and short-id URLs instead of
+    // returning to the page you came from).
+    if(location.pathname !== '/profile/'+shareId) window.history.replaceState({}, '', '/profile/'+shareId);
     track('profile_viewed', { own:own, shared: !own });
   }
   function closeProfileView(){
@@ -7160,6 +7165,11 @@
   }
   async function showRecruiterApp(){
     showScreen('screen-recruiter-app');
+    // Give the dashboard a real history entry so browser-back from a candidate
+    // profile (/profile/:id) returns here instead of the pre-login page.
+    if(!__applyingRoute && location.pathname !== '/hiring' && location.pathname !== '/post'){
+      window.history.pushState({}, '', '/hiring'); __didInAppNav = true;
+    }
     const API = await gcAwaitAPI();
     if(!__recruiterCompany && API && API.enabled){ try{ __recruiterCompany = await API.companies.myStatus(); }catch(e){} }
     const nameEl = document.getElementById('recruiterCoName'); if(nameEl) nameEl.textContent = __recruiterCompany ? __recruiterCompany.name : '';
@@ -7207,7 +7217,7 @@
       const initial = (String(c.full_name || '?').trim().charAt(0) || '?').toUpperCase();
       const name = (c.full_name || 'Candidate').replace(/'/g, '');
       const actions = c.mutual
-        ? `<button class="jli-btn primary" type="button" onclick="recruiterMessage('${escapeHtml(c.seeker_id)}','${escapeHtml(name)}')">Message</button>`
+        ? `<button class="jli-btn primary" type="button" onclick="recruiterMessageFor('${escapeHtml(c.postingId)}','${escapeHtml(c.seeker_id)}','${escapeHtml(name)}')">Message</button>`
         : `<button class="jli-btn primary" type="button" onclick="recruiterLikeBackFor('${escapeHtml(c.postingId)}','${escapeHtml(c.seeker_id)}')">Like back</button>`;
       return `<div style="display:flex; gap:12px; align-items:center; background:var(--ink); border:1px solid ${c.mutual?'var(--sage)':'var(--line-light)'}; border-radius:12px; padding:12px 14px;">
         <div style="width:40px; height:40px; border-radius:10px; background:${c.photo_url?`url('${escapeHtml(c.photo_url)}') center/cover`:'var(--ink-soft)'}; border:1px solid var(--line-light); display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:16px; color:rgba(251,247,240,0.5); flex-shrink:0;">${c.photo_url?'':escapeHtml(initial)}</div>
@@ -7401,7 +7411,7 @@
     const API = await gcAwaitAPI();
     let convos = [];
     try{ convos = await API.chat.myConversations(); }catch(e){ console.warn('convos:', e && e.message); }
-    if(!convos || !convos.length){ el.innerHTML = `<div style="text-align:center; padding:44px 20px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px;"><div style="font-family:'Fraunces',serif; font-size:18px; font-style:italic; margin-bottom:6px;">No conversations yet</div><div style="font-size:13px; color:rgba(251,247,240,0.55);">When you match, you can message here.</div></div>`; return; }
+    if(!convos || !convos.length){ el.innerHTML = `<div style="text-align:center; padding:44px 20px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px;"><div style="font-family:'Fraunces',serif; font-size:18px; font-style:italic; margin-bottom:6px;">No conversations yet</div><div style="font-size:13px; color:rgba(251,247,240,0.55);">When you match, you can message here.</div></div>`; loadInvites(); loadSeekerMatches(); return; }
     el.innerHTML = convos.map(c => {
       const peer = c.i_am_recruiter ? (c.seeker_name || 'Candidate') : (c.company_name || 'Company');
       return `<div class="job-list-item" style="grid-template-columns:1fr auto; cursor:pointer;" data-conv="${c.id}" data-peer="${escapeHtml(peer)}">
@@ -7414,6 +7424,7 @@
     }).join('');
     el.querySelectorAll('[data-conv]').forEach(row => row.onclick = () => openChat(row.getAttribute('data-conv'), row.getAttribute('data-peer')));
     loadInvites();
+    loadSeekerMatches();
   }
   window.showMessages = showMessages;
   // Seeker's pending invitations (recruiter reached out proactively).
@@ -7449,6 +7460,39 @@
     showMessages();
   }
   window.respondInvite = respondInvite;
+  // Seeker's matches — recruiters who liked them back (surfaces "recruiter likes").
+  async function loadSeekerMatches(){
+    const el = document.getElementById('matchesSection'); if(!el) return;
+    el.innerHTML = ''; el.style.display = 'none';
+    const API = await gcAwaitAPI();
+    let role = 'seeker'; try{ const me = await API.profiles.me(); if(me && me.role) role = me.role; }catch(e){}
+    if(role !== 'seeker') return;   // recruiters see matches in their dashboard overview
+    let matches = [];
+    try{ matches = await API.interest.myMatches(); }catch(e){ return; }
+    if(!matches || !matches.length) return;
+    let active = [];
+    try{ active = await API.postings.listActive(); }catch(e){}
+    const byId = {}; (active || []).forEach(p => { byId[p.id] = p; });
+    el.style.display = '';
+    el.innerHTML = `<div style="font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:var(--sage); margin:0 0 10px;">Your matches</div>` +
+      matches.map(m => {
+        const p = byId[m.posting_id] || {};
+        const company = (p.companies && p.companies.name) || 'A hiring team';
+        const title = p.title || 'a role';
+        return `<div style="background:var(--ink-soft); border:1px solid var(--sage); border-radius:12px; padding:14px 16px; margin-bottom:10px;">
+          <div style="font-size:12.5px; color:rgba(251,247,240,0.6);">You matched with</div>
+          <div style="font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--paper); margin:2px 0 2px;">${escapeHtml(company)}</div>
+          <div style="font-size:12.5px; color:rgba(251,247,240,0.6); margin-bottom:8px;">${escapeHtml(title)}</div>
+          <button class="jli-btn primary" type="button" onclick="seekerOpenChat('${escapeHtml(String(m.posting_id))}')">Message the hiring team</button>
+        </div>`;
+      }).join('');
+  }
+  async function seekerOpenChat(postingId){
+    const API = await gcAwaitAPI();
+    try{ const u = await API.auth.currentUser(); const convId = await API.chat.openConversation(postingId, u.id); openChat(convId, 'Hiring team'); }
+    catch(e){ if(typeof showToast === 'function') showToast('Could not open chat.'); }
+  }
+  window.seekerOpenChat = seekerOpenChat;
   // Recruiter sends a formal invite to a candidate for the open posting.
   async function recruiterInvite(seekerId){
     const API = await gcAwaitAPI();
@@ -7561,6 +7605,14 @@
     closeCandidates(); openChat(convId, name);
   }
   window.recruiterMessage = recruiterMessage;
+  // Posting-aware chat opener for the dashboard overview (no candidates-modal context).
+  async function recruiterMessageFor(postingId, seekerId, name){
+    const API = await gcAwaitAPI();
+    let convId = null;
+    try{ convId = await API.chat.openConversation(postingId, seekerId); }catch(e){ if(typeof showToast==='function') showToast('Could not open chat.'); return; }
+    openChat(convId, name);
+  }
+  window.recruiterMessageFor = recruiterMessageFor;
 
   { const b=document.getElementById('chatClose'); if(b) b.onclick = closeChat; }
   { const b=document.getElementById('chatSend'); if(b) b.onclick = sendChatMessage; }
