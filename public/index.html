@@ -3659,6 +3659,7 @@
         <button class="ds-nav-btn" id="recruiterLogout" type="button">Log out</button>
       </div>
     </div>
+    <div id="recruiterOverview"></div>
     <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin:8px 0 22px; flex-wrap:wrap;">
       <div>
         <h1 style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; margin:0 0 2px;">Your <em style="color:var(--sage);font-style:italic;">postings</em></h1>
@@ -7113,6 +7114,7 @@
     const API = await gcAwaitAPI();
     if(!__recruiterCompany && API && API.enabled){ try{ __recruiterCompany = await API.companies.myStatus(); }catch(e){} }
     const nameEl = document.getElementById('recruiterCoName'); if(nameEl) nameEl.textContent = __recruiterCompany ? __recruiterCompany.name : '';
+    renderRecruiterOverview();
     renderRecruiterPostings();
     // First visit to the dashboard: auto-open the recruiter walkthrough.
     try{ if(!localStorage.getItem('gc_recruiter_tour_seen') && window.openRecruiterTour){ setTimeout(() => window.openRecruiterTour(), 450); } }catch(e){}
@@ -7124,6 +7126,71 @@
     let co = null; try{ co = await API.companies.myStatus(); }catch(e){}
     if(co){ __recruiterCompany = co; showRecruiterApp(); } else showScreen('screen-recruiter-company');
   }
+  // Dashboard overview: stats + candidates who liked any of the recruiter's roles,
+  // split into mutual matches and one-sided interest (aggregated across postings).
+  async function renderRecruiterOverview(){
+    const el = document.getElementById('recruiterOverview'); if(!el) return;
+    el.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:8px 0 20px;">Loading your activity…</div>';
+    const API = await gcAwaitAPI();
+    let postings = [];
+    try{ postings = await API.postings.mine(); }catch(e){}
+    const active = (postings || []).filter(p => p.status === 'active').slice(0, 25);
+    const groups = await Promise.all(active.map(async p => {
+      try{ const cs = await API.interest.seekersWhoLiked(p.id); return (cs || []).map(c => ({ ...c, postingId: p.id, postingTitle: p.title })); }
+      catch(e){ return []; }
+    }));
+    // Dedupe by seeker (prefer the matched entry if they liked multiple roles).
+    const bySeeker = {};
+    groups.flat().forEach(c => { const k = c.seeker_id; if(!bySeeker[k] || (c.mutual && !bySeeker[k].mutual)) bySeeker[k] = c; });
+    const cands = Object.values(bySeeker);
+    const matches = cands.filter(c => c.mutual);
+    const interested = cands.filter(c => !c.mutual);
+
+    const stat = (n, label) => `<div style="background:var(--ink-soft); border:1px solid var(--line-light); border-radius:12px; padding:14px 18px; min-width:120px;">
+      <div style="font-family:'Fraunces',serif; font-size:26px; font-weight:600; color:var(--paper); line-height:1;">${n}</div>
+      <div style="font-size:12px; color:rgba(251,247,240,0.55); margin-top:4px;">${label}</div></div>`;
+    const statsRow = `<div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:22px;">
+      ${stat(active.length, active.length === 1 ? 'active role' : 'active roles')}
+      ${stat(interested.length, 'interested in you')}
+      ${stat(matches.length, matches.length === 1 ? 'match' : 'matches')}</div>`;
+
+    const card = c => {
+      const initial = (String(c.full_name || '?').trim().charAt(0) || '?').toUpperCase();
+      const name = (c.full_name || 'Candidate').replace(/'/g, '');
+      const actions = c.mutual
+        ? `<button class="jli-btn primary" type="button" onclick="recruiterMessage('${escapeHtml(c.seeker_id)}','${escapeHtml(name)}')">Message</button>`
+        : `<button class="jli-btn primary" type="button" onclick="recruiterLikeBackFor('${escapeHtml(c.postingId)}','${escapeHtml(c.seeker_id)}')">Like back</button>`;
+      return `<div style="display:flex; gap:12px; align-items:center; background:var(--ink); border:1px solid ${c.mutual?'var(--sage)':'var(--line-light)'}; border-radius:12px; padding:12px 14px;">
+        <div style="width:40px; height:40px; border-radius:10px; background:${c.photo_url?`url('${escapeHtml(c.photo_url)}') center/cover`:'var(--ink-soft)'}; border:1px solid var(--line-light); display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:16px; color:rgba(251,247,240,0.5); flex-shrink:0;">${c.photo_url?'':escapeHtml(initial)}</div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:700; color:var(--paper); font-size:14px;">${escapeHtml(c.full_name || 'Candidate')}</div>
+          <div style="font-size:12px; color:rgba(251,247,240,0.55); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Interested in ${escapeHtml(c.postingTitle || 'a role')}</div>
+        </div>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="jli-btn" type="button" onclick="GigCuteNavigate('/profile/${escapeHtml(c.seeker_id)}')">View</button>
+          ${actions}
+        </div>
+      </div>`;
+    };
+    const section = (title, items, empty) => `<div style="margin-bottom:24px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--sage-soft); margin-bottom:10px;">${title}</div>
+      ${items.length ? `<div style="display:flex; flex-direction:column; gap:8px;">${items.map(card).join('')}</div>`
+        : `<div style="font-size:13px; color:rgba(251,247,240,0.45); background:var(--ink-soft); border:1px solid var(--line-light); border-radius:12px; padding:16px 18px;">${empty}</div>`}</div>`;
+
+    if(!active.length){
+      el.innerHTML = statsRow; return;   // no active roles yet — postings section below prompts them to post
+    }
+    el.innerHTML = statsRow
+      + section('Possible matches', matches, "No matches yet. Like a candidate back below and if they’re into it too, it’s a match.")
+      + section('Interested in your roles', interested, 'No candidate interest yet. Share your postings — direct roles get pinned atop the seeker board.');
+  }
+  async function recruiterLikeBackFor(postingId, seekerId){
+    const API = await gcAwaitAPI();
+    try{ await API.interest.recruiterLike(postingId, seekerId); if(typeof showToast === 'function') showToast("You liked them back!"); }
+    catch(e){ if(typeof showToast === 'function') showToast('Could not like.'); }
+    renderRecruiterOverview();
+  }
+  window.recruiterLikeBackFor = recruiterLikeBackFor;
   async function renderRecruiterPostings(){
     const el = document.getElementById('recruiterPostings'); if(!el) return;
     el.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:24px 0;">Loading…</div>';
