@@ -133,7 +133,7 @@ async function fromGreenhouse(supabase: any, list: Src[]): Promise<Report> {
         tags: (j.departments ?? []).map((d: any) => d.name).filter(Boolean).slice(0, 4),
         posted_at: j.updated_at ?? null, is_active: true,
       };
-      if (row.url && row.external_id && fitsCriteria(row.title) && meetsSalary(row) && isRecent(row.posted_at)) rows.push(row);
+      if (row.url && row.external_id && isRecent(row.posted_at)) rows.push(row);
     }
     fetched += rows.length; upserted += await upsert(supabase, rows);
   });
@@ -161,7 +161,7 @@ async function fromLever(supabase: any, list: Src[]): Promise<Report> {
         tags: [j.categories?.department, j.categories?.team].filter(Boolean).slice(0, 4),
         posted_at: j.createdAt ? new Date(j.createdAt).toISOString() : null, is_active: true,
       };
-      if (row.url && row.external_id && fitsCriteria(row.title) && meetsSalary(row) && isRecent(row.posted_at)) rows.push(row);
+      if (row.url && row.external_id && isRecent(row.posted_at)) rows.push(row);
     }
     fetched += rows.length; upserted += await upsert(supabase, rows);
   });
@@ -188,7 +188,7 @@ async function fromAshby(supabase: any, list: Src[]): Promise<Report> {
         tags: [j.department, j.team].filter(Boolean).slice(0, 4),
         posted_at: j.publishedAt ?? null, is_active: true,
       };
-      if (row.url && row.external_id && fitsCriteria(row.title) && meetsSalary(row) && isRecent(row.posted_at)) rows.push(row);
+      if (row.url && row.external_id && isRecent(row.posted_at)) rows.push(row);
     }
     fetched += rows.length; upserted += await upsert(supabase, rows);
   });
@@ -197,11 +197,10 @@ async function fromAshby(supabase: any, list: Src[]): Promise<Report> {
 
 // ---- Workday — enterprise boards. Each row carries tenant(slug)+datacenter+site.
 // Listing is POST /wday/cxs/{tenant}/{site}/jobs (paginated); full description is a
-// second GET on externalPath. Boards are huge, so we drive with searchText on the
-// target titles (keeps each company to a few relevant pages) and only fetch detail
-// for title-fitting, not-obviously-stale postings — bounding requests + memory.
-const WD_SEARCH = ["product manager", "business analyst", "customer experience",
-  "implementation consultant", "management consultant", "transformation", "analytics"];
+// second GET on externalPath. Boards are huge and each job needs a detail call, so
+// we cap detail fetches per company (below). Broad mode: empty searchText = the
+// general listing (all roles). Add title terms here to bias/expand coverage.
+const WD_SEARCH = [""];
 const WD_HEADERS = { "content-type": "application/json", "accept": "application/json", "user-agent": "Mozilla/5.0 (gigcute)" };
 function wdMaybeRecent(postedOn: string | null | undefined): boolean {
   // Listing gives relative text ("Posted Today", "Posted 30+ Days Ago"). Cheap
@@ -233,7 +232,7 @@ async function fromWorkday(supabase: any, list: Src[]): Promise<Report> {
         const rows: JobRow[] = [];
         for (const p of posts) {
           if (details >= 40) break;
-          if (!fitsCriteria(p.title) || !wdMaybeRecent(p.postedOn)) continue;
+          if (!wdMaybeRecent(p.postedOn)) continue;
           if (!p.externalPath || seen.has(p.externalPath)) continue;
           seen.add(p.externalPath); details++;
           let info: any = {};
@@ -251,7 +250,7 @@ async function fromWorkday(supabase: any, list: Src[]): Promise<Report> {
             url: info.externalUrl || `https://${tenant}.${dc}.myworkdayjobs.com/${site}${p.externalPath}`,
             description: cap(desc), tags: [], posted_at: info.startDate ?? null, is_active: true,
           };
-          if (row.url && meetsSalary(row) && isRecent(row.posted_at)) rows.push(row);
+          if (row.url && isRecent(row.posted_at)) rows.push(row);
         }
         if (rows.length) { fetched += rows.length; upserted += await upsert(supabase, rows); }
         if (posts.length < 20 || details >= 40) break;
