@@ -3378,6 +3378,11 @@
     .ds-nav-right{ gap:8px; }
     .ds-nav-btn{ padding:7px 11px; font-size:12px; }
     #navPostingsBtn, #navNewPostingBtn, #navProfileBtn, #navViewProfileBtn{ display:none !important; }
+    /* landing "for recruiters" button: shrink + tuck in so it doesn't collide with the logo (beat inline styles) */
+    #screen-landing #goRecruit{ font-size:11px !important; padding:6px 10px !important; top:12px !important; right:12px !important; }
+    #screen-landing .ob-top .hero-logo{ width:150px !important; }
+    /* stack: drop the hero below the corner button so they don't collide on narrow screens */
+    #screen-landing .ob-shell{ padding-top:52px; }
 
     /* ---- Seeker dashboard: stack sidebar under the main content ---- */
     .seek-pane.active{ flex-direction:column; }
@@ -3450,7 +3455,8 @@
 </div>
 
 <!-- ============ SCREEN: LANDING / ROLE PICKER ============ -->
-<div class="screen flow-screen active" id="screen-landing">
+<div class="screen flow-screen active" id="screen-landing" style="position:relative;">
+  <button id="goRecruit" type="button" style="position:absolute; top:18px; right:22px; z-index:40; background:none; border:1px solid var(--line-light); color:var(--paper); border-radius:11px; font-family:'Inter',sans-serif; font-size:13px; font-weight:700; padding:9px 16px; cursor:pointer; white-space:nowrap;">GigCute for Recruiters →</button>
   <div class="ob-shell">
     <div class="ob-top" style="justify-content:center;">
       <img src="/logo.png" class="hero-logo" style="width:200px;" alt="GigCute">
@@ -4626,7 +4632,7 @@
 
   // ---- Landing: login shortcuts ----
   document.getElementById('loginSeeker').onclick = () => showScreen('screen-login-seeker');
-  { const a=document.getElementById('goRecruit'); if(a) a.onclick = () => showScreen('screen-recruit'); }
+  { const a=document.getElementById('goRecruit'); if(a) a.onclick = () => navigate('/recruit'); }
   { const a=document.getElementById('recruitBack'); if(a) a.onclick = () => showScreen('screen-landing'); }
   { const a=document.getElementById('seeSampleBtn'); if(a) a.onclick = () => { navigate('/profile/sample'); }; }
   { const a=document.getElementById('cheatSampleBtn'); if(a) a.onclick = () => openSampleCheatSheet(); }
