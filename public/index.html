@@ -3649,6 +3649,7 @@
       <div class="wordmark"><img src="/logo.png" class="brand-img" alt="GigCute" style="height:26px;"></div>
       <div style="display:flex; align-items:center; gap:8px;">
         <span id="recruiterCoName" style="font-size:13px; color:rgba(251,247,240,0.6);"></span>
+        <button class="ds-nav-btn" id="recruiterTourBtn" type="button" onclick="if(window.openRecruiterTour)window.openRecruiterTour()">How it works</button>
         <button class="ds-nav-btn" id="recruiterMsgsBtn" type="button">Messages</button>
         <button class="ds-nav-btn" id="recruiterLogout" type="button">Log out</button>
       </div>
@@ -5596,25 +5597,36 @@
     { num:'Share it', title:'Put your link everywhere', body:'Use <strong>Copy link</strong>, then share your profile:<ul><li>On your <strong>résumé</strong> — in the header, next to your email and LinkedIn.</li><li>On <strong>LinkedIn</strong> — in your Featured section or contact info.</li><li>In your <strong>email signature</strong> and job applications.</li></ul>', share:true },
   ];
   let __tourIdx = 0;
+  let __tourSteps = TOUR_STEPS;
+  let __tourSeenKey = 'gc_tour_seen';
   function renderTourStep(){
-    const s = TOUR_STEPS[__tourIdx];
-    document.getElementById('tourStepNum').textContent = s.num + ' · ' + (__tourIdx+1) + ' of ' + TOUR_STEPS.length;
+    const s = __tourSteps[__tourIdx];
+    document.getElementById('tourStepNum').textContent = s.num + ' · ' + (__tourIdx+1) + ' of ' + __tourSteps.length;
     document.getElementById('tourTitle').textContent = s.title;
     const url = location.origin + '/profile/' + (__shownProfileId || '');
     document.getElementById('tourBody').innerHTML = s.body + (s.share
       ? `<div class="tour-share"><code>${escapeHtml(url)}</code><button type="button" id="tourCopy">Copy</button></div>` : '');
     if(s.share){ const cb = document.getElementById('tourCopy'); if(cb) cb.onclick = () => { if(navigator.clipboard) navigator.clipboard.writeText(url).then(()=>showToast('Profile link copied!')); }; }
-    document.getElementById('tourDots').innerHTML = TOUR_STEPS.map((_,i)=>`<span class="${i===__tourIdx?'on':''}"></span>`).join('');
+    document.getElementById('tourDots').innerHTML = __tourSteps.map((_,i)=>`<span class="${i===__tourIdx?'on':''}"></span>`).join('');
     document.getElementById('tourBack').disabled = __tourIdx === 0;
-    document.getElementById('tourNext').textContent = __tourIdx === TOUR_STEPS.length-1 ? 'Done' : 'Next';
+    document.getElementById('tourNext').textContent = __tourIdx === __tourSteps.length-1 ? 'Done' : 'Next';
   }
-  function openTour(){ __tourIdx = 0; renderTourStep(); document.getElementById('tourOverlay').classList.add('open'); }
-  function closeTour(){ document.getElementById('tourOverlay').classList.remove('open'); try{ localStorage.setItem('gc_tour_seen','1'); }catch(e){} }
-  { const b=document.getElementById('tourNext'); if(b) b.onclick = () => { if(__tourIdx < TOUR_STEPS.length-1){ __tourIdx++; renderTourStep(); } else closeTour(); }; }
+  function openTour(steps, seenKey){ __tourSteps = steps || TOUR_STEPS; __tourSeenKey = seenKey || 'gc_tour_seen'; __tourIdx = 0; renderTourStep(); document.getElementById('tourOverlay').classList.add('open'); }
+  function closeTour(){ document.getElementById('tourOverlay').classList.remove('open'); try{ localStorage.setItem(__tourSeenKey,'1'); }catch(e){} }
+  { const b=document.getElementById('tourNext'); if(b) b.onclick = () => { if(__tourIdx < __tourSteps.length-1){ __tourIdx++; renderTourStep(); } else closeTour(); }; }
   { const b=document.getElementById('tourBack'); if(b) b.onclick = () => { if(__tourIdx>0){ __tourIdx--; renderTourStep(); } }; }
   { const b=document.getElementById('tourSkip'); if(b) b.onclick = closeTour; }
   { const b=document.getElementById('pvTipsBtn'); if(b) b.onclick = () => openCheatSheet(); }
   window.openTour = openTour;
+  // Recruiter walkthrough — same modal/engine, different steps + seen key.
+  const RECRUITER_TOUR_STEPS = [
+    { num:'Welcome', title:'Hiring, reimagined', body:'This is <strong>GigCute-Recruit</strong>. You meet candidates as <strong>more than a résumé</strong> — you see how they actually think through the prompts they answer, then match and chat directly.' },
+    { num:'Post a role', title:'Post your first job', body:'Hit <strong>“+ Post a job”</strong> to add a role — title, comp, location, and responsibilities. You can even <strong>request specific prompts</strong> for candidates to answer, so you learn what matters to you.' },
+    { num:'Get seen', title:'Your posting stands out', body:'Direct postings get <strong>premium placement</strong> — pinned to the top of the seeker job board with a <strong>“GigCute Direct Job Posting”</strong> badge, above the aggregated feed. Candidates notice you first.' },
+    { num:'Meet candidates', title:'See who’s interested', body:'When a candidate taps <strong>Interested</strong>, they appear under your posting. Open their <strong>full GigCute profile</strong> — prompts, projects, and work history — not just a one-page résumé.' },
+    { num:'Match & chat', title:'Match, then talk', body:'Like a candidate back to create a <strong>match</strong>, then start a <strong>conversation right in GigCute</strong>. Just the people who are genuinely interested.' },
+  ];
+  window.openRecruiterTour = () => openTour(RECRUITER_TOUR_STEPS, 'gc_recruiter_tour_seen');
 
   // ===== INTERVIEW CHEAT SHEET (printable prep document) =====
   // The setup prompts double as common interview questions. Owners can print their
@@ -7068,6 +7080,8 @@
     if(!__recruiterCompany && API && API.enabled){ try{ __recruiterCompany = await API.companies.myStatus(); }catch(e){} }
     const nameEl = document.getElementById('recruiterCoName'); if(nameEl) nameEl.textContent = __recruiterCompany ? __recruiterCompany.name : '';
     renderRecruiterPostings();
+    // First visit to the dashboard: auto-open the recruiter walkthrough.
+    try{ if(!localStorage.getItem('gc_recruiter_tour_seen') && window.openRecruiterTour){ setTimeout(() => window.openRecruiterTour(), 450); } }catch(e){}
   }
   // Route a logged-in recruiter: has a company -> dashboard; else -> company setup.
   async function goRecruiterAfterAuth(){
