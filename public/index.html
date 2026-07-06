@@ -4869,6 +4869,18 @@
     setText('sidebarName', user ? ((first ? (first + (lastInit ? ' ' + lastInit : '')) : 'Your profile')) : 'Your profile');
     setText('sidebarTitle', p.title || '');
     setText('sidebarAvatar', (first.charAt(0) || '?').toUpperCase());
+    // Nav avatar (top-right): match the dropdown — 2-letter initials or the photo,
+    // never the demo default.
+    // Authoritative display name shared by the nav avatar AND the account dropdown,
+    // so the two can never show different initials.
+    window.__navName = user ? fullName : '';
+    window.__navPhoto = (user && p.photo) ? p.photo : '';
+    const navInit = user ? (parts.map(x => x[0]).join('').toUpperCase().slice(0,2) || '?') : 'M';
+    const navAv = document.getElementById('navAvatar');
+    if(navAv){
+      if(user && p.photo){ navAv.style.backgroundImage = `url('${p.photo}')`; navAv.style.backgroundSize = 'cover'; navAv.style.backgroundPosition = 'center'; navAv.textContent = ''; }
+      else { navAv.style.backgroundImage = ''; navAv.textContent = navInit; }
+    }
 
     // Profile strength from real completeness.
     let s = 0;
@@ -6782,17 +6794,19 @@
   }
   function closePostingDetail(){ const m = document.getElementById('postingDetailModal'); if(m) m.style.display = 'none'; document.body.style.overflow = ''; }
   window.openPostingDetail = openPostingDetail;
-  // Card click (anywhere except the Apply link) opens the detail view.
+  // Card click (anywhere except the Apply link) navigates to the detail PAGE, so
+  // it gets a real URL + browser back returns to the board.
   document.addEventListener('click', e => {
     if(e.target.closest('a')) return;                 // let apply / links work
     const jobCard = e.target.closest('[data-jobkey]');
-    if(jobCard){ openJobDetail(jobCard.getAttribute('data-jobkey')); return; }
+    if(jobCard){ navigate('/job/' + encodeURIComponent(jobCard.getAttribute('data-jobkey'))); return; }
     const postCard = e.target.closest('[data-postingid]');
-    if(postCard) openPostingDetail(postCard.getAttribute('data-postingid'));
+    if(postCard) navigate('/posting/' + encodeURIComponent(postCard.getAttribute('data-postingid')));
   });
-  { const b=document.getElementById('jdClose'); if(b) b.onclick = closeJobDetail; }
-  { const b=document.getElementById('pdClose'); if(b) b.onclick = closePostingDetail; }
-  { const m=document.getElementById('jobDetailModal'); if(m) m.addEventListener('click', e => { if(e.target === m || e.target === m.firstElementChild) closeJobDetail(); }); }
+  // Close = browser back (returns to the board), keeping history in sync.
+  { const b=document.getElementById('jdClose'); if(b) b.onclick = () => goBack('/jobs'); }
+  { const b=document.getElementById('pdClose'); if(b) b.onclick = () => goBack('/jobs'); }
+  { const m=document.getElementById('jobDetailModal'); if(m) m.addEventListener('click', e => { if(e.target === m || e.target === m.firstElementChild) goBack('/jobs'); }); }
 
   // ===== JOB BOARD — dashboard layout (powers /jobs and /search with real jobs) =====
   // Renders the real ingested jobs inside the /search candidate-dashboard shell
@@ -7738,11 +7752,20 @@
   function applyRoute(path){
     __applyingRoute = true;
     try{
+      // Job/posting detail are routed full-page views — close them unless we're
+      // routing INTO one, so browser back/forward opens & closes them like pages.
+      if(!/^\/job\//.test(path)) closeJobDetail();
+      if(!/^\/posting\//.test(path)) closePostingDetail();
       const pm = path.match(/^\/profile\/([^/]+)\/?$/);
+      const jm = path.match(/^\/job\/([^/]+)\/?$/);
+      const om = path.match(/^\/posting\/([^/]+)\/?$/);
       if(pm){ showProfilePage(decodeURIComponent(pm[1])); }
+      else if(jm){ openJobDetail(decodeURIComponent(jm[1])); }
+      else if(om){ openPostingDetail(decodeURIComponent(om[1])); }
       else if(path === '/main'){ openProfileView(); }
       else if(path === '/admin'){ showAdmin(); }
-      else if(path === '/jobs' || path === '/search'){ showJobsDashboard(); }   // both show the real job board in the dashboard layout
+      // Skip a full board reload when it's already underneath (e.g. back from a job page).
+      else if(path === '/jobs' || path === '/search'){ if((document.querySelector('.screen.active')||{}).id !== 'screen-app') showJobsDashboard(); }
       else if(path === '/recruit'){ showScreen('screen-recruit'); }
       else if(path === '/post' || path === '/hiring'){ goRecruiterAfterAuth(); }
       else if(path === '/discover'){ showDiscover(); }
@@ -7801,12 +7824,13 @@
     function onKey(e){ if(e.key === 'Escape') close(); }
     function open(){
       const isRec = (mode === 'recruiter');
-      const name = isRec ? (companyState.name || 'Your company') : (seekerProfile.name || 'Your name');
+      const name = isRec ? (companyState.name || 'Your company') : (window.__navName || seekerProfile.name || 'Your name');
       const sub  = isRec ? 'Recruiter account' : (seekerProfile.title || 'Job seeker');
       document.getElementById('ndName').textContent = name;
       document.getElementById('ndSub').textContent = sub;
       const ndAv = document.getElementById('ndAvatar');
-      if(!isRec && seekerProfile.photo){ ndAv.style.backgroundImage = `url('${seekerProfile.photo}')`; ndAv.textContent=''; }
+      const photo = isRec ? '' : (window.__navPhoto || seekerProfile.photo);
+      if(photo){ ndAv.style.backgroundImage = `url('${photo}')`; ndAv.textContent=''; }
       else { ndAv.style.backgroundImage=''; ndAv.textContent = initials(name); }
       // context-specific items
       document.getElementById('ndViewProfile').style.display = isRec ? 'none' : '';
