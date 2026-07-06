@@ -1,4 +1,4 @@
--- Bulk CC-harvested company boards, part 1/3 (1500 rows).
+-- Bulk CC-harvested company boards, part 1/5 (1500 rows).
 insert into public.job_sources (platform, slug, company_name, datacenter, site) values
  ('workday','alliantgroup','alliantgroup','wd1','alliantgroup'),
  ('workday','amgen','amgen','wd1','careers'),
