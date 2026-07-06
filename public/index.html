@@ -153,6 +153,42 @@
   .cf-submit{ flex:1; background:var(--coral); border:none; color:var(--paper); border-radius:8px; padding:9px; cursor:pointer; font-weight:600; font-family:'Inter',sans-serif; font-size:13px; }
   /* Messages nav button + unread dot */
   .ds-nav-btn.has-unread::after{ content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--coral); margin-left:6px; vertical-align:middle; }
+  /* Job-card description teaser */
+  .jli-preview{ font-size:12.5px; color:rgba(251,247,240,0.5); line-height:1.5; margin:2px 0 6px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  /* ===== Messaging inbox (LinkedIn-style two-pane) ===== */
+  .inbox-wrap{ max-width:1040px; margin:0 auto; padding:22px 20px 40px; }
+  .inbox-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .inbox{ display:grid; grid-template-columns:340px 1fr; height:calc(100vh - 150px); min-height:460px; border:1px solid var(--line-light); border-radius:16px; overflow:hidden; background:var(--ink-soft); }
+  .inbox-list{ border-right:1px solid var(--line-light); display:flex; flex-direction:column; min-height:0; background:rgba(255,255,255,0.015); }
+  .inbox-list-head{ padding:14px 16px 12px; border-bottom:1px solid var(--line-light); }
+  .inbox-list-title{ font-family:'Fraunces',serif; font-size:19px; font-weight:600; color:var(--paper); }
+  .inbox-search{ width:100%; box-sizing:border-box; margin-top:10px; background:var(--ink); border:1px solid var(--line-light); border-radius:9px; color:var(--paper); font-family:'Inter',sans-serif; font-size:13px; padding:8px 12px; }
+  .inbox-scroll{ flex:1; overflow-y:auto; min-height:0; padding:6px; }
+  .conv-row{ display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; padding:11px 12px; border-radius:12px; cursor:pointer; transition:background .12s; }
+  .conv-row:hover{ background:rgba(255,255,255,0.04); }
+  .conv-row.active{ background:rgba(255,90,60,0.12); }
+  .conv-av{ width:40px; height:40px; border-radius:50%; background:var(--coral); color:var(--paper); display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:15px; font-weight:600; flex-shrink:0; }
+  .conv-main{ min-width:0; }
+  .conv-name{ font-weight:600; font-size:14px; color:var(--paper); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .conv-sub{ font-size:12.5px; color:rgba(251,247,240,0.5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .conv-meta{ display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
+  .conv-time{ font-size:11px; color:rgba(251,247,240,0.4); font-family:'JetBrains Mono',monospace; }
+  .conv-dot{ width:8px; height:8px; border-radius:50%; background:var(--coral); }
+  .conv-row.unread .conv-name{ font-weight:700; }
+  .conv-row.unread .conv-sub{ color:rgba(251,247,240,0.72); }
+  .inbox-thread{ display:flex; flex-direction:column; min-height:0; }
+  .thread-empty{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:6px; padding:30px; }
+  .thread-head{ display:flex; align-items:center; gap:12px; padding:13px 18px; border-bottom:1px solid var(--line-light); }
+  .thread-back{ display:none; padding:6px 10px; }
+  .thread-body{ flex:1; overflow-y:auto; padding:18px; display:flex; flex-direction:column; gap:8px; min-height:0; }
+  .thread-composer{ display:flex; gap:8px; padding:14px 18px; border-top:1px solid var(--line-light); }
+  @media (max-width:760px){
+    .inbox{ grid-template-columns:1fr; height:calc(100vh - 128px); }
+    .inbox-thread{ display:none; }
+    #screen-messages.thread-open .inbox-list{ display:none; }
+    #screen-messages.thread-open .inbox-thread{ display:flex; }
+    .thread-back{ display:inline-flex; }
+  }
   /* Companies-viewed page (sidebar insight) */
   .cv-overlay{ position:fixed; inset:0; z-index:1600; display:flex; align-items:center; justify-content:center; padding:24px; }
   .cv-overlay[hidden]{ display:none; }
@@ -3736,29 +3772,44 @@
 
 <!-- ============ MESSAGES (shared) ============ -->
 <div class="screen" id="screen-messages">
-  <div style="max-width:620px; margin:0 auto; padding:22px 20px 60px;">
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+  <div class="inbox-wrap">
+    <div class="inbox-head">
       <div class="wordmark"><img src="/logo.png" class="brand-img" alt="GigCute" style="height:26px;"></div>
       <button class="ds-nav-btn" id="messagesBackBtn" type="button">← Back</button>
     </div>
-    <h1 style="font-family:'Fraunces',serif; font-size:28px; font-weight:600; margin:6px 0 16px;">Messages</h1>
-    <div id="matchesSection" style="display:none; margin-bottom:22px;"></div>
-    <div id="invitesSection" style="display:none; margin-bottom:22px;"></div>
-    <div id="conversationList"></div>
-  </div>
-</div>
-
-<!-- ============ CHAT (modal) ============ -->
-<div id="chatModal" style="display:none; position:fixed; inset:0; z-index:960; background:rgba(10,11,14,0.9); backdrop-filter:blur(3px);">
-  <div style="max-width:560px; margin:0 auto; height:100%; display:flex; flex-direction:column; padding:0 12px; box-sizing:border-box;">
-    <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 6px; border-bottom:1px solid var(--line-light);">
-      <div id="chatPeer" style="font-family:'Fraunces',serif; font-size:17px; font-weight:600; color:var(--paper);"></div>
-      <button class="ds-nav-btn" id="chatClose" type="button">✕</button>
-    </div>
-    <div id="chatMessages" style="flex:1; overflow-y:auto; padding:16px 6px; display:flex; flex-direction:column; gap:8px;"></div>
-    <div style="display:flex; gap:8px; padding:12px 6px 20px; border-top:1px solid var(--line-light);">
-      <input id="chatInput" type="text" placeholder="Write a message…" style="flex:1; min-width:0; box-sizing:border-box; background:var(--ink); border:1px solid var(--line-light); border-radius:10px; color:var(--paper); font-family:'Inter',sans-serif; font-size:14px; padding:11px 14px;">
-      <button class="lm-cta-btn" id="chatSend" type="button" style="font-size:14px; padding:11px 18px;">Send</button>
+    <div class="inbox">
+      <aside class="inbox-list">
+        <div class="inbox-list-head">
+          <div class="inbox-list-title">Messaging</div>
+          <input id="convSearch" class="inbox-search" type="text" placeholder="Search messages" autocomplete="off">
+        </div>
+        <div class="inbox-scroll">
+          <div id="matchesSection" style="display:none; margin-bottom:12px;"></div>
+          <div id="invitesSection" style="display:none; margin-bottom:12px;"></div>
+          <div id="conversationList"></div>
+        </div>
+      </aside>
+      <section class="inbox-thread" id="inboxThread">
+        <div class="thread-empty" id="threadEmpty">
+          <div style="font-family:'Fraunces',serif; font-size:20px; font-style:italic; color:rgba(251,247,240,0.6);">Your messages</div>
+          <div style="font-size:13px; color:rgba(251,247,240,0.4);">Select a conversation to start chatting.</div>
+        </div>
+        <div id="threadView" style="display:none; flex:1; min-height:0; flex-direction:column;">
+          <div class="thread-head">
+            <button class="ds-nav-btn thread-back" id="chatBack" type="button">←</button>
+            <div class="conv-av" id="chatAvatar"></div>
+            <div style="min-width:0;">
+              <div id="chatPeer" style="font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--paper); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+              <div id="chatPeerSub" style="font-size:12px; color:rgba(251,247,240,0.5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+            </div>
+          </div>
+          <div id="chatMessages" class="thread-body"></div>
+          <div class="thread-composer">
+            <input id="chatInput" type="text" placeholder="Write a message…" style="flex:1; min-width:0; box-sizing:border-box; background:var(--ink); border:1px solid var(--line-light); border-radius:10px; color:var(--paper); font-family:'Inter',sans-serif; font-size:14px; padding:11px 14px;">
+            <button class="lm-cta-btn" id="chatSend" type="button" style="font-size:14px; padding:11px 18px;">Send</button>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </div>
@@ -6066,7 +6117,12 @@
   }
   document.getElementById('pvCloseBtn').onclick = closeProfileView;
   { const b = document.getElementById('pvEditBtn'); if(b) b.onclick = () => { openProfileEdit(); }; }
-  { const b = document.getElementById('navSearchBtn'); if(b) b.onclick = () => { navigate('/search'); }; }
+  { const b = document.getElementById('navSearchBtn'); if(b) b.onclick = () => {
+      const onBoard = (document.querySelector('.screen.active')||{}).id === 'screen-app';
+      navigate('/search');                       // ensures the job board is showing
+      const focusSearch = () => { const s = document.getElementById('jobSearch'); if(s){ try{ s.scrollIntoView({behavior:'smooth', block:'center'}); }catch(e){} s.focus(); } };
+      if(onBoard) focusSearch(); else setTimeout(focusSearch, 150);
+    }; }
   { const b = document.getElementById('searchCsBack'); if(b) b.onclick = () => { if(typeof openProfileView==='function') openProfileView(); else navigate('/'); }; }
   document.getElementById('pvPrintBtn').onclick = () => printProfile();
 
@@ -6730,6 +6786,13 @@
     }
     return t.replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();
   }
+  // One- to two-line plain-text teaser for job cards.
+  function descPreview(s, max){
+    const t = cleanDesc(s).replace(/\s+/g,' ').trim();
+    if(!t) return '';
+    max = max || 180;
+    return t.length > max ? t.slice(0, max).replace(/\s+\S*$/,'') + '…' : t;
+  }
   // Build an OR-search query from the logged-in seeker's profile (title + recent
   // job titles). Returns { terms:[...], query:'a or b or c' } — used by "Best match".
   function seekerJobKeywords(){
@@ -6834,6 +6897,7 @@
         <div class="jli-company">${escapeHtml(co.name || 'A company')}${meta ? ` · ${escapeHtml(meta)}` : ''}</div>
         <div class="jli-role">${escapeHtml(p.title || 'Role')}</div>
         ${sal ? `<div style="font-size:12.5px;color:var(--sage-soft);margin-bottom:2px;">${escapeHtml(sal)}</div>` : ''}
+        ${(() => { const src = (p.responsibilities && p.responsibilities[0]) || (p.qualifications && p.qualifications[0]) || ''; const pv = descPreview(src); return pv ? `<div class="jli-preview">${escapeHtml(pv)}</div>` : ''; })()}
       </div>
       <div class="jli-actions">
         <button class="jli-btn primary" type="button" onclick="event.stopPropagation(); expressInterest('${p.id}', this)" ${liked?'disabled':''}>${liked?'✓ Interest sent':'♥ Interested'}</button>
@@ -6876,6 +6940,7 @@
         <div class="jli-role">${escapeHtml(j.title || 'Untitled role')}</div>
         ${salary ? `<div style="font-size:12.5px;color:var(--sage-soft);margin-bottom:6px;">${salary}</div>` : ''}
         ${tags ? `<div class="jli-tags">${tags}</div>` : ''}
+        ${(() => { const pv = descPreview(j.description); return pv ? `<div class="jli-preview">${escapeHtml(pv)}</div>` : ''; })()}
       </div>
       <div class="jli-actions">
         <a class="jli-btn primary" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow" onclick="event.stopPropagation(); trackApplyClick('${key}')" style="text-decoration:none;text-align:center;">Apply ↗</a>
@@ -7117,6 +7182,7 @@
     __dash = { q:'', remote:false, minSalary:null, employmentType:[], keywordGroups:[], locationTokens:[], locationOrRemote:false, sort:'newest', offset:0, total:0, items:[], loading:false };
     await loadSavedSet();     // so cards show the correct Save state
     loadDashJobs(true);
+    chatUnreadCheck();
   }
   window.showJobsDashboard = showJobsDashboard;
 
@@ -7189,6 +7255,7 @@
     const nameEl = document.getElementById('recruiterCoName'); if(nameEl) nameEl.textContent = __recruiterCompany ? __recruiterCompany.name : '';
     renderRecruiterOverview();
     renderRecruiterPostings();
+    chatUnreadCheck();
     // First visit to the dashboard: auto-open the recruiter walkthrough.
     try{ if(!localStorage.getItem('gc_recruiter_tour_seen') && window.openRecruiterTour){ setTimeout(() => window.openRecruiterTour(), 450); } }catch(e){}
   }
@@ -7389,15 +7456,39 @@
 
   // ===== MATCHING: seeker swipe · candidates · chat (Phase 2) =====
   let __chatConvId = null, __chatMyId = null;
-  async function openChat(convId, peerName){
+  // Small helpers for the inbox: avatar initials + a compact relative timestamp.
+  function chatInitials(name){ const p=(name||'').trim().split(/\s+/).filter(Boolean); if(!p.length) return '?'; return ((p[0][0]||'')+(p.length>1?(p[p.length-1][0]||''):'')).toUpperCase(); }
+  function chatRelTime(iso){ if(!iso) return ''; const d=new Date(iso), now=new Date(); const s=(now-d)/1000;
+    if(s<60) return 'now'; if(s<3600) return Math.floor(s/60)+'m'; if(s<86400) return Math.floor(s/3600)+'h';
+    const days=Math.floor(s/86400); if(days<7) return days+'d';
+    return d.toLocaleDateString(undefined,{month:'short',day:'numeric'}); }
+  // Per-conversation "seen" map (keeps a thread bold until *that* thread is opened).
+  function convSeenMap(uid){ try{ return JSON.parse(localStorage.getItem('gc_conv_seen_'+uid)||'{}'); }catch(e){ return {}; } }
+  function convSeenSave(uid,m){ try{ localStorage.setItem('gc_conv_seen_'+uid, JSON.stringify(m)); }catch(e){} }
+  async function openChat(convId, peerName, peerSub){
     __chatConvId = convId;
-    document.getElementById('chatPeer').textContent = peerName || 'Conversation';
-    document.getElementById('chatModal').style.display = 'block'; document.body.style.overflow = 'hidden';
+    // The inbox lives on screen-messages; make sure it's the active screen.
+    if((document.querySelector('.screen.active')||{}).id !== 'screen-messages'){ showMessages(); }
+    const empty = document.getElementById('threadEmpty'); if(empty) empty.style.display = 'none';
+    const tv = document.getElementById('threadView'); if(tv) tv.style.display = 'flex';
+    const nm = peerName || 'Conversation';
+    const peerEl = document.getElementById('chatPeer'); if(peerEl) peerEl.textContent = nm;
+    const subEl = document.getElementById('chatPeerSub'); if(subEl) subEl.textContent = peerSub || '';
+    const avEl = document.getElementById('chatAvatar'); if(avEl) avEl.textContent = chatInitials(nm);
+    const screen = document.getElementById('screen-messages'); if(screen) screen.classList.add('thread-open');
+    // Highlight the active row + clear its unread state (mark this thread seen).
+    document.querySelectorAll('#conversationList .conv-row').forEach(r => {
+      const on = r.getAttribute('data-conv') === convId;
+      r.classList.toggle('active', on);
+      if(on){ r.classList.remove('unread'); const dot=r.querySelector('.conv-dot'); if(dot) dot.remove(); }
+    });
+    try{ const API=await gcAwaitAPI(); const u=await API.auth.currentUser(); if(u){ const m=convSeenMap(u.id); m[convId]=new Date().toISOString(); convSeenSave(u.id,m); } }catch(e){}
     await loadChatMessages();
     const inp = document.getElementById('chatInput'); if(inp) inp.focus();
   }
   window.openChat = openChat;
-  function closeChat(){ const m=document.getElementById('chatModal'); if(m) m.style.display='none'; document.body.style.overflow=''; __chatConvId=null; }
+  // Mobile "back to list": collapse the thread pane; on desktop both panes stay.
+  function closeChat(){ const s=document.getElementById('screen-messages'); if(s) s.classList.remove('thread-open'); }
   async function loadChatMessages(){
     const el = document.getElementById('chatMessages'); if(!el) return;
     const API = await gcAwaitAPI();
@@ -7417,26 +7508,62 @@
     const API = await gcAwaitAPI();
     try{ await API.chat.send(__chatConvId, body); }catch(e){ if(typeof showToast==='function') showToast('Could not send.'); }
     await loadChatMessages();
+    markMessagesSeen();   // don't badge the user for their own message
+  }
+  // ---- New-message indicator: a coral dot on the Messages buttons when the
+  // newest conversation activity is newer than the last time this user opened
+  // Messages (stored per-user in localStorage; no schema change needed). ----
+  const MSG_BTN_IDS = ['jobsMessagesBtn','discoverMsgsBtn','recruiterMsgsBtn','navMessagesBtn'];
+  function setUnreadBadges(has){ MSG_BTN_IDS.forEach(id => { const b = document.getElementById(id); if(b) b.classList.toggle('has-unread', !!has); }); }
+  async function newestConversationTs(API){
+    try{ const cs = await API.chat.listConversations(); return (cs || []).reduce((m,c) => (c.last_message_at && c.last_message_at > m) ? c.last_message_at : m, ''); }catch(e){ return ''; }
+  }
+  async function chatUnreadCheck(){
+    const API = await gcAwaitAPI(); let has = false;
+    try{
+      if(API && API.enabled){
+        const u = await API.auth.currentUser();
+        if(u){ const maxLast = await newestConversationTs(API); const seen = localStorage.getItem('gc_msg_seen_' + u.id) || ''; has = !!maxLast && maxLast > seen; }
+      }
+    }catch(e){}
+    setUnreadBadges(has);
+  }
+  window.chatUnreadCheck = chatUnreadCheck;
+  async function markMessagesSeen(){
+    const API = await gcAwaitAPI();
+    try{ const u = await API.auth.currentUser(); if(u){ const maxLast = await newestConversationTs(API); localStorage.setItem('gc_msg_seen_' + u.id, maxLast || new Date().toISOString()); } }catch(e){}
+    setUnreadBadges(false);
   }
   async function showMessages(){
     showScreen('screen-messages');
+    markMessagesSeen();   // opening Messages clears the new-message indicator
     const el = document.getElementById('conversationList'); if(!el) return;
-    el.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:24px 0;">Loading…</div>';
+    el.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:24px 12px;">Loading…</div>';
     const API = await gcAwaitAPI();
     let convos = [];
     try{ convos = await API.chat.myConversations(); }catch(e){ console.warn('convos:', e && e.message); }
-    if(!convos || !convos.length){ el.innerHTML = `<div style="text-align:center; padding:44px 20px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px;"><div style="font-family:'Fraunces',serif; font-size:18px; font-style:italic; margin-bottom:6px;">No conversations yet</div><div style="font-size:13px; color:rgba(251,247,240,0.55);">When you match, you can message here.</div></div>`; loadInvites(); loadSeekerMatches(); return; }
+    let uid = null, seenMap = {};
+    try{ const u = await API.auth.currentUser(); if(u){ uid = u.id; seenMap = convSeenMap(uid); } }catch(e){}
+    if(!convos || !convos.length){ el.innerHTML = `<div style="text-align:center; padding:34px 18px;"><div style="font-family:'Fraunces',serif; font-size:17px; font-style:italic; margin-bottom:6px; color:var(--paper);">No conversations yet</div><div style="font-size:12.5px; color:rgba(251,247,240,0.5);">When you match, you can message here.</div></div>`; loadInvites(); loadSeekerMatches(); return; }
     el.innerHTML = convos.map(c => {
       const peer = c.i_am_recruiter ? (c.seeker_name || 'Candidate') : (c.company_name || 'Company');
-      return `<div class="job-list-item" style="grid-template-columns:1fr auto; cursor:pointer;" data-conv="${c.id}" data-peer="${escapeHtml(peer)}">
-        <div style="min-width:0;">
-          <div class="jli-role" style="margin-bottom:2px;">${escapeHtml(peer)}</div>
-          <div style="font-size:12.5px; color:rgba(251,247,240,0.55); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(c.posting_title || '')}</div>
+      const sub = c.posting_title || '';
+      const unread = !!(c.last_message_at && c.last_message_at > (seenMap[c.id] || ''));
+      return `<div class="conv-row${unread?' unread':''}" data-conv="${c.id}" data-peer="${escapeHtml(peer)}" data-sub="${escapeHtml(sub)}" data-search="${escapeHtml((peer+' '+sub).toLowerCase())}">
+        <div class="conv-av">${escapeHtml(chatInitials(peer))}</div>
+        <div class="conv-main">
+          <div class="conv-name">${escapeHtml(peer)}</div>
+          <div class="conv-sub">${escapeHtml(sub)}</div>
         </div>
-        <button class="jli-btn primary" type="button">Open</button>
+        <div class="conv-meta">
+          <span class="conv-time">${escapeHtml(chatRelTime(c.last_message_at))}</span>
+          ${unread?'<span class="conv-dot"></span>':''}
+        </div>
       </div>`;
     }).join('');
-    el.querySelectorAll('[data-conv]').forEach(row => row.onclick = () => openChat(row.getAttribute('data-conv'), row.getAttribute('data-peer')));
+    el.querySelectorAll('[data-conv]').forEach(row => row.onclick = () => openChat(row.getAttribute('data-conv'), row.getAttribute('data-peer'), row.getAttribute('data-sub')));
+    // keep the currently-open thread highlighted after a list refresh
+    if(__chatConvId){ const active = el.querySelector('.conv-row[data-conv="'+__chatConvId+'"]'); if(active) active.classList.add('active'); }
     loadInvites();
     loadSeekerMatches();
   }
@@ -7628,9 +7755,10 @@
   }
   window.recruiterMessageFor = recruiterMessageFor;
 
-  { const b=document.getElementById('chatClose'); if(b) b.onclick = closeChat; }
+  { const b=document.getElementById('chatBack'); if(b) b.onclick = closeChat; }
   { const b=document.getElementById('chatSend'); if(b) b.onclick = sendChatMessage; }
   { const i=document.getElementById('chatInput'); if(i) i.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); sendChatMessage(); } }); }
+  { const s=document.getElementById('convSearch'); if(s) s.addEventListener('input', () => { const q=(s.value||'').trim().toLowerCase(); document.querySelectorAll('#conversationList .conv-row').forEach(r => { r.style.display = (!q || (r.getAttribute('data-search')||'').indexOf(q)>=0) ? '' : 'none'; }); }); }
   { const b=document.getElementById('candModalClose'); if(b) b.onclick = closeCandidates; }
   { const m=document.getElementById('candidatesModal'); if(m) m.addEventListener('click', e => { if(e.target===m || e.target===m.firstElementChild) closeCandidates(); }); }
   { const b=document.getElementById('discoverBackBtn'); if(b) b.onclick = () => goBack('/jobs'); }
@@ -7790,6 +7918,10 @@
   function goBack(fallback){ if(__didInAppNav){ history.back(); } else { navigate(fallback || '/'); } }
   window.gcGoBack = goBack;
   window.addEventListener('popstate', () => applyRoute(location.pathname));
+
+  // Poll for new messages so the badge appears without a navigation. Only runs
+  // when the tab is visible; chatUnreadCheck no-ops in demo mode / when logged out.
+  setInterval(() => { if(!document.hidden && typeof chatUnreadCheck === 'function') chatUnreadCheck(); }, 45000);
 
   // ----- Clickable GigCute logo → home, on every page -----
   function goHome(){ navigate('/'); }
