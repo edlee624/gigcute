@@ -3701,7 +3701,13 @@
       <label class="accept-row" style="margin:-2px 0 12px;"><input type="checkbox" id="pf-equity"><span>This role offers equity</span></label>
       <div class="field"><label for="pf-resp">Key responsibilities <span style="color:rgba(251,247,240,0.4);font-weight:400;">(one per line)</span></label><textarea id="pf-resp" rows="3" placeholder="Own the product roadmap…"></textarea></div>
       <div class="field"><label for="pf-qual">Qualifications <span style="color:rgba(251,247,240,0.4);font-weight:400;">(one per line)</span></label><textarea id="pf-qual" rows="3" placeholder="5+ years in product…"></textarea></div>
-      <div class="field"><label for="pf-prompts">Prompts you'd love candidates to answer <span style="color:rgba(251,247,240,0.4);font-weight:400;">(one per line)</span></label><textarea id="pf-prompts" rows="2" placeholder="What's a product you improved and how?"></textarea></div>
+      <div class="field"><label>Prompts you'd love candidates to answer <span style="color:rgba(251,247,240,0.4);font-weight:400;">(pick up to 3 from the bank)</span></label>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <select id="pf-prompt1" class="pf-prompt"></select>
+          <select id="pf-prompt2" class="pf-prompt"></select>
+          <select id="pf-prompt3" class="pf-prompt"></select>
+        </div>
+      </div>
       <div class="auth-error" id="pfError" style="display:none;color:var(--coral);font-size:13px;margin:-4px 0 12px;"></div>
       <div style="display:flex; gap:10px; margin-top:8px; flex-wrap:wrap;">
         <button class="ob-primary" id="pfPublish" type="button" style="flex:1; min-width:150px;">Publish role</button>
@@ -7169,10 +7175,29 @@
     document.getElementById('pf-equity').checked = !!(existing && existing.equity);
     set('pf-resp', (existing && existing.responsibilities || []).join('\n'));
     set('pf-qual', (existing && existing.qualifications || []).join('\n'));
-    set('pf-prompts', '');
+    // Prompt dropdowns: fill from the shared bank, reset, then pre-select saved ones when editing.
+    PF_PROMPT_IDS.forEach(id => { const s = document.getElementById(id); if(s){ fillPromptSelect(s); s.value = ''; } });
+    syncPromptSelects();
+    if(existing && existing.id){
+      gcAwaitAPI().then(API => API && API.postings && API.postings.getRequestedPrompts(existing.id)).then(saved => {
+        (saved || []).slice(0, 3).forEach((label, i) => { const s = document.getElementById(PF_PROMPT_IDS[i]); if(s && [...s.options].some(o => o.value === label)) s.value = label; });
+        syncPromptSelects();
+      }).catch(() => {});
+    }
     document.getElementById('pfError').style.display = 'none';
     document.getElementById('postingModal').style.display = 'block';
     document.body.style.overflow = 'hidden';
+  }
+  const PF_PROMPT_IDS = ['pf-prompt1', 'pf-prompt2', 'pf-prompt3'];
+  function fillPromptSelect(sel){
+    sel.innerHTML = '<option value="">— Select a prompt (optional) —</option>' +
+      SEEKER_PROMPT_BANK.map(p => `<option value="${escapeHtml(p.label)}">${escapeHtml(p.label)}</option>`).join('');
+  }
+  // Grey out prompts already chosen in the other dropdowns so each is picked once.
+  function syncPromptSelects(){
+    const chosen = PF_PROMPT_IDS.map(id => (document.getElementById(id) || {}).value).filter(Boolean);
+    PF_PROMPT_IDS.forEach(id => { const s = document.getElementById(id); if(!s) return; const cur = s.value;
+      [...s.options].forEach(o => { o.disabled = !!o.value && o.value !== cur && chosen.includes(o.value); }); });
   }
   function closePostingForm(){ const m = document.getElementById('postingModal'); if(m) m.style.display = 'none'; document.body.style.overflow = ''; }
   async function savePosting(publish){
@@ -7199,7 +7224,7 @@
       status: publish ? 'active' : 'draft',
       published_at: publish ? new Date().toISOString() : null,
     };
-    const prompts = lines('pf-prompts');
+    const prompts = [...new Set(PF_PROMPT_IDS.map(id => (document.getElementById(id) || {}).value || '').filter(Boolean))];
     try{
       const posting = __editingPostingId ? await API.postings.update(__editingPostingId, payload) : await API.postings.create(payload);
       if(prompts.length && posting && posting.id){ try{ await API.postings.clearRequestedPrompts(posting.id); await API.postings.addRequestedPrompts(posting.id, prompts); }catch(e){} }
@@ -7214,6 +7239,7 @@
   { const b=document.getElementById('rc1Next'); if(b) b.onclick = recruiterSignup; }
   { const b=document.getElementById('coSaveBtn'); if(b) b.onclick = recruiterSaveCompany; }
   { const b=document.getElementById('newPostingBtn'); if(b) b.onclick = () => openPostingForm(); }
+  PF_PROMPT_IDS.forEach(id => { const s = document.getElementById(id); if(s) s.addEventListener('change', syncPromptSelects); });
   { const b=document.getElementById('pfClose'); if(b) b.onclick = closePostingForm; }
   { const b=document.getElementById('pfPublish'); if(b) b.onclick = () => savePosting(true); }
   { const b=document.getElementById('pfDraft'); if(b) b.onclick = () => savePosting(false); }
