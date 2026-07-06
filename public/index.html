@@ -1673,6 +1673,10 @@
     transition:border-color .15s ease;
   }
   .job-list-item:hover{ border-color:rgba(255,90,60,0.4); }
+  /* Direct recruiter postings — premium highlight to stand out from the ATS feed */
+  .job-list-item.direct{ border:2.5px solid var(--coral); box-shadow:0 0 0 3px rgba(255,90,60,0.12); background:linear-gradient(180deg, rgba(255,90,60,0.06), var(--ink-soft) 60%); }
+  .job-list-item.direct:hover{ border-color:var(--coral); box-shadow:0 0 0 3px rgba(255,90,60,0.2); }
+  .direct-badge{ display:inline-flex; align-items:center; gap:5px; font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; letter-spacing:0.07em; text-transform:uppercase; color:var(--coral); background:rgba(255,90,60,0.14); border:1px solid var(--coral); border-radius:6px; padding:3px 8px; margin-bottom:7px; }
   .job-logo{
     width:48px;height:48px;border-radius:10px;
     background-size:cover;background-position:center;
@@ -6713,6 +6717,44 @@
   function mapEmpType(v){ return v==='Full-time'?'full_time':v==='Contract'?'contract':v==='Part-time'?'part_time':null; }
   function deptMap(v){ return ({Engineering:'engineer',Product:'product',Design:'design',Data:'data',Marketing:'marketing',Finance:'financ',Legal:'legal',People:'people'})[v] || String(v).toLowerCase(); }
   function senMap(v){ return ({'Entry-level':'entry','Mid-level':'mid',Senior:'senior','Staff / Principal':'staff',Manager:'manager','Director+':'director'})[v] || String(v).toLowerCase(); }
+  // Direct recruiter postings pinned atop the board, styled to stand out.
+  let __directPostings = [];
+  let __likedPostings = new Set();
+  function dashPostingCard(p){
+    const co = p.companies || {};
+    const money = v => v ? ('$' + (v>=1000 ? Math.round(v/1000)+'k' : v)) : '';
+    const sal = (p.salary_min || p.salary_max) ? `${money(p.salary_min)}${p.salary_max?'–'+money(p.salary_max):'+'}` : '';
+    const meta = [[p.location_type, p.city].filter(Boolean).join(' · '), p.employment_type].filter(Boolean).join(' · ');
+    const initial = (String(co.name || '?').trim().charAt(0) || '?').toUpperCase();
+    const liked = __likedPostings.has(p.id);
+    return `<div class="job-list-item direct" data-postingid="${escapeHtml(String(p.id))}">
+      <div class="job-logo" style="display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:18px;color:var(--coral);">${escapeHtml(initial)}</div>
+      <div style="min-width:0;">
+        <span class="direct-badge">★ GigCute Direct Job Posting</span>
+        <div class="jli-company">${escapeHtml(co.name || 'A company')}${meta ? ` · ${escapeHtml(meta)}` : ''}</div>
+        <div class="jli-role">${escapeHtml(p.title || 'Role')}</div>
+        ${sal ? `<div style="font-size:12.5px;color:var(--sage-soft);margin-bottom:2px;">${escapeHtml(sal)}</div>` : ''}
+      </div>
+      <div class="jli-actions">
+        <button class="jli-btn primary" type="button" onclick="event.stopPropagation(); expressInterest('${p.id}', this)" ${liked?'disabled':''}>${liked?'✓ Interest sent':'♥ Interested'}</button>
+        <div style="font-size:10.5px;color:rgba(251,247,240,0.4);text-align:right;max-width:150px;">Posted directly by the hiring team</div>
+      </div>
+    </div>`;
+  }
+  window.expressInterest = async function(id, btn){
+    const API = await gcAwaitAPI();
+    if(!API || !API.enabled) return;
+    try{
+      await API.interest.seekerLike(id);
+      __likedPostings.add(id);
+      if(btn){ btn.textContent = '✓ Interest sent'; btn.disabled = true; }
+      if(typeof showToast === 'function') showToast('Sent — the hiring team will see your interest.');
+    }catch(e){
+      // seekerLike needs a logged-in seeker; send them to log in
+      if(typeof showToast === 'function') showToast('Log in to show interest to this recruiter.');
+      showScreen('screen-login-seeker');
+    }
+  };
   function dashJobCard(j){
     const key = jobKey(j); __jobsById[key] = j;
     const salary = fmtSalary(j);
@@ -6744,10 +6786,11 @@
     const countEl = document.getElementById('roleCount'); if(countEl) countEl.textContent = __dash.total ? `${__dash.total} role${__dash.total !== 1 ? 's' : ''}` : '';
     const heading = document.getElementById('allRolesHeading');
     if(heading) heading.innerHTML = (__dash.q || __dash.remote || __dash.minSalary || (__dash.employmentType && __dash.employmentType.length) || (__dash.keywordGroups && __dash.keywordGroups.length) || (__dash.locationTokens && __dash.locationTokens.length)) ? 'Search <em>results</em>' : 'All open <em>roles</em>';
-    if(!__dash.items.length){
+    const directHtml = (__directPostings || []).map(dashPostingCard).join('');
+    if(!__dash.items.length && !directHtml){
       listEl.innerHTML = `<div style="text-align:center;padding:44px 20px;color:rgba(251,247,240,0.4);"><div style="font-family:'Fraunces',serif;font-size:18px;font-style:italic;margin-bottom:6px;">No roles found</div><div style="font-size:13px;">Try adjusting your search or filters.</div></div>`;
     } else {
-      listEl.innerHTML = __dash.items.map(dashJobCard).join('');
+      listEl.innerHTML = directHtml + __dash.items.map(dashJobCard).join('');
     }
     let more = document.getElementById('dashMore');
     if(!more){ more = document.createElement('div'); more.id = 'dashMore'; more.style.cssText = 'text-align:center;margin-top:18px;'; listEl.parentNode.insertBefore(more, listEl.nextSibling); }
@@ -6758,6 +6801,9 @@
     const listEl = document.getElementById('jobList');
     if(reset){ __dash.offset = 0; __dash.items = []; if(listEl) listEl.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:30px 0;">Loading roles…</div>'; }
     const API = await gcAwaitAPI();
+    // Pin active direct recruiter postings atop the board (best-effort; may be
+    // empty for logged-out seekers depending on RLS).
+    if(reset){ __directPostings = []; try{ if(API && API.enabled && API.postings) __directPostings = (await API.postings.listActive()) || []; }catch(e){ __directPostings = []; } }
     const PAGE = 20;
     let res;
     try{
