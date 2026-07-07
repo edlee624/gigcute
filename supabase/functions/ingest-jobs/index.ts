@@ -271,7 +271,7 @@ Deno.serve(async (req) => {
   // Process only a BATCH of ATS companies per run (oldest-ingested first) so one
   // invocation stays under the worker limit; the hourly cron cycles through them
   // all. Scales to thousands of slugs. Tune with the ATS_BATCH secret.
-  const BATCH = Math.max(1, parseInt(Deno.env.get("ATS_BATCH") || "20", 10));
+  const BATCH = Math.max(1, parseInt(Deno.env.get("ATS_BATCH") || "40", 10));
   const WD_PER_RUN = Math.max(1, parseInt(Deno.env.get("WORKDAY_PER_RUN") || "6", 10));
   const SEL = "id, platform, slug, company_name, datacenter, site";
   const slugsBy: Record<string, Src[]> = {};
