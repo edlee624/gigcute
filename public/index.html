@@ -4899,6 +4899,17 @@
     const ov = document.getElementById('profileViewOverlay');
     if(ov && ov.parentNode !== document.body){ ov.classList.remove('open','as-main'); document.body.appendChild(ov); }
   }
+  // The job board (dashView) shares screen-app with the seeker's profile "home",
+  // which hides dashView and shows the profile overlay in its place. So an active
+  // screen-app is NOT enough — check the board is actually the thing on screen.
+  function boardIsVisible(){
+    if((document.querySelector('.screen.active')||{}).id !== 'screen-app') return false;
+    const ov = document.getElementById('profileViewOverlay');
+    if(ov && ov.classList.contains('open')) return false;
+    const dash = document.getElementById('dashView');
+    if(dash && getComputedStyle(dash).display === 'none') return false;
+    return true;
+  }
   // Pass `preloaded` (a {name,title,photo,resumeUrl,linkedinUrl,workHistory,
   // favoritePrompts} object, e.g. the one showProfilePage already fetched) to
   // hydrate the sidebar directly without a second round-trip.
@@ -6118,10 +6129,10 @@
   document.getElementById('pvCloseBtn').onclick = closeProfileView;
   { const b = document.getElementById('pvEditBtn'); if(b) b.onclick = () => { openProfileEdit(); }; }
   { const b = document.getElementById('navSearchBtn'); if(b) b.onclick = () => {
-      const onBoard = (document.querySelector('.screen.active')||{}).id === 'screen-app';
-      navigate('/search');                       // ensures the job board is showing
-      const focusSearch = () => { const s = document.getElementById('jobSearch'); if(s){ try{ s.scrollIntoView({behavior:'smooth', block:'center'}); }catch(e){} s.focus(); } };
-      if(onBoard) focusSearch(); else setTimeout(focusSearch, 150);
+      const wasVisible = boardIsVisible();       // false on the profile "home" (board hidden underneath)
+      navigate('/search');                       // restores the board when it isn't already showing
+      const focusSearch = () => { const s = document.getElementById('jobSearch'); if(s){ try{ window.scrollTo({top:0, behavior:'smooth'}); }catch(e){} s.focus(); } };
+      if(wasVisible) focusSearch(); else setTimeout(focusSearch, 200);
     }; }
   { const b = document.getElementById('searchCsBack'); if(b) b.onclick = () => { if(typeof openProfileView==='function') openProfileView(); else navigate('/'); }; }
   document.getElementById('pvPrintBtn').onclick = () => printProfile();
@@ -7893,7 +7904,7 @@
       else if(path === '/main'){ openProfileView(); }
       else if(path === '/admin'){ showAdmin(); }
       // Skip a full board reload when it's already underneath (e.g. back from a job page).
-      else if(path === '/jobs' || path === '/search'){ if((document.querySelector('.screen.active')||{}).id !== 'screen-app') showJobsDashboard(); }
+      else if(path === '/jobs' || path === '/search'){ if(!boardIsVisible()) showJobsDashboard(); }
       else if(path === '/recruit'){ showScreen('screen-recruit'); }
       else if(path === '/post' || path === '/hiring'){ goRecruiterAfterAuth(); }
       else if(path === '/discover'){ showDiscover(); }
