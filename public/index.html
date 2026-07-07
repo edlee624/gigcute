@@ -172,15 +172,38 @@
   .conv-name{ font-weight:600; font-size:14px; color:var(--paper); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .conv-sub{ font-size:12.5px; color:rgba(251,247,240,0.5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .conv-meta{ display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
+  .conv-meta-top{ display:flex; align-items:center; gap:4px; }
   .conv-time{ font-size:11px; color:rgba(251,247,240,0.4); font-family:'JetBrains Mono',monospace; }
   .conv-dot{ width:8px; height:8px; border-radius:50%; background:var(--coral); }
   .conv-row.unread .conv-name{ font-weight:700; }
   .conv-row.unread .conv-sub{ color:rgba(251,247,240,0.72); }
+  .conv-more{ background:none; border:none; color:rgba(251,247,240,0.45); cursor:pointer; font-size:15px; line-height:1; padding:0 3px; border-radius:5px; opacity:0; transition:opacity .1s; }
+  .conv-row:hover .conv-more, .conv-more:focus{ opacity:1; }
+  .conv-more:hover{ color:var(--paper); background:rgba(255,255,255,0.08); }
+  .conv-filters{ display:flex; gap:6px; margin-top:10px; }
+  .conv-filter{ background:none; border:1px solid var(--line-light); color:rgba(251,247,240,0.6); border-radius:16px; padding:4px 12px; font-size:12px; cursor:pointer; font-family:'Inter',sans-serif; }
+  .conv-filter.active{ background:var(--coral); border-color:var(--coral); color:var(--paper); }
+  #convMenu{ position:absolute; z-index:1000; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:10px; padding:5px; min-width:190px; box-shadow:0 12px 30px -8px rgba(0,0,0,0.6); }
+  .conv-menu-item{ display:block; width:100%; text-align:left; background:none; border:none; color:rgba(251,247,240,0.85); font-family:'Inter',sans-serif; font-size:13px; padding:8px 10px; border-radius:7px; cursor:pointer; }
+  .conv-menu-item:hover{ background:rgba(255,255,255,0.06); }
+  .conv-menu-item.danger{ color:var(--coral); }
+  /* message thread bubbles (sender + time + day separators) */
+  .msg-day{ text-align:center; margin:12px 0 6px; }
+  .msg-day span{ font-size:11px; color:rgba(251,247,240,0.4); background:var(--ink); border:1px solid var(--line-light); padding:2px 10px; border-radius:10px; font-family:'JetBrains Mono',monospace; }
+  .msg-row{ display:flex; gap:8px; align-items:flex-end; }
+  .msg-row.mine{ justify-content:flex-end; }
+  .msg-av{ width:26px; height:26px; border-radius:50%; background:var(--coral); color:var(--paper); display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:600; flex-shrink:0; font-family:'Fraunces',serif; }
+  .msg-av:empty{ background:transparent; }
+  .msg-col{ display:flex; flex-direction:column; max-width:78%; min-width:0; }
+  .msg-row.mine .msg-col{ align-items:flex-end; }
+  .msg-meta{ font-size:10.5px; color:rgba(251,247,240,0.4); margin:4px 2px 2px; }
+  .msg-bubble{ background:var(--ink-soft); color:rgba(251,247,240,0.92); border:1px solid var(--line-light); border-radius:12px; padding:8px 12px; font-size:13.5px; line-height:1.45; word-break:break-word; margin-top:2px; }
+  .msg-row.mine .msg-bubble{ background:var(--coral); color:var(--paper); border-color:var(--coral); }
   .inbox-thread{ display:flex; flex-direction:column; min-height:0; }
   .thread-empty{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:6px; padding:30px; }
   .thread-head{ display:flex; align-items:center; gap:12px; padding:13px 18px; border-bottom:1px solid var(--line-light); }
   .thread-back{ display:none; padding:6px 10px; }
-  .thread-body{ flex:1; overflow-y:auto; padding:18px; display:flex; flex-direction:column; gap:8px; min-height:0; }
+  .thread-body{ flex:1; overflow-y:auto; padding:18px; display:flex; flex-direction:column; gap:3px; min-height:0; }
   .thread-composer{ display:flex; gap:8px; padding:14px 18px; border-top:1px solid var(--line-light); }
   @media (max-width:760px){
     .inbox{ grid-template-columns:1fr; height:calc(100vh - 128px); }
@@ -3790,6 +3813,11 @@
         <div class="inbox-list-head">
           <div class="inbox-list-title">Messaging</div>
           <input id="convSearch" class="inbox-search" type="text" placeholder="Search messages" autocomplete="off">
+          <div class="conv-filters" id="convFilters">
+            <button class="conv-filter active" data-filter="all" type="button">All</button>
+            <button class="conv-filter" data-filter="unread" type="button">Unread</button>
+            <button class="conv-filter" data-filter="archived" type="button">Archived</button>
+          </div>
         </div>
         <div class="inbox-scroll">
           <div id="matchesSection" style="display:none; margin-bottom:12px;"></div>
@@ -3867,6 +3895,9 @@
 </div>
 
 <!-- ============ SETTINGS & PRIVACY (pause / delete) ============ -->
+<!-- Floating per-conversation actions menu (positioned in JS) -->
+<div id="convMenu" style="display:none;"></div>
+
 <div id="settingsModal" style="display:none; position:fixed; inset:0; z-index:970; background:rgba(10,11,14,0.85); backdrop-filter:blur(3px); align-items:center; justify-content:center;">
   <div style="max-width:440px; width:calc(100% - 32px); background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px; padding:24px 24px 20px; max-height:88vh; overflow-y:auto;">
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
@@ -7675,7 +7706,8 @@
   { const m=document.getElementById('postingModal'); if(m) m.addEventListener('click', e => { if(e.target === m || e.target === m.firstElementChild) closePostingForm(); }); }
 
   // ===== MATCHING: seeker swipe · candidates · chat (Phase 2) =====
-  let __chatConvId = null, __chatMyId = null, __convById = {};
+  let __chatConvId = null, __chatMyId = null, __chatPeerName = '', __convById = {};
+  let __convosCache = [], __convFilter = 'all', __convUid = null, __convState = {};
   // Each conversation is its own page (/messages/:id). Entering messaging pushes a
   // single history entry; switching conversations within the inbox REPLACES it, so
   // browser Back from any chat returns to the dashboard — not through every thread.
@@ -7708,6 +7740,7 @@
     const empty = document.getElementById('threadEmpty'); if(empty) empty.style.display = 'none';
     const tv = document.getElementById('threadView'); if(tv) tv.style.display = 'flex';
     const nm = peerName || 'Conversation';
+    __chatPeerName = nm;
     const peerEl = document.getElementById('chatPeer'); if(peerEl) peerEl.textContent = nm;
     const subEl = document.getElementById('chatPeerSub'); if(subEl) subEl.textContent = peerSub || '';
     const avEl = document.getElementById('chatAvatar'); if(avEl) avEl.textContent = chatInitials(nm);
@@ -7730,16 +7763,40 @@
     __chatConvId = null;
     if(/^\/messages\/[^/]+/.test(location.pathname)) window.history.replaceState({}, '', '/messages');
   }
+  // Friendly day label for the message-thread separators.
+  function msgDayLabel(d){
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const that = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const diff = Math.round((today - that) / 86400000);
+    if(diff === 0) return 'Today';
+    if(diff === 1) return 'Yesterday';
+    return d.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
+  }
   async function loadChatMessages(){
     const el = document.getElementById('chatMessages'); if(!el) return;
     const API = await gcAwaitAPI();
     if(!__chatMyId){ try{ const u = await API.auth.currentUser(); __chatMyId = u && u.id; }catch(e){} }
     let msgs = [];
     try{ msgs = await API.chat.listMessages(__chatConvId); }catch(e){ console.warn('messages:', e && e.message); }
-    el.innerHTML = (msgs || []).map(m => {
+    if(!msgs || !msgs.length){ el.innerHTML = '<div style="color:rgba(251,247,240,0.4); text-align:center; padding:24px; margin:auto;">Say hello 👋</div>'; return; }
+    const peer = __chatPeerName || 'Them';
+    let html = '', lastDay = '', lastSender = null;
+    msgs.forEach(m => {
+      const d = new Date(m.created_at);
+      const day = msgDayLabel(d);
+      if(day !== lastDay){ html += `<div class="msg-day"><span>${escapeHtml(day)}</span></div>`; lastDay = day; lastSender = null; }
       const mine = m.sender_id === __chatMyId;
-      return `<div style="align-self:${mine?'flex-end':'flex-start'}; max-width:80%; background:${mine?'var(--coral)':'var(--ink-soft)'}; color:${mine?'var(--paper)':'rgba(251,247,240,0.92)'}; border:1px solid ${mine?'var(--coral)':'var(--line-light)'}; border-radius:12px; padding:8px 12px; font-size:13.5px; line-height:1.45; word-break:break-word;">${escapeHtml(m.body)}</div>`;
-    }).join('') || '<div style="color:rgba(251,247,240,0.4); text-align:center; padding:24px; margin:auto;">Say hello 👋</div>';
+      const header = (lastSender !== m.sender_id);   // sender changed → show name + time
+      lastSender = m.sender_id;
+      const time = d.toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
+      html += `<div class="msg-row ${mine?'mine':'theirs'}">`;
+      if(!mine){ html += `<div class="msg-av">${header ? escapeHtml(chatInitials(peer)) : ''}</div>`; }
+      html += `<div class="msg-col">`;
+      if(header){ html += `<div class="msg-meta">${escapeHtml(mine ? 'You' : peer)} · ${escapeHtml(time)}</div>`; }
+      html += `<div class="msg-bubble">${escapeHtml(m.body)}</div></div></div>`;
+    });
+    el.innerHTML = html;
     el.scrollTop = el.scrollHeight;
   }
   async function sendChatMessage(){
@@ -7775,6 +7832,13 @@
     try{ const u = await API.auth.currentUser(); if(u){ const maxLast = await newestConversationTs(API); localStorage.setItem('gc_msg_seen_' + u.id, maxLast || new Date().toISOString()); } }catch(e){}
     setUnreadBadges(false);
   }
+  // ---- Per-conversation state (archived / deleted), stored per user ----
+  function convStateLoad(uid){ try{ return JSON.parse(localStorage.getItem('gc_conv_state_' + uid) || '{}'); }catch(e){ return {}; } }
+  function convStateSave(){ try{ if(__convUid) localStorage.setItem('gc_conv_state_' + __convUid, JSON.stringify(__convState)); }catch(e){} }
+  function convIsArchived(id){ return !!(__convState[id] && __convState[id].archived); }
+  function convIsDeleted(id){ return !!(__convState[id] && __convState[id].deleted); }
+  function convSetFlag(id, flag, val){ __convState[id] = __convState[id] || {}; __convState[id][flag] = val; convStateSave(); }
+  function convUnread(c, seenMap){ return !!(c && c.last_message_at && c.last_message_at > ((seenMap || {})[c.id] || '')); }
   async function showMessages(){
     showScreen('screen-messages');
     markMessagesSeen();   // opening Messages clears the new-message indicator
@@ -7783,32 +7847,97 @@
     const API = await gcAwaitAPI();
     let convos = [];
     try{ convos = await API.chat.myConversations(); }catch(e){ console.warn('convos:', e && e.message); }
-    let uid = null, seenMap = {};
-    try{ const u = await API.auth.currentUser(); if(u){ uid = u.id; seenMap = convSeenMap(uid); } }catch(e){}
+    try{ const u = await API.auth.currentUser(); if(u){ __convUid = u.id; __convState = convStateLoad(u.id); } }catch(e){}
+    __convosCache = convos || [];
     __convById = {};
-    (convos || []).forEach(c => { __convById[c.id] = { peer: c.i_am_recruiter ? (c.seeker_name || 'Candidate') : (c.company_name || 'Company'), sub: c.posting_title || '' }; });
-    if(!convos || !convos.length){ el.innerHTML = `<div style="text-align:center; padding:34px 18px;"><div style="font-family:'Fraunces',serif; font-size:17px; font-style:italic; margin-bottom:6px; color:var(--paper);">No conversations yet</div><div style="font-size:12.5px; color:rgba(251,247,240,0.5);">When you match, you can message here.</div></div>`; loadInvites(); loadSeekerMatches(); return; }
-    el.innerHTML = convos.map(c => {
+    __convosCache.forEach(c => { __convById[c.id] = { peer: c.i_am_recruiter ? (c.seeker_name || 'Candidate') : (c.company_name || 'Company'), sub: c.posting_title || '' }; });
+    renderConvList();
+    loadInvites();
+    loadSeekerMatches();
+  }
+  function renderConvList(){
+    const el = document.getElementById('conversationList'); if(!el) return;
+    const seenMap = __convUid ? convSeenMap(__convUid) : {};
+    let list = __convosCache.filter(c => !convIsDeleted(c.id));
+    if(__convFilter === 'archived') list = list.filter(c => convIsArchived(c.id));
+    else { list = list.filter(c => !convIsArchived(c.id)); if(__convFilter === 'unread') list = list.filter(c => convUnread(c, seenMap)); }
+    if(!list.length){
+      const msg = __convFilter === 'archived' ? 'No archived conversations' : __convFilter === 'unread' ? 'No unread messages' : 'No conversations yet';
+      el.innerHTML = `<div style="text-align:center; padding:34px 18px;"><div style="font-family:'Fraunces',serif; font-size:16px; font-style:italic; margin-bottom:6px; color:rgba(251,247,240,0.7);">${msg}</div>${__convFilter==='all'?'<div style="font-size:12.5px; color:rgba(251,247,240,0.5);">When you match, you can message here.</div>':''}</div>`;
+      return;
+    }
+    el.innerHTML = list.map(c => {
       const peer = c.i_am_recruiter ? (c.seeker_name || 'Candidate') : (c.company_name || 'Company');
       const sub = c.posting_title || '';
-      const unread = !!(c.last_message_at && c.last_message_at > (seenMap[c.id] || ''));
-      return `<div class="conv-row${unread?' unread':''}" data-conv="${c.id}" data-peer="${escapeHtml(peer)}" data-sub="${escapeHtml(sub)}" data-search="${escapeHtml((peer+' '+sub).toLowerCase())}">
+      const unread = convUnread(c, seenMap);
+      return `<div class="conv-row${unread?' unread':''}" data-conv="${c.id}" data-search="${escapeHtml((peer+' '+sub).toLowerCase())}">
         <div class="conv-av">${escapeHtml(chatInitials(peer))}</div>
         <div class="conv-main">
           <div class="conv-name">${escapeHtml(peer)}</div>
           <div class="conv-sub">${escapeHtml(sub)}</div>
         </div>
         <div class="conv-meta">
-          <span class="conv-time">${escapeHtml(chatRelTime(c.last_message_at))}</span>
+          <div class="conv-meta-top"><span class="conv-time">${escapeHtml(chatRelTime(c.last_message_at))}</span><button class="conv-more" type="button" data-more="${c.id}" aria-label="Conversation options">⋯</button></div>
           ${unread?'<span class="conv-dot"></span>':''}
         </div>
       </div>`;
     }).join('');
-    el.querySelectorAll('[data-conv]').forEach(row => row.onclick = () => openConversationRoute(row.getAttribute('data-conv')));
-    // keep the currently-open thread highlighted after a list refresh
+    el.querySelectorAll('.conv-row').forEach(row => row.onclick = (e) => { if(e.target.closest('[data-more]')) return; openConversationRoute(row.getAttribute('data-conv')); });
+    el.querySelectorAll('[data-more]').forEach(b => b.onclick = (e) => { e.stopPropagation(); openConvMenu(b.getAttribute('data-more'), b); });
     if(__chatConvId){ const active = el.querySelector('.conv-row[data-conv="'+__chatConvId+'"]'); if(active) active.classList.add('active'); }
-    loadInvites();
-    loadSeekerMatches();
+    const s = document.getElementById('convSearch');
+    if(s && s.value.trim()){ const q = s.value.trim().toLowerCase(); el.querySelectorAll('.conv-row').forEach(r => { r.style.display = (r.getAttribute('data-search')||'').indexOf(q) >= 0 ? '' : 'none'; }); }
+  }
+  // ---- Per-conversation "⋯" menu: mark unread/read · archive · delete ----
+  function closeConvMenu(){ const m = document.getElementById('convMenu'); if(m) m.style.display = 'none'; document.removeEventListener('click', convMenuDocClick, true); }
+  function convMenuDocClick(e){ if(!e.target.closest('#convMenu')) closeConvMenu(); }
+  function openConvMenu(convId, anchor){
+    const m = document.getElementById('convMenu'); if(!m) return;
+    const seenMap = __convUid ? convSeenMap(__convUid) : {};
+    const c = __convosCache.find(x => x.id === convId);
+    const unread = convUnread(c, seenMap);
+    m.innerHTML = `<button class="conv-menu-item" data-act="toggleread" type="button">${unread ? 'Mark as read' : 'Mark as unread'}</button>
+      <button class="conv-menu-item" data-act="archive" type="button">${convIsArchived(convId) ? 'Unarchive' : 'Archive'}</button>
+      <button class="conv-menu-item danger" data-act="delete" type="button">Delete conversation</button>`;
+    const r = anchor.getBoundingClientRect();
+    m.style.display = 'block';
+    m.style.top = (window.scrollY + r.bottom + 4) + 'px';
+    m.style.left = (window.scrollX + Math.min(r.left, window.innerWidth - 210)) + 'px';
+    m.querySelectorAll('[data-act]').forEach(b => b.onclick = (e) => {
+      e.stopPropagation();
+      const act = b.getAttribute('data-act');
+      if(act === 'delete' && b.dataset.armed !== '1'){ b.dataset.armed = '1'; b.textContent = 'Confirm delete?'; return; }
+      convMenuAction(convId, act);
+    });
+    setTimeout(() => document.addEventListener('click', convMenuDocClick, true), 0);
+  }
+  function convMenuAction(convId, act){
+    closeConvMenu();
+    const c = __convosCache.find(x => x.id === convId);
+    if(act === 'toggleread'){
+      const map = convSeenMap(__convUid);
+      const unread = convUnread(c, convSeenMap(__convUid));
+      if(unread) map[convId] = (c && c.last_message_at) || new Date().toISOString();   // mark read
+      else delete map[convId];                                                          // mark unread
+      convSeenSave(__convUid, map); renderConvList(); if(typeof chatUnreadCheck === 'function') chatUnreadCheck();
+    } else if(act === 'archive'){
+      convSetFlag(convId, 'archived', !convIsArchived(convId));
+      if(__chatConvId === convId){ closeThreadPane(); }
+      renderConvList();
+    } else if(act === 'delete'){
+      convSetFlag(convId, 'deleted', true);
+      if(__chatConvId === convId){ closeThreadPane(); }
+      renderConvList();
+      if(typeof showToast === 'function') showToast('Conversation removed from your inbox.');
+    }
+  }
+  // Reset the right pane back to the empty state (thread no longer shown).
+  function closeThreadPane(){
+    __chatConvId = null;
+    const s = document.getElementById('screen-messages'); if(s) s.classList.remove('thread-open');
+    const tv = document.getElementById('threadView'); if(tv) tv.style.display = 'none';
+    const empty = document.getElementById('threadEmpty'); if(empty) empty.style.display = 'flex';
+    if(/^\/messages\/[^/]+/.test(location.pathname)) window.history.replaceState({}, '', '/messages');
   }
   window.showMessages = showMessages;
   // Seeker's pending invitations (recruiter reached out proactively).
@@ -8002,6 +8131,7 @@
   { const b=document.getElementById('chatSend'); if(b) b.onclick = sendChatMessage; }
   { const i=document.getElementById('chatInput'); if(i) i.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); sendChatMessage(); } }); }
   { const s=document.getElementById('convSearch'); if(s) s.addEventListener('input', () => { const q=(s.value||'').trim().toLowerCase(); document.querySelectorAll('#conversationList .conv-row').forEach(r => { r.style.display = (!q || (r.getAttribute('data-search')||'').indexOf(q)>=0) ? '' : 'none'; }); }); }
+  document.querySelectorAll('#convFilters .conv-filter').forEach(c => c.onclick = () => { document.querySelectorAll('#convFilters .conv-filter').forEach(x => x.classList.remove('active')); c.classList.add('active'); __convFilter = c.getAttribute('data-filter'); if(typeof renderConvList === 'function') renderConvList(); });
   { const b=document.getElementById('candModalClose'); if(b) b.onclick = closeCandidates; }
   { const m=document.getElementById('candidatesModal'); if(m) m.addEventListener('click', e => { if(e.target===m || e.target===m.firstElementChild) closeCandidates(); }); }
   { const b=document.getElementById('discoverBackBtn'); if(b) b.onclick = () => goBack('/jobs'); }
