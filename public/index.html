@@ -3858,6 +3858,36 @@
   </div>
 </div>
 
+<!-- ============ SETTINGS & PRIVACY (pause / delete) ============ -->
+<div id="settingsModal" style="display:none; position:fixed; inset:0; z-index:970; background:rgba(10,11,14,0.85); backdrop-filter:blur(3px); align-items:center; justify-content:center;">
+  <div style="max-width:440px; width:calc(100% - 32px); background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px; padding:24px 24px 20px; max-height:88vh; overflow-y:auto;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+      <div style="font-family:'Fraunces',serif; font-size:20px; font-weight:600; color:var(--paper);">Settings &amp; privacy</div>
+      <button class="ds-nav-btn" id="settingsClose" type="button">✕</button>
+    </div>
+    <!-- Visibility -->
+    <div style="border:1px solid var(--line-light); border-radius:12px; padding:16px; margin-bottom:14px;">
+      <div style="font-weight:600; font-size:14px; color:var(--paper); margin-bottom:4px;">Profile visibility</div>
+      <div id="settingsVisState" style="font-size:12.5px; color:rgba(251,247,240,0.55); line-height:1.5; margin-bottom:12px;">Loading…</div>
+      <button class="ds-nav-btn" id="settingsPauseBtn" type="button" style="width:100%;">Pause my profile</button>
+    </div>
+    <!-- Danger zone -->
+    <div style="border:1px solid rgba(255,90,60,0.35); border-radius:12px; padding:16px;">
+      <div style="font-weight:600; font-size:14px; color:var(--coral); margin-bottom:4px;">Delete account</div>
+      <div style="font-size:12.5px; color:rgba(251,247,240,0.55); line-height:1.5; margin-bottom:12px;">Permanently deletes your profile, messages, and saved jobs. This can’t be undone.</div>
+      <button class="ds-nav-btn" id="settingsDeleteBtn" type="button" style="width:100%; border-color:var(--coral); color:var(--coral);">Delete my account</button>
+      <div id="settingsDeleteConfirm" style="display:none; margin-top:12px;">
+        <div style="font-size:12.5px; color:rgba(251,247,240,0.7); margin-bottom:8px;">Type <b>DELETE</b> to confirm.</div>
+        <input id="settingsDeleteInput" type="text" autocomplete="off" placeholder="DELETE" style="width:100%; box-sizing:border-box; background:var(--ink); border:1px solid var(--line-light); border-radius:8px; color:var(--paper); font-family:'Inter',sans-serif; font-size:14px; padding:9px 12px; margin-bottom:10px;">
+        <div style="display:flex; gap:8px;">
+          <button class="ds-nav-btn" id="settingsDeleteCancel" type="button" style="flex:1;">Cancel</button>
+          <button class="lm-cta-btn" id="settingsDeleteGo" type="button" disabled style="flex:1; background:var(--coral); opacity:0.5;">Delete forever</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ============ JOB DETAIL ============ -->
 <div id="jobDetailModal" style="display:none; position:fixed; inset:0; z-index:950; background:var(--ink); overflow-y:auto;">
   <div style="max-width:1080px; margin:0 auto; min-height:100%; padding:0 clamp(16px,5vw,52px) 72px; box-sizing:border-box;">
@@ -8025,7 +8055,7 @@
     document.getElementById('ndEditProfile').onclick = () => { close(); document.getElementById('navProfileBtn').click(); };
     document.getElementById('ndPostings').onclick    = () => { close(); navigate('/postings'); };
     document.getElementById('ndNewPosting').onclick  = () => { close(); };
-    document.getElementById('ndSettings').onclick    = () => { close(); showToast('Settings & privacy — coming soon.'); };
+    document.getElementById('ndSettings').onclick    = () => { close(); openSettings(); };
     document.getElementById('ndHelp').onclick        = () => { close(); if(window.openSupport) window.openSupport(); };
     document.getElementById('ndSignOut').onclick     = async () => {
       close();
@@ -8034,6 +8064,59 @@
       navigate('/');
     };
   })();
+
+  // ===== Settings & privacy: pause (visibility) + delete account =====
+  let __seekerVisible = true;
+  async function openSettings(){
+    const modal = document.getElementById('settingsModal'); if(!modal) return;
+    modal.style.display = 'flex';
+    const conf = document.getElementById('settingsDeleteConfirm'); if(conf) conf.style.display = 'none';
+    const inp = document.getElementById('settingsDeleteInput'); if(inp) inp.value = '';
+    const go = document.getElementById('settingsDeleteGo'); if(go){ go.disabled = true; go.style.opacity = '0.5'; go.textContent = 'Delete forever'; }
+    await refreshSettingsVisibility();
+  }
+  window.openSettings = openSettings;
+  function closeSettings(){ const m = document.getElementById('settingsModal'); if(m) m.style.display = 'none'; }
+  async function refreshSettingsVisibility(){
+    const stateEl = document.getElementById('settingsVisState');
+    const btn = document.getElementById('settingsPauseBtn');
+    const API = await gcAwaitAPI();
+    let vis = true;
+    try{ const u = await API.auth.currentUser(); if(u){ const sp = await API.seeker.get(u.id); if(sp && typeof sp.is_visible === 'boolean') vis = sp.is_visible; } }catch(e){}
+    __seekerVisible = vis;
+    if(stateEl) stateEl.textContent = vis
+      ? 'Your profile is visible to recruiters.'
+      : 'Your profile is paused — hidden from recruiters. You can still browse jobs and message existing matches.';
+    if(btn) btn.textContent = vis ? 'Pause my profile' : 'Resume my profile';
+  }
+  async function toggleSeekerVisibility(){
+    const btn = document.getElementById('settingsPauseBtn'); if(btn) btn.disabled = true;
+    const API = await gcAwaitAPI();
+    try{ await API.seeker.setVisibility(!__seekerVisible); if(typeof showToast === 'function') showToast(!__seekerVisible ? 'Profile resumed.' : 'Profile paused — hidden from recruiters.'); }
+    catch(e){ if(typeof showToast === 'function') showToast('Could not update visibility.'); }
+    if(btn) btn.disabled = false;
+    await refreshSettingsVisibility();
+  }
+  async function confirmDeleteAccount(){
+    const go = document.getElementById('settingsDeleteGo'); if(go){ go.disabled = true; go.textContent = 'Deleting…'; }
+    const API = await gcAwaitAPI();
+    try{
+      await API.auth.deleteAccount();
+      closeSettings();
+      if(typeof showToast === 'function') showToast('Your account has been deleted.');
+      navigate('/');
+    }catch(e){
+      if(go){ go.disabled = false; go.textContent = 'Delete forever'; }
+      if(typeof showToast === 'function') showToast('Could not delete account. ' + ((e && e.message) || 'Please try again.'));
+    }
+  }
+  { const b=document.getElementById('settingsClose'); if(b) b.onclick = closeSettings; }
+  { const m=document.getElementById('settingsModal'); if(m) m.addEventListener('click', e => { if(e.target === m) closeSettings(); }); }
+  { const b=document.getElementById('settingsPauseBtn'); if(b) b.onclick = toggleSeekerVisibility; }
+  { const b=document.getElementById('settingsDeleteBtn'); if(b) b.onclick = () => { const c=document.getElementById('settingsDeleteConfirm'); if(c) c.style.display = 'block'; const i=document.getElementById('settingsDeleteInput'); if(i) i.focus(); }; }
+  { const b=document.getElementById('settingsDeleteCancel'); if(b) b.onclick = () => { const c=document.getElementById('settingsDeleteConfirm'); if(c) c.style.display = 'none'; }; }
+  { const i=document.getElementById('settingsDeleteInput'); if(i) i.addEventListener('input', () => { const go=document.getElementById('settingsDeleteGo'); const ok=(i.value||'').trim().toUpperCase()==='DELETE'; if(go){ go.disabled = !ok; go.style.opacity = ok ? '1' : '0.5'; } }); }
+  { const b=document.getElementById('settingsDeleteGo'); if(b) b.onclick = confirmDeleteAccount; }
 
   // Seeker-only build: no demo postings/candidates to seed. Just set the
   // initial (candidate) mode so the app screen is in the right state.

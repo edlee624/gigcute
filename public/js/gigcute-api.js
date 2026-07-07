@@ -65,6 +65,16 @@ const auth = {
     const { error } = await requireClient().auth.signOut();
     if (error) throw error;
   },
+  // Permanently delete the current user's account (via the delete-account Edge
+  // Function, which uses the service role). Cascades to profile + all child data.
+  async deleteAccount() {
+    const c = requireClient();
+    const { data, error } = await c.functions.invoke('delete-account', { method: 'POST' });
+    if (error) throw error;
+    if (data && data.error) throw new Error(data.error);
+    try { await c.auth.signOut(); } catch (_e) { /* session is gone anyway */ }
+    return data;
+  },
   async sendPasswordReset(email) {
     const { error } = await requireClient().auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin,
@@ -145,6 +155,16 @@ const seeker = {
     const { data: u } = await c.auth.getUser();
     const row = { ...profile, profile_id: u.user.id };
     const { data, error } = await c.from('seeker_profiles').upsert(row).select().single();
+    if (error) throw error;
+    return data;
+  },
+
+  // Pause / resume the profile — hides it from recruiters when is_visible=false.
+  async setVisibility(visible) {
+    const c = requireClient();
+    const { data: u } = await c.auth.getUser();
+    const { data, error } = await c.from('seeker_profiles')
+      .upsert({ profile_id: u.user.id, is_visible: !!visible }).select('is_visible').single();
     if (error) throw error;
     return data;
   },
