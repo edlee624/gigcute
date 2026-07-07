@@ -748,10 +748,16 @@ const jobs = {
       .select('*', { count: 'exact' })
       .eq('is_active', true);
     if (remote === true) query = query.eq('remote', true);
-    // employmentType may be a string or an array (multi-select)
+    // employmentType may be a string or an array (multi-select). Stored values are
+    // messy free-text from many ATS ('Full time','FullTime','Full-time','Part time',
+    // 'Contract'…), so match a normalized keyword per selected type rather than an
+    // exact enum (an exact .eq matched ZERO rows — every ATS job got filtered out).
     const empTypes = (Array.isArray(employmentType) ? employmentType : (employmentType ? [employmentType] : [])).filter(Boolean);
-    if (empTypes.length === 1) query = query.eq('employment_type', empTypes[0]);
-    else if (empTypes.length > 1) query = query.in('employment_type', empTypes);
+    if (empTypes.length) {
+      const empFrag = { full_time: 'full', part_time: 'part', contract: 'contract', internship: 'intern', temporary: 'tempor' };
+      const ors = empTypes.map(t => `employment_type.ilike.%${empFrag[t] || clean(t)}%`);
+      query = query.or(ors.join(','));
+    }
     if (minSalary) query = query.or(`salary_min.gte.${minSalary},salary_max.gte.${minSalary}`);
     const term = clean(q);
     if (term) query = query.or(`title.ilike.%${term}%,company.ilike.%${term}%,location.ilike.%${term}%`);

@@ -7021,13 +7021,40 @@
       </div>
     </div>`;
   }
+  // Stored employment_type is messy free-text ('Full time','FullTime','Full-time',
+  // 'Part time','Contract'…), so match the selected enum(s) against a keyword rather
+  // than an exact string — an exact compare matched nothing and hid every ATS job.
+  function empTypeMatch(stored, empTypes){
+    if(!empTypes || !empTypes.length) return true;
+    const frag = { full_time:'full', part_time:'part', contract:'contract', internship:'intern', temporary:'tempor' };
+    const s = String(stored||'').toLowerCase();
+    return empTypes.some(t => s.includes(frag[t] || String(t).toLowerCase()));
+  }
+  // Direct postings are pinned atop the board, but they must honor the active
+  // filters too (otherwise a filtered board still shows unrelated direct posts).
+  function postingMatchesDash(p){
+    const d = __dash;
+    const hay = [p.title, (p.companies && p.companies.name), (p.responsibilities||[]).join(' '), (p.qualifications||[]).join(' ')].join(' ').toLowerCase();
+    const isRemote = String(p.location_type||'').toLowerCase().includes('remote');
+    if(d.q){ const q = d.q.toLowerCase(); if(hay.indexOf(q) < 0) return false; }
+    if(d.remote && !isRemote) return false;
+    if(!empTypeMatch(p.employment_type, d.employmentType)) return false;
+    if(d.minSalary){ const smin = p.salary_min||0, smax = p.salary_max||p.salary_min||0; if(!(smin >= d.minSalary || smax >= d.minSalary)) return false; }
+    const toks = d.locationTokens || [];
+    if(toks.length){
+      const locHay = [p.location_type, p.city].filter(Boolean).join(' ').toLowerCase();
+      if(!(toks.some(t => locHay.includes(String(t).toLowerCase())) || (d.locationOrRemote && isRemote))) return false;
+    }
+    for(const g of (d.keywordGroups || [])){ if(g && g.length && !g.some(kw => hay.includes(String(kw).toLowerCase()))) return false; }
+    return true;
+  }
   function renderDashJobs(){
     const listEl = document.getElementById('jobList');
     if(!listEl) return;
     const countEl = document.getElementById('roleCount'); if(countEl) countEl.textContent = __dash.total ? `${__dash.total} role${__dash.total !== 1 ? 's' : ''}` : '';
     const heading = document.getElementById('allRolesHeading');
     if(heading) heading.innerHTML = (__dash.q || __dash.remote || __dash.minSalary || (__dash.employmentType && __dash.employmentType.length) || (__dash.keywordGroups && __dash.keywordGroups.length) || (__dash.locationTokens && __dash.locationTokens.length)) ? 'Search <em>results</em>' : 'All open <em>roles</em>';
-    const directHtml = (__directPostings || []).filter(p => !__dismissedPostingIds.has(p.id)).map(dashPostingCard).join('');
+    const directHtml = (__directPostings || []).filter(p => !__dismissedPostingIds.has(p.id) && postingMatchesDash(p)).map(dashPostingCard).join('');
     if(!__dash.items.length && !directHtml){
       listEl.innerHTML = `<div style="text-align:center;padding:44px 20px;color:rgba(251,247,240,0.4);"><div style="font-family:'Fraunces',serif;font-size:18px;font-style:italic;margin-bottom:6px;">No roles found</div><div style="font-size:13px;">Try adjusting your search or filters.</div></div>`;
     } else {
@@ -7131,6 +7158,15 @@
   // "Best match": relevance-rank via jobs_search (profile keywords + typed query),
   // then apply the structured filters the RPC doesn't support, client-side.
   async function loadMatchSorted(API, PAGE, reset){
+    // jobs_search only returns a 50-row relevance window and can't do structured
+    // filters (employment type / salary / location / dept+seniority). Filtering
+    // that small window would decimate results to ~0 — so when any such filter is
+    // active, use the normal server-side filtered list (authoritative + paginated).
+    const hasStructured = (__dash.employmentType && __dash.employmentType.length) || __dash.minSalary ||
+      (__dash.locationTokens && __dash.locationTokens.length) || (__dash.keywordGroups && __dash.keywordGroups.length);
+    if(hasStructured){
+      return API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, sort:'newest' });
+    }
     if(!reset) return { jobs: [], total: __dash.total };   // match view is a single ranked page
     const kw = (typeof seekerJobKeywords === 'function') ? seekerJobKeywords() : { query:'' };
     const q = [kw.query, __dash.q].filter(Boolean).join(' or ');
@@ -7140,7 +7176,7 @@
     const ms = __dash.minSalary || 0, empTypes = __dash.employmentType || [], groups = __dash.keywordGroups || [];
     const locToks = (__dash.locationTokens || []).map(t => t.toLowerCase());
     ranked = ranked.filter(j => {
-      if(empTypes.length && !empTypes.includes(j.employment_type)) return false;
+      if(!empTypeMatch(j.employment_type, empTypes)) return false;
       if(ms && !((j.salary_max && j.salary_max >= ms) || (j.salary_min && j.salary_min >= ms))) return false;
       if(locToks.length && !((__dash.locationOrRemote && j.remote) || locToks.some(t => String(j.location||'').toLowerCase().includes(t)))) return false;
       const hay = `${j.title||''} ${j.description||''}`.toLowerCase();
@@ -7161,7 +7197,7 @@
   function filterSampleJobs(PAGE){
     const q = __dash.q.toLowerCase(); const ms = __dash.minSalary || 0; const empTypes = __dash.employmentType || []; const groups = __dash.keywordGroups || [];
     const locToks = (__dash.locationTokens || []).map(t => t.toLowerCase());
-    let f = SAMPLE_JOBS.filter(j => (!__dash.remote || j.remote) && (!empTypes.length || empTypes.includes(j.employment_type))
+    let f = SAMPLE_JOBS.filter(j => (!__dash.remote || j.remote) && empTypeMatch(j.employment_type, empTypes)
       && (!ms || (j.salary_max && j.salary_max >= ms) || (j.salary_min && j.salary_min >= ms))
       && (!locToks.length || (__dash.locationOrRemote && j.remote) || locToks.some(t => String(j.location||'').toLowerCase().includes(t)))
       && groups.every(g => g.some(k => `${j.title||''} ${(j.tags||[]).join(' ')}`.toLowerCase().includes(k.toLowerCase())))
