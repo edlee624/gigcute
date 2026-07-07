@@ -4980,13 +4980,18 @@
     // Authoritative display name shared by the nav avatar AND the account dropdown,
     // so the two can never show different initials.
     window.__navName = user ? fullName : '';
+    window.__navSub = user ? (p.title || '') : '';
     window.__navPhoto = (user && p.photo) ? p.photo : '';
-    const navInit = user ? (parts.map(x => x[0]).join('').toUpperCase().slice(0,2) || '?') : 'M';
+    const backend = !!(API && API.enabled);
+    const navInit = user ? (parts.map(x => x[0]).join('').toUpperCase().slice(0,2) || '?') : (backend ? '?' : 'M');
     const navAv = document.getElementById('navAvatar');
     if(navAv){
       if(user && p.photo){ navAv.style.backgroundImage = `url('${p.photo}')`; navAv.style.backgroundSize = 'cover'; navAv.style.backgroundPosition = 'center'; navAv.textContent = ''; }
       else { navAv.style.backgroundImage = ''; navAv.textContent = navInit; }
     }
+    // Authoritative refresh from the real logged-in user (async; corrects any
+    // stale demo identity in the nav avatar without waiting for a dropdown open).
+    if(!preloaded && typeof window.__gcPaintNav === 'function') window.__gcPaintNav();
 
     // Profile strength from real completeness.
     let s = 0;
@@ -8169,16 +8174,46 @@
     function initials(name){ return (name||'?').trim().split(/\s+/).map(x=>x[0]).join('').toUpperCase().slice(0,2); }
     function onDocClick(e){ if(!e.target.closest('.nav-account')) close(); }
     function onKey(e){ if(e.key === 'Escape') close(); }
-    function open(){
+    // Paint the account identity (dropdown + nav avatar) from the authoritative
+    // source: the logged-in user on a real backend, the demo sample only when
+    // there's no backend. Never let the demo "Maya Okafor" leak into a real session.
+    async function paintIdentity(){
       const isRec = (mode === 'recruiter');
-      const name = isRec ? (companyState.name || 'Your company') : (window.__navName || seekerProfile.name || 'Your name');
-      const sub  = isRec ? 'Recruiter account' : (seekerProfile.title || 'Job seeker');
+      const API = window.GigCuteAPI;
+      const backend = !!(API && API.enabled);
+      let name = '', sub = '', photo = '';
+      if(isRec){
+        name = companyState.name || 'Your company'; sub = 'Recruiter account';
+      } else if(backend){
+        try{
+          const u = await API.auth.currentUser();
+          if(u){
+            let me = null; try{ me = await API.profiles.me(); }catch(e){}
+            name = (me && me.full_name) || u.email || '';
+            try{ const sp = await API.seeker.get(u.id); if(sp){ sub = sp.headline || ''; if(sp.photo_url) photo = sp.photo_url; } }catch(e){}
+          }
+        }catch(e){}
+        name = name || 'Your name'; sub = sub || 'Job seeker';
+      } else {
+        // No backend (demo/preview): the sample identity is intended here.
+        name = seekerProfile.name || 'Your name'; sub = seekerProfile.title || 'Job seeker'; photo = seekerProfile.photo || '';
+      }
+      // keep the shared globals in sync so a later render agrees
+      window.__navName = isRec ? '' : (name === 'Your name' ? '' : name);
+      window.__navSub = isRec ? '' : sub; window.__navPhoto = photo || '';
+      const av = (name && name !== 'Your name' && name !== 'Your company') ? initials(name) : '?';
       document.getElementById('ndName').textContent = name;
       document.getElementById('ndSub').textContent = sub;
       const ndAv = document.getElementById('ndAvatar');
-      const photo = isRec ? '' : (window.__navPhoto || seekerProfile.photo);
       if(photo){ ndAv.style.backgroundImage = `url('${photo}')`; ndAv.textContent=''; }
-      else { ndAv.style.backgroundImage=''; ndAv.textContent = initials(name); }
+      else { ndAv.style.backgroundImage=''; ndAv.textContent = av; }
+      // mirror onto the top-right nav avatar so the two always match
+      if(photo){ avatar.style.backgroundImage = `url('${photo}')`; avatar.style.backgroundSize='cover'; avatar.style.backgroundPosition='center'; avatar.textContent=''; }
+      else { avatar.style.backgroundImage=''; avatar.textContent = av; }
+    }
+    window.__gcPaintNav = paintIdentity;
+    function open(){
+      const isRec = (mode === 'recruiter');
       // context-specific items
       document.getElementById('ndViewProfile').style.display = isRec ? 'none' : '';
       document.getElementById('ndEditProfile').style.display = isRec ? 'none' : '';
@@ -8187,6 +8222,7 @@
       dd.hidden = false;
       document.addEventListener('click', onDocClick, true);
       document.addEventListener('keydown', onKey);
+      paintIdentity();   // authoritative — refreshes name/avatar to the real user
     }
     function close(){
       dd.hidden = true;
