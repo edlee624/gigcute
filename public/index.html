@@ -7675,7 +7675,23 @@
   { const m=document.getElementById('postingModal'); if(m) m.addEventListener('click', e => { if(e.target === m || e.target === m.firstElementChild) closePostingForm(); }); }
 
   // ===== MATCHING: seeker swipe · candidates · chat (Phase 2) =====
-  let __chatConvId = null, __chatMyId = null;
+  let __chatConvId = null, __chatMyId = null, __convById = {};
+  // Each conversation is its own page (/messages/:id). Entering messaging pushes a
+  // single history entry; switching conversations within the inbox REPLACES it, so
+  // browser Back from any chat returns to the dashboard — not through every thread.
+  function openConversationRoute(convId){
+    if(!convId) return;
+    const path = '/messages/' + encodeURIComponent(convId);
+    if(/^\/messages(\/|$)/.test(location.pathname)){ window.history.replaceState({}, '', path); __didInAppNav = true; applyRoute(path); }
+    else { navigate(path); }
+  }
+  window.openConversationRoute = openConversationRoute;
+  // Router entry for /messages/:id — ensure the inbox is loaded, then open the thread.
+  async function openMessagesWith(convId){
+    await showMessages();
+    const c = __convById[convId];
+    openChat(convId, c ? c.peer : 'Conversation', c ? c.sub : '');
+  }
   // Small helpers for the inbox: avatar initials + a compact relative timestamp.
   function chatInitials(name){ const p=(name||'').trim().split(/\s+/).filter(Boolean); if(!p.length) return '?'; return ((p[0][0]||'')+(p.length>1?(p[p.length-1][0]||''):'')).toUpperCase(); }
   function chatRelTime(iso){ if(!iso) return ''; const d=new Date(iso), now=new Date(); const s=(now-d)/1000;
@@ -7707,8 +7723,13 @@
     const inp = document.getElementById('chatInput'); if(inp) inp.focus();
   }
   window.openChat = openChat;
-  // Mobile "back to list": collapse the thread pane; on desktop both panes stay.
-  function closeChat(){ const s=document.getElementById('screen-messages'); if(s) s.classList.remove('thread-open'); }
+  // Mobile "back to list": collapse the thread pane + drop the conversation from the
+  // URL (back to the inbox list) without adding history. Desktop keeps both panes.
+  function closeChat(){
+    const s=document.getElementById('screen-messages'); if(s) s.classList.remove('thread-open');
+    __chatConvId = null;
+    if(/^\/messages\/[^/]+/.test(location.pathname)) window.history.replaceState({}, '', '/messages');
+  }
   async function loadChatMessages(){
     const el = document.getElementById('chatMessages'); if(!el) return;
     const API = await gcAwaitAPI();
@@ -7764,6 +7785,8 @@
     try{ convos = await API.chat.myConversations(); }catch(e){ console.warn('convos:', e && e.message); }
     let uid = null, seenMap = {};
     try{ const u = await API.auth.currentUser(); if(u){ uid = u.id; seenMap = convSeenMap(uid); } }catch(e){}
+    __convById = {};
+    (convos || []).forEach(c => { __convById[c.id] = { peer: c.i_am_recruiter ? (c.seeker_name || 'Candidate') : (c.company_name || 'Company'), sub: c.posting_title || '' }; });
     if(!convos || !convos.length){ el.innerHTML = `<div style="text-align:center; padding:34px 18px;"><div style="font-family:'Fraunces',serif; font-size:17px; font-style:italic; margin-bottom:6px; color:var(--paper);">No conversations yet</div><div style="font-size:12.5px; color:rgba(251,247,240,0.5);">When you match, you can message here.</div></div>`; loadInvites(); loadSeekerMatches(); return; }
     el.innerHTML = convos.map(c => {
       const peer = c.i_am_recruiter ? (c.seeker_name || 'Candidate') : (c.company_name || 'Company');
@@ -7781,7 +7804,7 @@
         </div>
       </div>`;
     }).join('');
-    el.querySelectorAll('[data-conv]').forEach(row => row.onclick = () => openChat(row.getAttribute('data-conv'), row.getAttribute('data-peer'), row.getAttribute('data-sub')));
+    el.querySelectorAll('[data-conv]').forEach(row => row.onclick = () => openConversationRoute(row.getAttribute('data-conv')));
     // keep the currently-open thread highlighted after a list refresh
     if(__chatConvId){ const active = el.querySelector('.conv-row[data-conv="'+__chatConvId+'"]'); if(active) active.classList.add('active'); }
     loadInvites();
@@ -7816,7 +7839,7 @@
     const API = await gcAwaitAPI();
     try{ await API.invites.respond(inviteId, status); }catch(e){ if(typeof showToast==='function') showToast('Could not respond.'); return; }
     if(status === 'accepted' && postingId){
-      try{ let u = await API.auth.currentUser(); const convId = await API.chat.openConversation(postingId, u.id); showMessages(); openChat(convId, 'Recruiter'); return; }catch(e){}
+      try{ let u = await API.auth.currentUser(); const convId = await API.chat.openConversation(postingId, u.id); openConversationRoute(convId); return; }catch(e){}
     }
     showMessages();
   }
@@ -7850,7 +7873,7 @@
   }
   async function seekerOpenChat(postingId){
     const API = await gcAwaitAPI();
-    try{ const u = await API.auth.currentUser(); const convId = await API.chat.openConversation(postingId, u.id); openChat(convId, 'Hiring team'); }
+    try{ const u = await API.auth.currentUser(); const convId = await API.chat.openConversation(postingId, u.id); openConversationRoute(convId); }
     catch(e){ if(typeof showToast === 'function') showToast('Could not open chat.'); }
   }
   window.seekerOpenChat = seekerOpenChat;
@@ -7963,7 +7986,7 @@
     const API = await gcAwaitAPI();
     let convId = null;
     try{ convId = await API.chat.openConversation(__candPostingId, seekerId); }catch(e){ if(typeof showToast==='function') showToast('Could not open chat.'); return; }
-    closeCandidates(); openChat(convId, name);
+    closeCandidates(); openConversationRoute(convId);
   }
   window.recruiterMessage = recruiterMessage;
   // Posting-aware chat opener for the dashboard overview (no candidates-modal context).
@@ -7971,7 +7994,7 @@
     const API = await gcAwaitAPI();
     let convId = null;
     try{ convId = await API.chat.openConversation(postingId, seekerId); }catch(e){ if(typeof showToast==='function') showToast('Could not open chat.'); return; }
-    openChat(convId, name);
+    openConversationRoute(convId);
   }
   window.recruiterMessageFor = recruiterMessageFor;
 
@@ -7983,7 +8006,7 @@
   { const m=document.getElementById('candidatesModal'); if(m) m.addEventListener('click', e => { if(e.target===m || e.target===m.firstElementChild) closeCandidates(); }); }
   { const b=document.getElementById('discoverBackBtn'); if(b) b.onclick = () => goBack('/jobs'); }
   { const b=document.getElementById('discoverMsgsBtn'); if(b) b.onclick = () => navigate('/messages'); }
-  { const b=document.getElementById('messagesBackBtn'); if(b) b.onclick = () => goBack('/jobs'); }
+  { const b=document.getElementById('messagesBackBtn'); if(b) b.onclick = () => goBack(mode === 'recruiter' ? '/hiring' : '/jobs'); }
   { const b=document.getElementById('jobsDiscoverBtn'); if(b) b.onclick = () => navigate('/discover'); }
   { const b=document.getElementById('jobsTrackerBtn'); if(b) b.onclick = () => navigate('/tracker'); }
   { const b=document.getElementById('jobsMessagesBtn'); if(b) b.onclick = () => navigate('/messages'); }
@@ -8107,9 +8130,11 @@
       const pm = path.match(/^\/profile\/([^/]+)\/?$/);
       const jm = path.match(/^\/job\/([^/]+)\/?$/);
       const om = path.match(/^\/posting\/([^/]+)\/?$/);
+      const mm = path.match(/^\/messages\/([^/]+)\/?$/);
       if(pm){ showProfilePage(decodeURIComponent(pm[1])); }
       else if(jm){ openJobDetail(decodeURIComponent(jm[1])); }
       else if(om){ openPostingDetail(decodeURIComponent(om[1])); }
+      else if(mm){ openMessagesWith(decodeURIComponent(mm[1])); }
       else if(path === '/main'){ openProfileView(); }
       else if(path === '/admin'){ showAdmin(); }
       // Skip a full board reload when it's already underneath (e.g. back from a job page).
