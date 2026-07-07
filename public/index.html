@@ -199,6 +199,7 @@
   .msg-meta{ font-size:10.5px; color:rgba(251,247,240,0.4); margin:4px 2px 2px; }
   .msg-bubble{ background:var(--ink-soft); color:rgba(251,247,240,0.92); border:1px solid var(--line-light); border-radius:12px; padding:8px 12px; font-size:13.5px; line-height:1.45; word-break:break-word; margin-top:2px; }
   .msg-row.mine .msg-bubble{ background:var(--coral); color:var(--paper); border-color:var(--coral); }
+  .msg-status{ align-self:flex-end; font-size:10.5px; color:rgba(251,247,240,0.4); margin:3px 2px 2px; font-family:'JetBrains Mono',monospace; }
   .inbox-thread{ display:flex; flex-direction:column; min-height:0; }
   .thread-empty{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:6px; padding:30px; }
   .thread-head{ display:flex; align-items:center; gap:12px; padding:13px 18px; border-bottom:1px solid var(--line-light); }
@@ -7753,14 +7754,28 @@
     });
     try{ const API=await gcAwaitAPI(); const u=await API.auth.currentUser(); if(u){ const m=convSeenMap(u.id); m[convId]=new Date().toISOString(); convSeenSave(u.id,m); } }catch(e){}
     await loadChatMessages();
+    try{ const API=await gcAwaitAPI(); await API.chat.markRead(convId); }catch(e){}   // mark their messages read
+    startChatPoll();
     const inp = document.getElementById('chatInput'); if(inp) inp.focus();
+  }
+  // While a thread is open + visible, refresh it so new messages and read receipts
+  // ("Sent" -> "Read") appear live without navigating.
+  let __chatPoll = null;
+  function stopChatPoll(){ if(__chatPoll){ clearInterval(__chatPoll); __chatPoll = null; } }
+  function startChatPoll(){
+    stopChatPoll();
+    __chatPoll = setInterval(async () => {
+      if(document.hidden || !__chatConvId || (document.querySelector('.screen.active')||{}).id !== 'screen-messages'){ return; }
+      await loadChatMessages();
+      try{ const API=await gcAwaitAPI(); await API.chat.markRead(__chatConvId); }catch(e){}
+    }, 11000);
   }
   window.openChat = openChat;
   // Mobile "back to list": collapse the thread pane + drop the conversation from the
   // URL (back to the inbox list) without adding history. Desktop keeps both panes.
   function closeChat(){
     const s=document.getElementById('screen-messages'); if(s) s.classList.remove('thread-open');
-    __chatConvId = null;
+    __chatConvId = null; stopChatPoll();
     if(/^\/messages\/[^/]+/.test(location.pathname)) window.history.replaceState({}, '', '/messages');
   }
   // Friendly day label for the message-thread separators.
@@ -7796,6 +7811,13 @@
       if(header){ html += `<div class="msg-meta">${escapeHtml(mine ? 'You' : peer)} · ${escapeHtml(time)}</div>`; }
       html += `<div class="msg-bubble">${escapeHtml(m.body)}</div></div></div>`;
     });
+    // Read receipt under the last message, but only if it's mine (you don't see
+    // receipts on the other person's messages).
+    const last = msgs[msgs.length - 1];
+    if(last && last.sender_id === __chatMyId){
+      const st = last.read_at ? ('Read · ' + new Date(last.read_at).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' })) : 'Sent';
+      html += `<div class="msg-status">${escapeHtml(st)}</div>`;
+    }
     el.innerHTML = html;
     el.scrollTop = el.scrollHeight;
   }
@@ -7933,7 +7955,7 @@
   }
   // Reset the right pane back to the empty state (thread no longer shown).
   function closeThreadPane(){
-    __chatConvId = null;
+    __chatConvId = null; stopChatPoll();
     const s = document.getElementById('screen-messages'); if(s) s.classList.remove('thread-open');
     const tv = document.getElementById('threadView'); if(tv) tv.style.display = 'none';
     const empty = document.getElementById('threadEmpty'); if(empty) empty.style.display = 'flex';

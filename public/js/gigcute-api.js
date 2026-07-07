@@ -607,6 +607,19 @@ const chat = {
     if (error) throw error;
     return data;
   },
+  // Read receipts: stamp read_at on the OTHER party's unread messages in this
+  // conversation (RLS "msg: recipient mark read" allows a participant to update).
+  async markRead(conversationId) {
+    const c = requireClient();
+    const { data: u } = await c.auth.getUser();
+    if (!u?.user) return;
+    const { error } = await c.from('messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('conversation_id', conversationId)
+      .neq('sender_id', u.user.id)
+      .is('read_at', null);
+    if (error) throw error;
+  },
   // End-of-chat feedback.
   async submitFeedback({ conversationId = null, experience, professionalism, match, note }) {
     const c = requireClient();
