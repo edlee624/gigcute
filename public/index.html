@@ -7120,11 +7120,20 @@
   // Stored employment_type is messy free-text ('Full time','FullTime','Full-time',
   // 'Part time','Contract'…), so match the selected enum(s) against a keyword rather
   // than an exact string — an exact compare matched nothing and hid every ATS job.
+  // Bucket a stored employment_type. A role is full-time UNLESS it explicitly says
+  // part-time / contract / temp / intern — so null, blank, "fulltime", "Full Time",
+  // "Permanent", and typos all fall through to full_time.
+  function canonicalEmpType(stored){
+    const s = String(stored||'').toLowerCase();
+    if(/intern/.test(s)) return 'internship';
+    if(/part/.test(s)) return 'part_time';
+    if(/contract|freelanc/.test(s)) return 'contract';
+    if(/tempor|seasonal/.test(s)) return 'temporary';
+    return 'full_time';
+  }
   function empTypeMatch(stored, empTypes){
     if(!empTypes || !empTypes.length) return true;
-    const frag = { full_time:'full', part_time:'part', contract:'contract', internship:'intern', temporary:'tempor' };
-    const s = String(stored||'').toLowerCase();
-    return empTypes.some(t => s.includes(frag[t] || String(t).toLowerCase()));
+    return empTypes.includes(canonicalEmpType(stored));
   }
   // Direct postings are pinned atop the board, but they must honor the active
   // filters too (otherwise a filtered board still shows unrelated direct posts).

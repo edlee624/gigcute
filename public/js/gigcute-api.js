@@ -737,6 +737,26 @@ const reports = {
   },
 };
 
+// Parse a search box string into light boolean parts:
+//   "quoted phrases" stay intact · OR (or |) → any-match · leading - or ! excludes.
+// Default (no OR) means every positive term must appear. Returns null when empty.
+function parseSearch(q) {
+  const s = String(q || '').trim();
+  if (!s) return null;
+  const clean = t => t.replace(/[(),%]/g, ' ').trim();
+  const orMode = /\bOR\b/.test(s) || s.includes('|');
+  const tokens = []; const re = /"([^"]+)"|(\S+)/g; let m;
+  while ((m = re.exec(s))) tokens.push(m[1] != null ? m[1] : m[2]);
+  const positives = [], negatives = [];
+  tokens.forEach(t => {
+    if (t === 'OR' || t === '|') return;
+    if ((t[0] === '-' || t[0] === '!') && t.length > 1) { const c = clean(t.slice(1)); if (c) negatives.push(c); }
+    else { const c = clean(t); if (c) positives.push(c); }
+  });
+  if (!positives.length && !negatives.length) return null;
+  return { orMode, positives, negatives };
+}
+
 // ---- Job board (public read; jobs ingested by the ingest-jobs Edge Function) --
 const jobs = {
   // List active jobs, newest first, with optional text search + remote filter.
@@ -754,13 +774,41 @@ const jobs = {
     // exact enum (an exact .eq matched ZERO rows — every ATS job got filtered out).
     const empTypes = (Array.isArray(employmentType) ? employmentType : (employmentType ? [employmentType] : [])).filter(Boolean);
     if (empTypes.length) {
-      const empFrag = { full_time: 'full', part_time: 'part', contract: 'contract', internship: 'intern', temporary: 'tempor' };
-      const ors = empTypes.map(t => `employment_type.ilike.%${empFrag[t] || clean(t)}%`);
-      query = query.or(ors.join(','));
+      // A job is treated as full-time UNLESS it explicitly says part-time / contract
+      // / temp / intern — so blanks, unknowns, and typos ("fulltime","Full Time")
+      // all count as full-time. Non-full buckets match their keyword; full-time is
+      // the negation of every non-full keyword (plus null). Selected buckets OR together.
+      const NON_FULL = ['part', 'contract', 'freelanc', 'tempor', 'seasonal', 'intern'];
+      const posFrag = { part_time: ['part'], contract: ['contract', 'freelanc'], temporary: ['tempor', 'seasonal'], internship: ['intern'] };
+      const ors = [];
+      empTypes.forEach(t => {
+        if (t === 'full_time') {
+          ors.push('employment_type.is.null');
+          ors.push('and(' + NON_FULL.map(k => `employment_type.not.ilike.%${k}%`).join(',') + ')');
+        } else {
+          (posFrag[t] || [clean(t)]).forEach(k => ors.push(`employment_type.ilike.%${k}%`));
+        }
+      });
+      if (ors.length) query = query.or(ors.join(','));
     }
     if (minSalary) query = query.or(`salary_min.gte.${minSalary},salary_max.gte.${minSalary}`);
-    const term = clean(q);
-    if (term) query = query.or(`title.ilike.%${term}%,company.ilike.%${term}%,location.ilike.%${term}%`);
+    // Text search with light boolean support: "quoted phrases" kept intact, an OR
+    // (or |) token switches to any-match, a leading - excludes a term; otherwise all
+    // terms must appear. Each term matches title / company / location.
+    const parsed = parseSearch(q);
+    if (parsed) {
+      const fieldsOr = t => `title.ilike.%${t}%,company.ilike.%${t}%,location.ilike.%${t}%`;
+      if (parsed.positives.length) {
+        if (parsed.orMode) query = query.or(parsed.positives.map(fieldsOr).join(','));
+        else parsed.positives.forEach(t => { query = query.or(fieldsOr(t)); });
+      }
+      // Exclusions: keep a row only if the term is in none of the fields (null-safe).
+      parsed.negatives.forEach(t => {
+        query = query.or(`title.is.null,title.not.ilike.%${t}%`);
+        query = query.or(`company.is.null,company.not.ilike.%${t}%`);
+        query = query.or(`location.is.null,location.not.ilike.%${t}%`);
+      });
+    }
     const loc = clean(location);
     if (loc) query = query.ilike('location', `%${loc}%`);
     // Location tokens (a metro area's cities and/or a typed city): match any token
