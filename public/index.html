@@ -6894,6 +6894,31 @@
   // Direct recruiter postings pinned atop the board, styled to stand out.
   let __directPostings = [];
   let __likedPostings = new Set();
+  // Direct postings live in the `postings` table, not `jobs`, so they can't use
+  // the tracked_jobs tracker (job_id FKs jobs). Save/Remove for postings are kept
+  // client-side (per browser) so the cards still have parity with feed jobs.
+  let __savedPostingIds = new Set();
+  let __dismissedPostingIds = new Set();
+  function loadPostingSets(){
+    try{ __savedPostingIds = new Set(JSON.parse(localStorage.getItem('gc_saved_postings') || '[]')); }catch(e){ __savedPostingIds = new Set(); }
+    try{ __dismissedPostingIds = new Set(JSON.parse(localStorage.getItem('gc_dismissed_postings') || '[]')); }catch(e){ __dismissedPostingIds = new Set(); }
+  }
+  function savePostingSets(){
+    try{ localStorage.setItem('gc_saved_postings', JSON.stringify([...__savedPostingIds])); }catch(e){}
+    try{ localStorage.setItem('gc_dismissed_postings', JSON.stringify([...__dismissedPostingIds])); }catch(e){}
+  }
+  window.togglePostingSave = function(id, btn){
+    if(__savedPostingIds.has(id)) __savedPostingIds.delete(id); else __savedPostingIds.add(id);
+    savePostingSets();
+    const on = __savedPostingIds.has(id);
+    document.querySelectorAll('[data-savepost="'+id+'"]').forEach(b => b.textContent = on ? '♥ Saved' : '♡ Save');
+    if(typeof showToast === 'function') showToast(on ? 'Saved posting.' : 'Removed from saved.');
+  };
+  window.dismissPosting = function(id){
+    __dismissedPostingIds.add(id); savePostingSets();
+    __directPostings = (__directPostings || []).filter(p => p.id !== id);
+    renderDashJobs();
+  };
   function dashPostingCard(p){
     const co = p.companies || {};
     const money = v => v ? ('$' + (v>=1000 ? Math.round(v/1000)+'k' : v)) : '';
@@ -6901,6 +6926,7 @@
     const meta = [[p.location_type, p.city].filter(Boolean).join(' · '), p.employment_type].filter(Boolean).join(' · ');
     const initial = (String(co.name || '?').trim().charAt(0) || '?').toUpperCase();
     const liked = __likedPostings.has(p.id);
+    const saved = __savedPostingIds.has(p.id);
     return `<div class="job-list-item direct" data-postingid="${escapeHtml(String(p.id))}">
       <div class="job-logo" style="display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:18px;color:var(--coral);">${escapeHtml(initial)}</div>
       <div style="min-width:0;">
@@ -6912,6 +6938,9 @@
       </div>
       <div class="jli-actions">
         <button class="jli-btn primary" type="button" onclick="event.stopPropagation(); expressInterest('${p.id}', this)" ${liked?'disabled':''}>${liked?'✓ Interest sent':'♥ Interested'}</button>
+        <button class="jli-btn" type="button" data-savepost="${escapeHtml(String(p.id))}" onclick="event.stopPropagation(); togglePostingSave('${p.id}', this)">${saved?'♥ Saved':'♡ Save'}</button>
+        <button class="jli-btn" type="button" onclick="event.stopPropagation(); GigCuteNavigate('/posting/${p.id}')">Details</button>
+        <button class="jli-btn pass" type="button" title="Not interested — hide this posting" onclick="event.stopPropagation(); dismissPosting('${p.id}')" style="font-size:11px;padding:5px 10px;">Remove</button>
         <div style="font-size:10.5px;color:rgba(251,247,240,0.4);text-align:right;max-width:150px;">Posted directly by the hiring team</div>
       </div>
     </div>`;
@@ -6968,7 +6997,7 @@
     const countEl = document.getElementById('roleCount'); if(countEl) countEl.textContent = __dash.total ? `${__dash.total} role${__dash.total !== 1 ? 's' : ''}` : '';
     const heading = document.getElementById('allRolesHeading');
     if(heading) heading.innerHTML = (__dash.q || __dash.remote || __dash.minSalary || (__dash.employmentType && __dash.employmentType.length) || (__dash.keywordGroups && __dash.keywordGroups.length) || (__dash.locationTokens && __dash.locationTokens.length)) ? 'Search <em>results</em>' : 'All open <em>roles</em>';
-    const directHtml = (__directPostings || []).map(dashPostingCard).join('');
+    const directHtml = (__directPostings || []).filter(p => !__dismissedPostingIds.has(p.id)).map(dashPostingCard).join('');
     if(!__dash.items.length && !directHtml){
       listEl.innerHTML = `<div style="text-align:center;padding:44px 20px;color:rgba(251,247,240,0.4);"><div style="font-family:'Fraunces',serif;font-size:18px;font-style:italic;margin-bottom:6px;">No roles found</div><div style="font-size:13px;">Try adjusting your search or filters.</div></div>`;
     } else {
@@ -7192,6 +7221,7 @@
     wireDashControls();
     __dash = { q:'', remote:false, minSalary:null, employmentType:[], keywordGroups:[], locationTokens:[], locationOrRemote:false, sort:'newest', offset:0, total:0, items:[], loading:false };
     await loadSavedSet();     // so cards show the correct Save state
+    loadPostingSets();        // client-side saved/dismissed state for direct postings
     loadDashJobs(true);
     chatUnreadCheck();
   }
