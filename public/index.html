@@ -6596,6 +6596,8 @@
         const ed = (sp.education || []).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
         seekerProfile.education = ed.map(e=>({ school:e.school||'', degree:e.degree||'', year:e.year||'' }));
         seekerProfile.certifications = Array.isArray(sp.certifications) ? sp.certifications.map(c=>({ name:c.name||'', issuer:c.issuer||'', year:c.year||'', url:c.url||'' })) : [];
+        seekerProfile.skills = Array.isArray(sp.skills) ? sp.skills.filter(Boolean) : [];
+        seekerProfile.workSetup = sp.work_setup || '';
       }
     }catch(e){ console.warn('[gigcute] could not load profile:', e.message); }
   }
@@ -6836,17 +6838,45 @@
   }
   // Build an OR-search query from the logged-in seeker's profile (title + recent
   // job titles). Returns { terms:[...], query:'a or b or c' } — used by "Best match".
+  const KW_STOP = new Set(['the','and','of','a','an','to','in','for','at','on','with','senior','junior','lead','staff','principal','sr','jr','associate','i','ii','iii','iv']);
   function seekerJobKeywords(){
-    const stop = new Set(['the','and','of','a','an','to','in','for','at','on','with','senior','junior','lead','staff','principal','sr','jr','associate','i','ii','iii','iv']);
     const src = [];
+    let skills = [], prefersRemote = false;
     if(typeof seekerProfile !== 'undefined' && seekerProfile){
       if(seekerProfile.title) src.push(seekerProfile.title);
       (seekerProfile.workHistory || []).slice(0,3).forEach(w => { if(w && w.title) src.push(w.title); });
+      skills = (seekerProfile.skills || []).map(s => String(s || '').toLowerCase().trim()).filter(Boolean).slice(0,12);
+      prefersRemote = /remote/i.test(seekerProfile.workSetup || '');
     }
     const words = src.join(' ').toLowerCase().replace(/[^a-z0-9+#. ]/g,' ').split(/\s+/)
-      .map(w => w.trim()).filter(w => w.length > 2 && !stop.has(w));
-    const terms = [...new Set(words)].slice(0,10);
-    return { terms, query: terms.join(' or ') };
+      .map(w => w.trim()).filter(w => w.length > 2 && !KW_STOP.has(w));
+    const terms = [...new Set(words)].slice(0,8);
+    // FTS candidate query stays on the (few) role/title words only. Broad OR queries
+    // over common words match thousands of rows and make jobs_search's ts_rank sort
+    // time out — skills instead sharpen the client-side SCORE below, not this query.
+    return { terms, skills, prefersRemote, query: terms.join(' or ') };
+  }
+  // Word-ish match: short tokens (≤4 chars, e.g. "go","aws","sql") need word
+  // boundaries so they don't match inside unrelated words; longer terms substring.
+  function termInText(text, term){
+    if(!term) return false;
+    if(term.length <= 4){ try{ return new RegExp('\\b' + term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b','i').test(text); }catch(e){ return text.indexOf(term) >= 0; } }
+    return text.indexOf(term) >= 0;
+  }
+  // Multi-factor relevance (0–99): how much of the seeker's signal — role/title
+  // words and skills — a job covers (title matches weighted higher than body),
+  // plus small nudges for recency and a remote-preference fit.
+  function scoreJobForSeeker(j, sig){
+    const title = (j.title || '').toLowerCase();
+    const desc = (j.description || '').toLowerCase();
+    let score = 0, max = 0;
+    (sig.terms || []).forEach(t => { max += 3; if(termInText(title,t)) score += 3; else if(termInText(desc,t)) score += 1.2; });
+    (sig.skills || []).forEach(s => { max += 2.5; if(termInText(title,s)) score += 2.5; else if(termInText(desc,s)) score += 1.5; });
+    if(!max) return null;                       // no profile signal — leave unscored
+    let bonus = 0;
+    if(j.posted_at){ const days = (Date.now() - new Date(j.posted_at).getTime()) / 86400000; if(days <= 7) bonus += 0.06; else if(days <= 30) bonus += 0.03; }
+    if(sig.prefersRemote && j.remote) bonus += 0.05;
+    return Math.max(1, Math.min(99, Math.round((score / max * 0.88 + bonus) * 100)));
   }
   // ---- Job detail view ----
   function openJobDetail(key){
@@ -6991,7 +7021,7 @@
     }
   };
   function relChipHTML(score){
-    return `<div class="rel-chip">Relevance ${score}<span class="gc-info" tabindex="0" aria-label="What is a relevance score?">i<span class="gc-tip">Relevance score estimates how closely this role matches the keywords in your profile and your search — a guide to help you prioritize, not a guarantee of fit.</span></span></div>`;
+    return `<div class="rel-chip">Relevance ${score}<span class="gc-info" tabindex="0" aria-label="What is a relevance score?">i<span class="gc-tip">Relevance blends your profile — job titles and skills — against each role's title and description, weighting title matches higher, with a nudge for recent posts and your remote preference. A guide to help you prioritize, not a guarantee of fit.</span></span></div>`;
   }
   function dashJobCard(j){
     const key = jobKey(j); __jobsById[key] = j;
@@ -7173,6 +7203,10 @@
     if(!q) return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, sort:'newest' });
     let ranked = [];
     try{ ranked = await API.jobs.search({ q, remote:__dash.remote || null, limit:50 }); }catch(e){ ranked = []; }
+    // Resilience: if the ranked search returns nothing (e.g. it timed out on a
+    // broad query), fall back to the newest-jobs list so Best match still shows
+    // roles instead of an empty board.
+    if(!ranked.length){ return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, sort:'newest' }); }
     const ms = __dash.minSalary || 0, empTypes = __dash.employmentType || [], groups = __dash.keywordGroups || [];
     const locToks = (__dash.locationTokens || []).map(t => t.toLowerCase());
     ranked = ranked.filter(j => {
@@ -7183,15 +7217,14 @@
       if(!groups.every(g => g.some(k => hay.includes(k.toLowerCase())))) return false;
       return true;
     });
-    // Attach an explainable relevance score (0–99): how many of the seeker's
-    // profile keywords appear, weighted toward title matches. Shown as a chip.
-    const relTerms = (kw.terms || []).map(t => t.toLowerCase()).filter(Boolean);
-    ranked.forEach(j => {
-      if(!relTerms.length){ j.__relevance = null; return; }
-      const t = (j.title||'').toLowerCase(), d = (j.description||'').toLowerCase();
-      let hits = 0; relTerms.forEach(term => { if(t.includes(term)) hits += 2; else if(d.includes(term)) hits += 1; });
-      j.__relevance = Math.max(1, Math.min(99, Math.round(hits / (relTerms.length * 2) * 100)));
-    });
+    // Score every candidate on the richer signal (title/role words + skills +
+    // recency + remote fit), then RE-SORT by that score so the best fits lead —
+    // previously the list stayed in raw ts_rank order while showing a different
+    // score, so a strong match could sit below a weak one.
+    const sig = { terms: (kw.terms || []).map(t => t.toLowerCase()), skills: (kw.skills || []).map(s => s.toLowerCase()), prefersRemote: !!kw.prefersRemote };
+    ranked.forEach(j => { j.__relevance = scoreJobForSeeker(j, sig); });
+    ranked.sort((a,b) => (b.__relevance || 0) - (a.__relevance || 0)
+      || (new Date(b.posted_at || 0).getTime() - new Date(a.posted_at || 0).getTime()));
     return { jobs: ranked, total: ranked.length };
   }
   function filterSampleJobs(PAGE){
