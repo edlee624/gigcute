@@ -54,7 +54,7 @@ function meetsSalary(r: { salary_min: number | null; salary_max: number | null }
 // Only ingest recently-posted jobs (default 7 days). A job with no/unparseable
 // date is treated as too old (excluded) so the board stays fresh while testing.
 const MAX_AGE_DAYS = Math.max(1, parseInt(Deno.env.get("JOB_MAX_AGE_DAYS") || "3", 10) || 3);
-const RETENTION_DAYS = Math.max(1, parseInt(Deno.env.get("JOB_RETENTION_DAYS") || "14", 10) || 14);
+const RETENTION_DAYS = Math.max(1, parseInt(Deno.env.get("JOB_RETENTION_DAYS") || "30", 10) || 30);
 function isRecent(iso: string | null): boolean {
   if (!iso) return false;
   const t = Date.parse(iso);
