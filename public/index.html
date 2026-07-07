@@ -3092,7 +3092,15 @@
     border-bottom:1.5px solid #f0f0f0;
   }
 
-  /* skills */
+  /* skills editor (onboarding / edit form) */
+  .skills-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .skills-chips:not(:empty){ margin-bottom:10px; }
+  .skill-tag{ display:inline-flex; align-items:center; gap:7px; background:var(--ink-soft); border:1px solid var(--line-light); color:var(--paper); border-radius:20px; padding:6px 8px 6px 13px; font-size:13px; }
+  .skill-tag button{ background:none; border:none; color:rgba(251,247,240,0.5); cursor:pointer; font-size:13px; line-height:1; padding:2px 4px; border-radius:50%; }
+  .skill-tag button:hover{ color:var(--coral); }
+  .skills-input{ width:100%; box-sizing:border-box; background:var(--ink); border:1px solid var(--line-light); border-radius:10px; color:var(--paper); font-family:'Inter',sans-serif; font-size:14px; padding:11px 14px; }
+  .skills-input:focus{ outline:none; border-color:var(--coral); }
+  /* skills (profile view) */
   .pv-skills{ display:flex; flex-wrap:wrap; gap:7px; }
   .pv-skill{
     background:#f5f5f5; border:1px solid #e8e8e8;
@@ -4119,6 +4127,12 @@
 
     <div id="workHistoryList"></div>
     <button class="btn-sm" id="addWorkEntry" type="button" style="margin-bottom:26px;">+ Add another role</button>
+
+    <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">Your <em style="font-style:italic;color:var(--coral);">skills</em> <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.45);">(recommended)</span></h2>
+    <p class="ob-sub" style="margin-bottom:12px;">The skills, tools, and technologies you want recruiters — and our job matching — to consider. Type one and press Enter or comma.</p>
+    <div id="skillsChips" class="skills-chips"></div>
+    <input type="text" id="sk-skills-input" class="skills-input" placeholder="e.g. Figma, SQL, Project management" autocomplete="off">
+    <div style="margin-bottom:26px;"></div>
 
     <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">Portfolio &amp; <em style="font-style:italic;color:var(--coral);">projects</em> <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.45);">(optional)</span></h2>
     <p class="ob-sub" style="margin-bottom:14px;">Show off your work. Link out to the live site, video, repo, or gallery — then describe it in your own words.</p>
@@ -5522,10 +5536,32 @@
       if(seen.has(k)) continue; seen.add(k); workHistory.push(e);
       if(workHistory.length >= 8) break;
     }
-    return { name, headline: workHistory[0] ? workHistory[0].title : '', workHistory };
+    // Skills: capture the lines under a Skills / Technical Skills / Core
+    // Competencies header until the next section, then split on the usual
+    // separators (commas, bullets, pipes, slashes, big gaps) into individual tags.
+    let skills = [];
+    const skillHdr = /^(skills|technical skills|core competencies|areas of expertise|tools|technologies|tech stack)\b/i;
+    for(let i = 0; i < lines.length; i++){
+      if(!skillHdr.test(lines[i])) continue;
+      const buf = [];
+      const after = lines[i].replace(skillHdr, '').replace(/^[:\-–—\s]+/, '').trim();
+      if(after) buf.push(after);
+      for(let j = i + 1; j < lines.length && j < i + 12; j++){
+        if(sectionRe.test(lines[j]) || rangeRe.test(lines[j])) break;
+        buf.push(lines[j]);
+      }
+      skills = buf.join(' , ')
+        .split(/[,;•·|\/•]|\s{2,}|\s+[–—-]\s+/)
+        .map(s => s.replace(/^[•·\*\-\s]+/, '').trim())
+        .filter(s => s && s.length <= 40 && /[A-Za-z]/.test(s));
+      break;
+    }
+    skills = [...new Set(skills)].slice(0, 30);
+    return { name, headline: workHistory[0] ? workHistory[0].title : '', workHistory, skills };
   }
   function applyResumeParse(parsed, hadError){
     const banner = document.getElementById('importedBanner');
+    setPendingSkills((parsed && parsed.skills) || []);   // pre-fill skills from the resume (may be empty)
     if(parsed && parsed.workHistory && parsed.workHistory.length){
       banner.style.display = 'flex';
       document.getElementById('importedBannerText').textContent = 'Imported from your resume — review the details below';
@@ -5586,6 +5622,7 @@
       document.getElementById('importedBannerText').textContent = `${bannerLabels[source]} — work history pulled in below`;
     }
     renderWorkHistoryEntries(workHistorySeeds[source] || []);
+    setPendingSkills([]);
     seedSeekerPrompts(promptAnswerSeeds[source] || {});
   }
 
@@ -5596,8 +5633,34 @@
   let pendingPortfolio = [];
   let pendingEducation = [];
   let pendingCertifications = [];
+  let pendingSkills = [];
+
+  // ---- Skills chip editor (feeds seeker_profiles.skills + job matching) ----
+  function renderSkillsChips(){
+    const wrap = document.getElementById('skillsChips'); if(!wrap) return;
+    wrap.innerHTML = pendingSkills.map((s,i) => `<span class="skill-tag">${escapeHtml(s)}<button type="button" data-skill-i="${i}" aria-label="Remove ${escapeHtml(s)}">✕</button></span>`).join('');
+    wrap.querySelectorAll('[data-skill-i]').forEach(b => b.onclick = () => { pendingSkills.splice(parseInt(b.getAttribute('data-skill-i'),10),1); renderSkillsChips(); });
+  }
+  function addSkillsFromInput(raw){
+    (raw||'').split(/[,\n]/).map(s => s.trim()).filter(Boolean).forEach(s => {
+      if(s.length <= 40 && !pendingSkills.some(x => x.toLowerCase() === s.toLowerCase())) pendingSkills.push(s);
+    });
+    if(pendingSkills.length > 40) pendingSkills = pendingSkills.slice(0,40);
+    renderSkillsChips();
+  }
+  function setPendingSkills(arr){
+    pendingSkills = [...new Set((arr||[]).map(s => String(s||'').trim()).filter(Boolean))].slice(0,40);
+    renderSkillsChips();
+  }
+  { const i = document.getElementById('sk-skills-input');
+    if(i){
+      i.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ','){ e.preventDefault(); addSkillsFromInput(i.value); i.value = ''; } });
+      i.addEventListener('blur', () => { if(i.value.trim()){ addSkillsFromInput(i.value); i.value = ''; } });
+    }
+  }
 
   document.getElementById('sk3Next').onclick = () => {
+    const si = document.getElementById('sk-skills-input'); if(si && si.value.trim()){ addSkillsFromInput(si.value); si.value = ''; }
     pendingWorkHistory = readWorkHistoryForm();
     pendingPortfolio = readPortfolioForm();
     pendingEducation = readEducationForm();
@@ -5704,6 +5767,7 @@
   function openProfileEdit(){
     document.getElementById('importedBanner').style.display = 'none';
     renderWorkHistoryEntries(seekerProfile.workHistory);
+    setPendingSkills(seekerProfile.skills);
     renderPortfolioEntries(seekerProfile.portfolio);
     renderEducationEntries(seekerProfile.education);
     renderCertEntries(seekerProfile.certifications);
@@ -6104,6 +6168,7 @@
         portfolio: (data.portfolio || []).map(p => ({ title:p.title||'', url:p.url||'', description:p.description||'' })),
         education: (data.education || []).map(e => ({ school:e.school||'', degree:e.degree||'', year:e.year||'' })),
         certifications: (data.certifications || []).map(c => ({ name:c.name||'', issuer:c.issuer||'', year:c.year||'', url:c.url||'' })),
+        skills: Array.isArray(data.skills) ? data.skills : [],
       };
       shareId = data.code || id;        // share/Copy-link uses the short code
       try{ const u = await API.auth.currentUser(); own = !!(u && data.id && u.id === data.id); }catch(e){}
@@ -6726,12 +6791,13 @@
         allPrompts: pendingAllPrompts,
         portfolio: pendingPortfolio,
         education: pendingEducation,
-        certifications: pendingCertifications
+        certifications: pendingCertifications,
+        skills: pendingSkills
       };
       const email = document.getElementById('sk-email').value.trim();
       const pw = document.getElementById('sk-password').value;
       const payload = {
-        profile: { headline: seekerProfile.title, linkedin_url: seekerProfile.linkedinUrl || '', portfolio: seekerProfile.portfolio || [], certifications: seekerProfile.certifications || [] },
+        profile: { headline: seekerProfile.title, linkedin_url: seekerProfile.linkedinUrl || '', portfolio: seekerProfile.portfolio || [], certifications: seekerProfile.certifications || [], skills: seekerProfile.skills || [] },
         workHistory: seekerProfile.workHistory || [],
         education: seekerProfile.education || [],
         // Store every answered prompt (favorites flagged) so the owner can print a full cheat sheet.
