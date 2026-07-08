@@ -476,11 +476,16 @@ const postings = {
     if (error) throw error;
     return data || null;
   },
-  // Potential-match candidates for a posting (visible seekers not already interested).
+  // Potential-match candidates for a posting (visible seekers not already interested or dismissed).
   async recommend(postingId, limit = 8) {
     const { data, error } = await requireClient().rpc('recommend_candidates', { p_posting: postingId, p_limit: limit });
     if (error) throw error;
     return data || [];
+  },
+  // Dismiss a recommended candidate for a posting (drops them from recommendations).
+  async dismissCandidate(postingId, seekerId) {
+    const { error } = await requireClient().rpc('dismiss_candidate', { p_posting: postingId, p_seeker: seekerId });
+    if (error) throw error;
   },
   async update(id, patch) {
     const { data, error } = await requireClient().from('postings').update(patch).eq('id', id).select().single();

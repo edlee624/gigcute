@@ -202,6 +202,7 @@
   .cand-badge.live-3{ color:var(--paper); border-color:var(--sage); background:rgba(122,158,126,0.28); }
   .cand-badge.live-7{ color:var(--sage); border-color:rgba(122,158,126,0.5); background:rgba(122,158,126,0.15); }
   .cand-badge.live-14{ color:rgba(122,158,126,0.85); border-color:rgba(122,158,126,0.3); background:rgba(122,158,126,0.07); }
+  .match-chip{ font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700; color:var(--coral); background:rgba(255,90,60,0.1); border:1px solid rgba(255,90,60,0.35); border-radius:20px; padding:2px 9px; white-space:nowrap; flex-shrink:0; }
   /* message thread bubbles (sender + time + day separators) */
   .msg-day{ text-align:center; margin:12px 0 6px; }
   .msg-day span{ font-size:11px; color:rgba(251,247,240,0.4); background:var(--ink); border:1px solid var(--line-light); padding:2px 10px; border-radius:10px; font-family:'JetBrains Mono',monospace; }
@@ -7844,6 +7845,41 @@
     }
     return out ? `<div class="cand-badges">${out}</div>` : '';
   }
+  // Expected experience band for a posting's seniority (for match scoring).
+  function seniorityYears(s){
+    s = String(s||'').toLowerCase();
+    if(/entry|junior/.test(s)) return {min:0,max:2};
+    if(/mid/.test(s)) return {min:2,max:5};
+    if(/senior/.test(s)) return {min:5,max:10};
+    if(/staff|principal|lead/.test(s)) return {min:8,max:20};
+    if(/manager|director|head|\bvp\b|chief|founder/.test(s)) return {min:8,max:30};
+    return null;
+  }
+  // Candidate↔posting match score (0–99): skills overlap (dominant) + work-setup
+  // fit + seniority alignment. Explainable, not a guarantee.
+  function candMatchScore(p, r){
+    const skills = r.skills || [];
+    let pts = 0, max = 0;
+    max += 55;
+    if(skills.length) pts += Math.min(1, (r.score||0) / Math.min(skills.length, 5)) * 55;
+    max += 20;
+    const pl = String(p.location_type||'').toLowerCase(), ws = String(r.work_setup||'').toLowerCase();
+    if(pl && ws) pts += (pl===ws || pl.indexOf(ws)>=0 || ws.indexOf(pl)>=0 || (pl.indexOf('remote')>=0 && ws.indexOf('remote')>=0)) ? 20 : 6;
+    else pts += 10;
+    max += 25;
+    const want = seniorityYears(p.seniority);
+    if(want && r.exp_years != null){
+      if(r.exp_years >= want.min && r.exp_years <= want.max) pts += 25;
+      else { const gap = Math.min(Math.abs(r.exp_years - want.min), Math.abs(r.exp_years - want.max)); pts += Math.max(0, 25 - gap*4); }
+    } else pts += 12;
+    return Math.max(1, Math.min(99, Math.round(pts / max * 100)));
+  }
+  async function pmDismiss(postingId, seekerId){
+    const API = await gcAwaitAPI();
+    try{ await API.postings.dismissCandidate(postingId, seekerId); }catch(e){ if(typeof showToast==='function') showToast('Could not remove.'); return; }
+    openPostingManage(postingId);   // re-render; next-best candidate backfills in
+  }
+  window.pmDismiss = pmDismiss;
   async function openPostingManage(id){
     __amRecruiter = true;
     showScreen('screen-posting-manage');
@@ -7859,8 +7895,11 @@
       API.postings.stats(id).catch(()=>null),
       API.interest.seekersWhoLiked(id).catch(()=>[]),
       API.postings.audience(id).catch(()=>null),
-      API.postings.recommend(id, 8).catch(()=>[])
+      API.postings.recommend(id, 12).catch(()=>[])
     ]);
+    // Attach an explainable match score + rank by it (fetched pool is skill-ranked).
+    (recs||[]).forEach(r => { r.__match = candMatchScore(p, r); });
+    (recs||[]).sort((a,b) => (b.__match||0) - (a.__match||0));
     let sigMap = {};
     try{ sigMap = await API.interest.candidateSignals([...(cands||[]).map(c=>c.seeker_id), ...(recs||[]).map(r=>r.seeker_id)]); }catch(e){}
     const money = v => v ? ('$' + (v>=1000 ? Math.round(v/1000)+'k' : v)) : '';
@@ -7897,14 +7936,15 @@
     const recCard = r => { const skills=(r.skills||[]).slice(0,4).map(s=>`<span class="jli-tag">${escapeHtml(s)}</span>`).join('');
       return `<div class="pm-cand">${av(r.photo_url,r.name)}
         <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;color:var(--paper);font-size:14px;">${escapeHtml(r.name||'Candidate')}</div>
+          <div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:700;color:var(--paper);font-size:14px;">${escapeHtml(r.name||'Candidate')}</span><span class="match-chip">${r.__match}% match</span></div>
           <div style="font-size:12.5px;color:rgba(251,247,240,0.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(r.headline||'')}</div>
           ${candidateBadges(sigMap[r.seeker_id])}
           ${skills?`<div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap;">${skills}</div>`:''}
         </div>
         <div class="pm-cand-actions">
-          <button class="jli-btn" type="button" onclick="recruiterViewCandidate('${escapeHtml(r.seeker_id)}','${id}')">View profile</button>
           <button class="jli-btn primary" type="button" onclick="recruiterInviteFor('${id}','${escapeHtml(r.seeker_id)}')">Invite to chat</button>
+          <button class="jli-btn" type="button" onclick="recruiterViewCandidate('${escapeHtml(r.seeker_id)}','${id}')">View profile</button>
+          <button class="jli-btn pass" type="button" title="Not a fit — remove" onclick="pmDismiss('${id}','${escapeHtml(r.seeker_id)}')" style="font-size:11px;padding:5px 10px;">Remove</button>
         </div></div>`; };
     const recsHtml = `<section><h2 class="pm-h2">Potential matches <span style="font-size:12px;font-weight:400;color:rgba(251,247,240,0.4);">— based on skills</span></h2>${(recs&&recs.length)?recs.map(recCard).join(''):'<div class="pm-empty">No further recommendations right now.</div>'}</section>`;
     el.innerHTML = statsHtml + postingHtml + interestedHtml + pmAudience(audience) + recsHtml;
