@@ -4373,6 +4373,26 @@
                     </optgroup>
                   </select>
                   <input type="text" id="jobLocationInput" placeholder="Or a city / state — e.g. Austin, TX">
+                  <select id="jobCountry" class="loc-dist" style="width:auto;min-width:160px;">
+                    <option value="">Any country</option>
+                    <option value="us">United States</option>
+                    <option value="ca">Canada</option>
+                    <option value="uk">United Kingdom</option>
+                    <option value="in">India</option>
+                    <option value="de">Germany</option>
+                    <option value="sg">Singapore</option>
+                    <option value="es">Spain</option>
+                    <option value="fr">France</option>
+                    <option value="nl">Netherlands</option>
+                    <option value="ie">Ireland</option>
+                    <option value="pl">Poland</option>
+                    <option value="au">Australia</option>
+                    <option value="br">Brazil</option>
+                    <option value="mx">Mexico</option>
+                    <option value="jp">Japan</option>
+                    <option value="ph">Philippines</option>
+                    <option value="pt">Portugal</option>
+                  </select>
                   <button type="button" id="useMyLocationBtn" class="jli-btn">📍 Use my location</button>
                 </div>
                 <div id="locHint" style="font-size:11px;color:rgba(251,247,240,0.4);margin-top:6px;">Remote roles always match. Metro areas cover ~75 miles from the city center.</div>
@@ -7187,6 +7207,7 @@
       const locHay = [p.location_type, p.city].filter(Boolean).join(' ').toLowerCase();
       if(!(toks.some(t => locHay.includes(String(t).toLowerCase())) || (d.locationOrRemote && isRemote))) return false;
     }
+    if(d.country && !isRemote && !countryMatch([p.city, p.location_type].filter(Boolean).join(' '), d.country)) return false;
     for(const g of (d.keywordGroups || [])){ if(g && g.length && !g.some(kw => hay.includes(String(kw).toLowerCase()))) return false; }
     return true;
   }
@@ -7195,7 +7216,7 @@
     if(!listEl) return;
     const countEl = document.getElementById('roleCount'); if(countEl) countEl.textContent = __dash.total ? `${__dash.total} role${__dash.total !== 1 ? 's' : ''}` : '';
     const heading = document.getElementById('allRolesHeading');
-    if(heading) heading.innerHTML = (__dash.q || __dash.remote || __dash.minSalary || (__dash.employmentType && __dash.employmentType.length) || (__dash.keywordGroups && __dash.keywordGroups.length) || (__dash.locationTokens && __dash.locationTokens.length)) ? 'Search <em>results</em>' : 'All open <em>roles</em>';
+    if(heading) heading.innerHTML = (__dash.q || __dash.remote || __dash.minSalary || __dash.country || (__dash.employmentType && __dash.employmentType.length) || (__dash.keywordGroups && __dash.keywordGroups.length) || (__dash.locationTokens && __dash.locationTokens.length)) ? 'Search <em>results</em>' : 'All open <em>roles</em>';
     const directHtml = (__directPostings || []).filter(p => !__dismissedPostingIds.has(p.id) && postingMatchesDash(p)).map(dashPostingCard).join('');
     if(!__dash.items.length && !directHtml){
       listEl.innerHTML = `<div style="text-align:center;padding:44px 20px;color:rgba(251,247,240,0.4);"><div style="font-family:'Fraunces',serif;font-size:18px;font-style:italic;margin-bottom:6px;">No roles found</div><div style="font-size:13px;">Try adjusting your search or filters.</div></div>`;
@@ -7221,7 +7242,7 @@
         if(__dash.sort === 'match'){
           res = await loadMatchSorted(API, PAGE, reset);
         } else {
-          res = await API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, sort:__dash.sort });
+          res = await API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, country:__dash.country, sort:__dash.sort });
         }
       } else {
         res = filterSampleJobs(PAGE);
@@ -7260,6 +7281,38 @@
     denver:  { label:'Denver Metro', lat:39.74, lng:-104.99, tokens:['Denver','Boulder','Aurora','Lakewood','Broomfield','Centennial','Colorado',' CO'] },
     atlanta: { label:'Atlanta Metro', lat:33.75, lng:-84.39, tokens:['Atlanta','Alpharetta','Marietta','Sandy Springs','Roswell','Decatur','Georgia',' GA'] },
   };
+  // Country tokens matched against the free-text job location. US is handled as
+  // "not any foreign token" (see FOREIGN_TOKENS) since the feed is US-dominant and
+  // most US jobs don't spell out the country.
+  const COUNTRY_TOKENS = {
+    uk: ['united kingdom','england','scotland','wales','london','manchester','birmingham','edinburgh','glasgow','bristol','leeds'],
+    ca: ['canada','toronto','vancouver','montreal','ottawa','calgary','edmonton','waterloo'],
+    in: ['india','bangalore','bengaluru','mumbai','delhi','hyderabad','pune','chennai','gurgaon','gurugram','noida','kolkata','ahmedabad'],
+    de: ['germany','berlin','munich','münchen','frankfurt','hamburg','cologne','köln','stuttgart'],
+    sg: ['singapore'],
+    es: ['spain','madrid','barcelona','valencia','málaga','malaga','sevilla'],
+    fr: ['france','paris','lyon','toulouse','marseille','bordeaux'],
+    nl: ['netherlands','amsterdam','rotterdam','the hague','eindhoven','utrecht'],
+    ie: ['ireland','dublin','cork','galway'],
+    pl: ['poland','warsaw','warszawa','krakow','kraków','wroclaw','wrocław','gdansk','gdańsk'],
+    au: ['australia','sydney','melbourne','brisbane','perth','canberra'],
+    br: ['brazil','brasil','são paulo','sao paulo','rio de janeiro','belo horizonte'],
+    mx: ['mexico','méxico','guadalajara','monterrey'],
+    jp: ['japan','tokyo','osaka','kyoto'],
+    ph: ['philippines','manila','cebu','makati','taguig'],
+    pt: ['portugal','lisbon','lisboa','porto'],
+  };
+  const FOREIGN_TOKENS = [...new Set(Object.values(COUNTRY_TOKENS).flat())];
+  function dashCountry(code){
+    if(code === 'us') return { mode:'exclude', tokens: FOREIGN_TOKENS };
+    if(code && COUNTRY_TOKENS[code]) return { mode:'include', tokens: COUNTRY_TOKENS[code] };
+    return null;
+  }
+  function countryMatch(loc, country){
+    if(!country) return true;
+    const s = String(loc || '').toLowerCase();
+    return country.mode === 'exclude' ? !country.tokens.some(t => s.includes(t)) : country.tokens.some(t => s.includes(t));
+  }
   function nearestMetro(lat, lng){
     const R = 3959; // mi
     const rad = d => d * Math.PI / 180;
@@ -7305,14 +7358,14 @@
     // that small window would decimate results to ~0 — so when any such filter is
     // active, use the normal server-side filtered list (authoritative + paginated).
     const hasStructured = (__dash.employmentType && __dash.employmentType.length) || __dash.minSalary ||
-      (__dash.locationTokens && __dash.locationTokens.length) || (__dash.keywordGroups && __dash.keywordGroups.length);
+      (__dash.locationTokens && __dash.locationTokens.length) || (__dash.keywordGroups && __dash.keywordGroups.length) || __dash.country;
     if(hasStructured){
-      return API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, sort:'newest' });
+      return API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, country:__dash.country, sort:'newest' });
     }
     if(!reset) return { jobs: [], total: __dash.total };   // match view is a single ranked page
     const kw = (typeof seekerJobKeywords === 'function') ? seekerJobKeywords() : { query:'' };
     const q = [kw.query, __dash.q].filter(Boolean).join(' or ');
-    if(!q) return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, sort:'newest' });
+    if(!q) return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, country:__dash.country, sort:'newest' });
     let ranked = [];
     try{ ranked = await API.jobs.search({ q, remote:__dash.remote || null, limit:50 }); }catch(e){ ranked = []; }
     // Resilience: if the ranked search returns nothing (e.g. it timed out on a
@@ -7345,6 +7398,7 @@
     let f = SAMPLE_JOBS.filter(j => (!__dash.remote || j.remote) && empTypeMatch(j.employment_type, empTypes)
       && (!ms || (j.salary_max && j.salary_max >= ms) || (j.salary_min && j.salary_min >= ms))
       && (!locToks.length || (__dash.locationOrRemote && j.remote) || locToks.some(t => String(j.location||'').toLowerCase().includes(t)))
+      && countryMatch(j.location, __dash.country)
       && groups.every(g => g.some(k => `${j.title||''} ${(j.tags||[]).join(' ')}`.toLowerCase().includes(k.toLowerCase())))
       && (!q || `${j.title} ${j.company} ${j.location}`.toLowerCase().includes(q)));
     if(__dash.sort === 'salary') f = f.slice().sort((a,b) => (b.salary_max||0) - (a.salary_max||0));
@@ -7377,6 +7431,8 @@
     __dash.keywordGroups = [deptVals, senVals].filter(g => g.length);
     const s = document.getElementById('jobSearch'); __dash.q = s ? s.value.trim() : '';
     const so = document.getElementById('jobSortSelect'); __dash.sort = so ? so.value : 'newest';
+    const cy = document.getElementById('jobCountry'); __dash.country = dashCountry(cy ? cy.value : '');
+    saveFilters();   // persist the current filter selection (per user)
   }
   function clearDashFilters(){
     document.querySelectorAll('#dashView .quick-chip.active, #advFilterPanel .adv-chip.active').forEach(c => c.classList.remove('active'));
@@ -7384,9 +7440,56 @@
     const s = document.getElementById('jobSearch'); if(s) s.value = '';
     const so = document.getElementById('jobSortSelect'); if(so) so.value = 'newest';
     const mt = document.getElementById('jobMetro'); if(mt) mt.value = '';
+    const cy = document.getElementById('jobCountry'); if(cy) cy.value = '';
     const li = document.getElementById('jobLocationInput'); if(li) li.value = '';
     const lh = document.getElementById('locHint'); if(lh) lh.textContent = 'Remote roles always match. Metro areas cover ~75 miles from the city center.';
     syncDashFilters(); loadDashJobs(true);
+  }
+  // ---- Persistent filters: saved per user (server user_prefs + localStorage) ----
+  let __filtersRestored = false, __saveFiltersTimer = null;
+  function captureFilterUI(){
+    const g = sel => [...document.querySelectorAll(sel)].filter(c => c.classList.contains('active')).map(c => c.dataset.quick || c.dataset.value);
+    return {
+      quick: g('#dashView .quick-chip'),
+      setup: g('#advFilterPanel .adv-chip[data-filter="setup"]'),
+      empType: g('#advFilterPanel .adv-chip[data-filter="empType"]'),
+      dept: g('#advFilterPanel .adv-chip[data-filter="dept"]'),
+      seniority: g('#advFilterPanel .adv-chip[data-filter="seniority"]'),
+      metro: (document.getElementById('jobMetro')||{}).value || '',
+      country: (document.getElementById('jobCountry')||{}).value || '',
+      locText: (document.getElementById('jobLocationInput')||{}).value || '',
+      salary: parseInt((document.getElementById('salarySlider')||{}).value||0,10) || 0,
+      q: (document.getElementById('jobSearch')||{}).value || '',
+      sort: (document.getElementById('jobSortSelect')||{}).value || 'newest'
+    };
+  }
+  function applyFilterUI(f){
+    if(!f) return;
+    const setChips = (sel, vals) => document.querySelectorAll(sel).forEach(c => c.classList.toggle('active', (vals||[]).indexOf(c.dataset.quick || c.dataset.value) >= 0));
+    setChips('#dashView .quick-chip', f.quick);
+    setChips('#advFilterPanel .adv-chip[data-filter="setup"]', f.setup);
+    setChips('#advFilterPanel .adv-chip[data-filter="empType"]', f.empType);
+    setChips('#advFilterPanel .adv-chip[data-filter="dept"]', f.dept);
+    setChips('#advFilterPanel .adv-chip[data-filter="seniority"]', f.seniority);
+    const set = (id,v) => { const el = document.getElementById(id); if(el && v != null) el.value = v; };
+    set('jobMetro', f.metro); set('jobCountry', f.country); set('jobLocationInput', f.locText); set('jobSearch', f.q); set('jobSortSelect', f.sort || 'newest');
+    const sl = document.getElementById('salarySlider'); if(sl){ sl.value = f.salary || 0; const sd = document.getElementById('salaryDisplay'); if(sd) sd.textContent = (f.salary > 0) ? ('$' + f.salary + 'k+') : 'Any'; }
+    const anyAdv = (f.setup&&f.setup.length)||(f.empType&&f.empType.length)||(f.dept&&f.dept.length)||(f.seniority&&f.seniority.length)||f.metro||f.country||f.locText||f.salary;
+    if(anyAdv){ const p = document.getElementById('advFilterPanel'); if(p) p.classList.add('open'); const ft = document.getElementById('advFilterToggle'); if(ft) ft.classList.add('active'); }
+  }
+  function saveFilters(){
+    if(!__filtersRestored) return;
+    const f = captureFilterUI();
+    try{ localStorage.setItem('gc_filters', JSON.stringify(f)); }catch(e){}
+    clearTimeout(__saveFiltersTimer);
+    __saveFiltersTimer = setTimeout(async () => { try{ const API = await gcAwaitAPI(); if(API && API.enabled && API.prefs) await API.prefs.set({ filters: f }); }catch(e){} }, 800);
+  }
+  async function restoreFilters(){
+    let f = null;
+    try{ const API = await gcAwaitAPI(); if(API && API.enabled && API.prefs){ const p = await API.prefs.get(); f = p && p.filters; } }catch(e){}
+    if(!f){ try{ f = JSON.parse(localStorage.getItem('gc_filters') || 'null'); }catch(e){} }
+    if(f) applyFilterUI(f);
+    syncDashFilters();   // populate __dash from the restored (or empty) UI
   }
   function wireDashControls(){
     const once = (el, fn) => { if(el && !el.__jbwired){ el.__jbwired = 1; fn(el); } };
@@ -7397,6 +7500,7 @@
     once(document.getElementById('clearAllFilters'), c => c.onclick = clearDashFilters);
     once(document.getElementById('salarySlider'), sl => { sl.oninput = () => { const v = parseInt(sl.value,10); const sd = document.getElementById('salaryDisplay'); if(sd) sd.textContent = v ? ('$' + v + 'k+') : 'Any'; }; sl.onchange = () => { syncDashFilters(); loadDashJobs(true); }; });
     once(document.getElementById('jobMetro'), mt => mt.onchange = () => { const li = document.getElementById('jobLocationInput'); if(li && mt.value) li.value = ''; syncDashFilters(); loadDashJobs(true); });
+    once(document.getElementById('jobCountry'), cy => cy.onchange = () => { syncDashFilters(); loadDashJobs(true); });
     once(document.getElementById('jobLocationInput'), li => li.addEventListener('input', () => { clearTimeout(__dashTimer); __dashTimer = setTimeout(() => { syncDashFilters(); loadDashJobs(true); }, 350); }));
     once(document.getElementById('useMyLocationBtn'), b => b.onclick = useMyLocation);
     document.querySelectorAll('#dashView .quick-chip').forEach(chip => once(chip, c => c.onclick = () => { c.classList.toggle('active'); syncDashFilters(); loadDashJobs(true); }));
@@ -7430,9 +7534,12 @@
     renderDashboard();          // hydrate the sidebar (async; sidebar only)
     hideDashRecruiterBits();
     wireDashControls();
-    __dash = { q:'', remote:false, minSalary:null, employmentType:[], keywordGroups:[], locationTokens:[], locationOrRemote:false, sort:'newest', offset:0, total:0, items:[], loading:false };
+    __dash = { q:'', remote:false, minSalary:null, employmentType:[], keywordGroups:[], locationTokens:[], locationOrRemote:false, country:null, sort:'newest', offset:0, total:0, items:[], loading:false };
     await loadSavedSet();     // so cards show the correct Save state
     loadPostingSets();        // client-side saved/dismissed state for direct postings
+    __filtersRestored = false;
+    await restoreFilters();   // reapply the user's saved filters, then fill __dash
+    __filtersRestored = true;
     loadDashJobs(true);
     chatUnreadCheck();
   }

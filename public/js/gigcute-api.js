@@ -774,13 +774,21 @@ function parseSearch(q) {
 const jobs = {
   // List active jobs, newest first, with optional text search + remote filter.
   // Returns { jobs:[...], total }. total is the full match count (for paging).
-  async list({ limit = 20, offset = 0, q = '', remote = null, minSalary = null, employmentType = null, location = null, keywords = null, keywordGroups = null, locationTokens = null, locationOrRemote = false, sort = 'newest' } = {}) {
+  async list({ limit = 20, offset = 0, q = '', remote = null, minSalary = null, employmentType = null, location = null, keywords = null, keywordGroups = null, locationTokens = null, locationOrRemote = false, country = null, sort = 'newest' } = {}) {
     const clean = s => String(s || '').replace(/[(),%]/g, ' ').trim();
     let query = requireClient()
       .from('jobs')
       .select('*', { count: 'exact' })
       .eq('is_active', true);
     if (remote === true) query = query.eq('remote', true);
+    // Country filter over free-text location. 'include' = matches any country token;
+    // 'exclude' (used for United States, a US-dominant feed) = contains NO foreign
+    // token, so "New York, NY" / "Austin, TX" / "United States" all count as US.
+    if (country && country.tokens && country.tokens.length) {
+      const toks = country.tokens.map(clean).filter(Boolean);
+      if (country.mode === 'exclude') query = query.or('location.is.null,and(' + toks.map(t => `location.not.ilike.%${t}%`).join(',') + ')');
+      else query = query.or(toks.map(t => `location.ilike.%${t}%`).join(','));
+    }
     // employmentType may be a string or an array (multi-select). Stored values are
     // messy free-text from many ATS ('Full time','FullTime','Full-time','Part time',
     // 'Contract'…), so match a normalized keyword per selected type rather than an
@@ -904,9 +912,28 @@ const tracker = {
   },
 };
 
+// ---- Per-user preferences (saved filters, etc.) — private to each user --------
+const prefs = {
+  async get() {
+    const c = requireClient(); const { data: u } = await c.auth.getUser();
+    if (!u?.user) return null;
+    const { data, error } = await c.from('user_prefs').select('prefs').eq('user_id', u.user.id).limit(1);
+    if (error) throw error;
+    return (data && data[0]) ? data[0].prefs : null;
+  },
+  async set(prefsObj) {
+    const c = requireClient(); const { data: u } = await c.auth.getUser();
+    if (!u?.user) return;
+    const { error } = await c.from('user_prefs')
+      .upsert({ user_id: u.user.id, prefs: prefsObj, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+    if (error) throw error;
+  },
+};
+
 window.GigCuteAPI = {
   enabled,
   supabase,
+  prefs,
   auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat, support, events, jobs, tracker,
   isFreeEmailDomain,
 };
