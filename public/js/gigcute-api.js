@@ -124,10 +124,16 @@ const profiles = {
     if (error) throw error;
     return data;
   },
-  // Record that the current user viewed a seeker's profile (RPC no-ops for
-  // anonymous callers and self-views). Fire-and-forget from the client.
+  // Record that the current user viewed a seeker's profile. Signed-in viewers are
+  // keyed by their uid; anonymous (shared-link) visitors by a stable local token,
+  // so they count as distinct people. RPC still no-ops on self-views.
   async logProfileView(seekerId) {
-    const { error } = await requireClient().rpc('log_profile_view', { p_seeker: seekerId });
+    let vid = null;
+    try {
+      vid = localStorage.getItem('gc_vid');
+      if (!vid) { vid = 'v_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('gc_vid', vid); }
+    } catch (e) { /* private mode / storage disabled */ }
+    const { error } = await requireClient().rpc('log_profile_view', { p_seeker: seekerId, p_visitor: vid });
     if (error) throw error;
   },
   // Distinct people who viewed the current user's profile in the last `days` days.
