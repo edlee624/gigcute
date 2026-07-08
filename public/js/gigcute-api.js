@@ -456,6 +456,32 @@ const postings = {
     if (error) throw error;
     return data;
   },
+  // Record that someone viewed a posting (signed-in by uid, anon by visitor token;
+  // owner-views are skipped server-side). Fire-and-forget.
+  async logView(postingId) {
+    let vid = null;
+    try { vid = localStorage.getItem('gc_vid'); if (!vid) { vid = 'v_' + Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('gc_vid', vid); } } catch (e) {}
+    const { error } = await requireClient().rpc('log_posting_view', { p_posting: postingId, p_visitor: vid });
+    if (error) throw error;
+  },
+  // Headline stats { views, views_7d, interested } for a posting the caller owns.
+  async stats(postingId) {
+    const { data, error } = await requireClient().rpc('posting_stats', { p_posting: postingId });
+    if (error) throw error;
+    return data || null;
+  },
+  // Aggregate professional breakdown of viewers, split by liked vs not-liked.
+  async audience(postingId) {
+    const { data, error } = await requireClient().rpc('posting_audience', { p_posting: postingId });
+    if (error) throw error;
+    return data || null;
+  },
+  // Potential-match candidates for a posting (visible seekers not already interested).
+  async recommend(postingId, limit = 8) {
+    const { data, error } = await requireClient().rpc('recommend_candidates', { p_posting: postingId, p_limit: limit });
+    if (error) throw error;
+    return data || [];
+  },
   async update(id, patch) {
     const { data, error } = await requireClient().from('postings').update(patch).eq('id', id).select().single();
     if (error) throw error;

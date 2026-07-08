@@ -188,6 +188,13 @@
   .conv-menu-item{ display:block; width:100%; text-align:left; background:none; border:none; color:rgba(251,247,240,0.85); font-family:'Inter',sans-serif; font-size:13px; padding:8px 10px; border-radius:7px; cursor:pointer; }
   .conv-menu-item:hover{ background:rgba(255,255,255,0.06); }
   .conv-menu-item.danger{ color:var(--coral); }
+  /* ===== Recruiter posting-manage page ===== */
+  .pm-h2{ font-family:'Fraunces',serif; font-size:19px; font-weight:600; color:var(--paper); margin:0 0 12px; }
+  .pm-sub{ font-family:'JetBrains Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--sage-soft); }
+  .pm-empty{ font-size:13px; color:rgba(251,247,240,0.45); background:var(--ink-soft); border:1px solid var(--line-light); border-radius:12px; padding:16px 18px; }
+  .pm-cand{ display:flex; gap:14px; align-items:center; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:12px; padding:13px 16px; margin-bottom:10px; }
+  .pm-cand-av{ width:44px; height:44px; border-radius:10px; background:var(--ink); border:1px solid var(--line-light); display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:17px; color:rgba(251,247,240,0.5); flex-shrink:0; }
+  .pm-cand-actions{ display:flex; flex-direction:column; gap:6px; align-items:flex-end; flex-shrink:0; }
   /* message thread bubbles (sender + time + day separators) */
   .msg-day{ text-align:center; margin:12px 0 6px; }
   .msg-day span{ font-size:11px; color:rgba(251,247,240,0.4); background:var(--ink); border:1px solid var(--line-light); padding:2px 10px; border-radius:10px; font-family:'JetBrains Mono',monospace; }
@@ -3740,6 +3747,17 @@
   </div>
 </div>
 
+<!-- ============ POSTING MANAGE (recruiter — one posting's activity) ============ -->
+<div class="screen" id="screen-posting-manage">
+  <div style="max-width:940px; margin:0 auto; padding:22px 22px 70px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+      <div class="wordmark"><img src="/logo.png" class="brand-img" alt="GigCute" style="height:26px;"></div>
+      <button class="ds-nav-btn" id="pmBackBtn" type="button">← Your postings</button>
+    </div>
+    <div id="pmContent"><div style="color:rgba(251,247,240,0.4);padding:40px 0;">Loading…</div></div>
+  </div>
+</div>
+
 <!-- ============ POSTING FORM ============ -->
 <div id="postingModal" style="display:none; position:fixed; inset:0; z-index:950; background:rgba(10,11,14,0.82); backdrop-filter:blur(3px); overflow-y:auto;">
   <div style="max-width:640px; margin:34px auto; padding:0 16px 60px;">
@@ -4594,6 +4612,10 @@
       <button id="pvEditBtn" style="display:inline-flex;align-items:center;gap:7px;background:var(--coral);color:var(--paper);border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:700;padding:9px 16px;cursor:pointer;margin-right:auto;margin-left:8px;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         Edit profile / answer more prompts
+      </button>
+      <button id="pvInviteBtn" type="button" style="display:none;align-items:center;gap:7px;background:var(--coral);color:var(--paper);border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:700;padding:9px 16px;cursor:pointer;margin-right:auto;margin-left:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        Invite to chat
       </button>
       <button class="pv-share-btn" id="pvShareBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
@@ -6214,7 +6236,7 @@
     const nfEl = document.getElementById('profileNotFound');
     if(nfEl) nfEl.classList.remove('show');
     const notFound = () => { if(loadEl) loadEl.classList.remove('show'); document.getElementById('profileViewOverlay').classList.remove('open'); if(nfEl) nfEl.classList.add('show'); };
-    let prof, own = false, shareId = id;
+    let prof, own = false, shareId = id, profSeekerId = null;   // profSeekerId = the seeker's profile id (for recruiter invite)
     if(id === 'sample'){
       prof = SAMPLE_PROFILE;            // built-in demo, rendered by the real component
     } else {
@@ -6225,6 +6247,7 @@
       let data = null;
       try{ data = isUuid ? await API.profiles.publicProfile(id) : await API.profiles.publicProfileByCode(id); }catch(e){ console.warn('profile load:', e && e.message); }
       if(!data){ notFound(); return; }
+      profSeekerId = data.id;
       prof = {
         name: data.name || '', title: data.headline || '', photo: data.photo_url || null,
         resumeUrl: data.resume_url || '', linkedinUrl: data.linkedin_url || '',
@@ -6265,7 +6288,18 @@
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       const hl = document.getElementById('homeLogo'); if(hl) hl.style.display = 'none';
     }
+    // Recruiter viewing a candidate: hide contact links (LinkedIn / resume) and
+    // offer "Invite to chat" instead. (Contact happens inside GigCute.)
+    const recruiterViewing = __amRecruiter && !own && id !== 'sample';
+    if(recruiterViewing){ prof.linkedinUrl = ''; prof.resumeUrl = ''; }
     renderProfileView(prof);
+    const invb = document.getElementById('pvInviteBtn');
+    if(invb){
+      if(recruiterViewing && __inviteContextPosting && profSeekerId){
+        invb.style.display = 'inline-flex'; const sid = profSeekerId, pid = __inviteContextPosting;
+        invb.onclick = () => recruiterInviteFor(pid, sid);
+      } else invb.style.display = 'none';
+    }
     const eb = document.getElementById('pvEditBtn'); if(eb) eb.style.display = own ? '' : 'none';
     const cb = document.getElementById('pvCloseBtn'); if(cb) cb.style.display = own ? 'none' : '';  // own profile is home — no "back"
     const lo = document.getElementById('pvLogoutBtn'); if(lo) lo.style.display = own ? '' : 'none';  // logout only on your own profile
@@ -7041,6 +7075,7 @@
   let __directById = {};
   async function openPostingDetail(id){
     const p = __directById[id]; if(!p) return;
+    try{ if(window.GigCuteAPI && window.GigCuteAPI.enabled) window.GigCuteAPI.postings.logView(id); }catch(e){}   // record the view (owner-views skipped server-side)
     const co = p.companies || {};
     const money = v => v ? ('$' + (v>=1000 ? Math.round(v/1000)+'k' : v)) : '';
     const sal = (p.salary_min || p.salary_max) ? `${money(p.salary_min)}${p.salary_max?'–'+money(p.salary_max):'+'}` : '';
@@ -7724,18 +7759,23 @@
       return;
     }
     const money = v => v ? ('$' + (v >= 1000 ? Math.round(v/1000) + 'k' : v)) : '';
+    // Pull activity stats for each posting (views + interested) in parallel.
+    const statsArr = await Promise.all((list || []).map(p => API.postings.stats(p.id).catch(() => null)));
+    const statsById = {}; (list || []).forEach((p, i) => { statsById[p.id] = statsArr[i]; });
     el.innerHTML = list.map(p => {
       const sal = (p.salary_min || p.salary_max) ? `${money(p.salary_min)}${p.salary_max ? '–' + money(p.salary_max) : '+'}` : '';
       const loc = [p.location_type, p.city].filter(Boolean).join(' · ');
       const statusColor = p.status === 'active' ? 'var(--sage)' : 'rgba(251,247,240,0.4)';
-      return `<div style="background:var(--ink-soft); border:1px solid var(--line-light); border-radius:14px; padding:18px 20px; margin-bottom:12px; display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+      const st = statsById[p.id] || {};
+      const stat = (n, label) => `<span style="display:inline-flex;align-items:baseline;gap:4px;"><b style="font-family:'Fraunces',serif;font-size:15px;color:var(--paper);">${n||0}</b><span style="font-size:11px;color:rgba(251,247,240,0.5);">${label}</span></span>`;
+      return `<div class="rec-posting" onclick="openPostingManage('${p.id}')" style="background:var(--ink-soft); border:1px solid var(--line-light); border-radius:14px; padding:18px 20px; margin-bottom:12px; display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; cursor:pointer;">
         <div style="min-width:0;">
           <div style="font-family:'Fraunces',serif; font-size:17px; font-weight:600; color:var(--paper);">${escapeHtml(p.title || 'Untitled role')}</div>
           <div style="font-size:12.5px; color:rgba(251,247,240,0.6); margin-top:3px;">${escapeHtml([loc, sal].filter(Boolean).join(' · '))}</div>
-          <div style="font-family:'JetBrains Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:${statusColor}; margin-top:8px;">${escapeHtml(p.status)}</div>
+          <div style="display:flex;gap:16px;margin-top:10px;align-items:center;">${stat(st.views,'viewed')}${stat(st.interested,'interested')}<span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:${statusColor};">${escapeHtml(p.status)}</span></div>
         </div>
-        <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
-          <button class="jli-btn primary" type="button" onclick="openCandidates('${p.id}','${escapeHtml(String(p.title||'').replace(/'/g,''))}')">Candidates</button>
+        <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;" onclick="event.stopPropagation()">
+          <button class="jli-btn primary" type="button" onclick="openPostingManage('${p.id}')">Open</button>
           <button class="jli-btn" type="button" onclick="openPostingForm('${p.id}')">Edit</button>
           ${p.status !== 'active' ? `<button class="jli-btn" type="button" onclick="publishPosting('${p.id}')">Publish</button>` : ''}
         </div>
@@ -7747,6 +7787,103 @@
     try{ await API.postings.update(id, { status:'active', published_at: new Date().toISOString() }); }catch(e){ if(typeof showToast==='function') showToast('Could not publish.'); }
     renderRecruiterPostings();
   }
+  // ===== Posting manage page: stats · posting · interested · audience · matches =====
+  let __pmPostingId = null;
+  let __inviteContextPosting = null;   // set when a recruiter opens a candidate profile
+  function pmToggleBox(){ const b=document.getElementById('pmBox'), c=document.getElementById('pmChevron'); if(!b) return; const hide=b.style.display!=='none'; b.style.display=hide?'none':''; if(c) c.textContent=hide?'▸':'▾'; }
+  window.pmToggleBox = pmToggleBox;
+  async function recruiterViewCandidate(seekerId, postingId){ __inviteContextPosting = postingId || null; navigate('/profile/' + encodeURIComponent(seekerId)); }
+  window.recruiterViewCandidate = recruiterViewCandidate;
+  async function recruiterInviteFor(postingId, seekerId){
+    const API = await gcAwaitAPI();
+    try{ await API.invites.send({ postingId, seekerId, note:'We would love for you to consider this role.' }); if(typeof showToast==='function') showToast('Invite sent — they’ll see it in their inbox.'); }
+    catch(e){ if(typeof showToast==='function') showToast('Could not send invite.'); }
+  }
+  window.recruiterInviteFor = recruiterInviteFor;
+  async function pmLikeBack(postingId, seekerId){
+    const API = await gcAwaitAPI();
+    try{ await API.interest.recruiterLike(postingId, seekerId); if(typeof showToast==='function') showToast('You liked them back!'); }catch(e){ if(typeof showToast==='function') showToast('Could not like.'); }
+    openPostingManage(postingId);
+  }
+  window.pmLikeBack = pmLikeBack;
+  function pmAudience(a){
+    const total = a ? ((a.liked_count||0)+(a.other_count||0)) : 0;
+    if(!total) return `<section style="margin-bottom:26px;"><h2 class="pm-h2">Who’s looking</h2><div class="pm-empty">Not enough view activity yet — this fills in as signed-in seekers view your role.</div></section>`;
+    const dist = obj => { const e = Object.entries(obj||{}).sort((x,y)=>y[1]-x[1]); return e.length ? e.map(([k,v])=>`<div style="display:flex;justify-content:space-between;font-size:12.5px;color:rgba(251,247,240,0.72);margin-bottom:3px;"><span>${escapeHtml(k)}</span><span style="color:rgba(251,247,240,0.45);">${v}</span></div>`).join('') : '<div style="font-size:12px;color:rgba(251,247,240,0.35);">—</div>'; };
+    const col = (title,count,ws,exp) => `<div style="flex:1;min-width:190px;background:var(--ink-soft);border:1px solid var(--line-light);border-radius:12px;padding:14px 16px;">
+      <div style="font-weight:700;color:var(--paper);font-size:14px;">${title} <span style="color:rgba(251,247,240,0.4);font-weight:400;">· ${count}</span></div>
+      ${count>=3
+        ? `<div style="margin-top:10px;"><div class="pm-sub">Work setup</div>${dist(ws)}</div><div style="margin-top:12px;"><div class="pm-sub">Experience</div>${dist(exp)}</div>`
+        : `<div style="font-size:12px;color:rgba(251,247,240,0.4);margin-top:8px;">Breakdown shows once at least 3 people are in this group (protects individual privacy).</div>`}
+    </div>`;
+    return `<section style="margin-bottom:26px;"><h2 class="pm-h2">Who’s looking <span style="font-size:12px;font-weight:400;color:rgba(251,247,240,0.4);">— signed-in viewers, aggregated</span></h2>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        ${col('Interested', a.liked_count||0, a.work_setup&&a.work_setup.liked, a.experience&&a.experience.liked)}
+        ${col('Viewed, didn’t like', a.other_count||0, a.work_setup&&a.work_setup.other, a.experience&&a.experience.other)}
+      </div></section>`;
+  }
+  async function openPostingManage(id){
+    __amRecruiter = true;
+    showScreen('screen-posting-manage');
+    if(!__applyingRoute && location.pathname !== '/managepost/'+id){ window.history.pushState({}, '', '/managepost/'+encodeURIComponent(id)); __didInAppNav = true; }
+    const el = document.getElementById('pmContent'); if(!el) return;
+    el.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:40px 0;">Loading…</div>';
+    const API = await gcAwaitAPI();
+    let p = __postingsById[id];
+    if(!p){ try{ const mine = await API.postings.mine(); (mine||[]).forEach(x=>__postingsById[x.id]=x); p = __postingsById[id]; }catch(e){} }
+    if(!p){ el.innerHTML = '<div style="padding:40px 0;color:rgba(251,247,240,0.5);">Posting not found.</div>'; return; }
+    __pmPostingId = id;
+    const [stats, cands, audience, recs] = await Promise.all([
+      API.postings.stats(id).catch(()=>null),
+      API.interest.seekersWhoLiked(id).catch(()=>[]),
+      API.postings.audience(id).catch(()=>null),
+      API.postings.recommend(id, 8).catch(()=>[])
+    ]);
+    const money = v => v ? ('$' + (v>=1000 ? Math.round(v/1000)+'k' : v)) : '';
+    const sal = (p.salary_min||p.salary_max) ? `${money(p.salary_min)}${p.salary_max?'–'+money(p.salary_max):'+'}` : '';
+    const meta = [ [p.location_type,p.city].filter(Boolean).join(' · '), p.employment_type, sal ].filter(Boolean).join(' · ');
+    const views = stats ? (stats.views||0) : 0, interested = stats ? (stats.interested||0) : (cands||[]).length;
+    const statCard = (n,label) => `<div style="flex:1;min-width:120px;background:var(--ink-soft);border:1px solid var(--line-light);border-radius:14px;padding:16px 18px;"><div style="font-family:'Fraunces',serif;font-size:28px;font-weight:600;color:var(--coral);">${n}</div><div style="font-size:11px;color:rgba(251,247,240,0.55);text-transform:uppercase;letter-spacing:0.05em;font-family:'JetBrains Mono',monospace;margin-top:2px;">${label}</div></div>`;
+    const statsHtml = `<div style="display:flex;gap:12px;margin-bottom:22px;flex-wrap:wrap;">${statCard(views,'Viewed')}${statCard(interested,'Interested')}${statCard(stats?(stats.views_7d||0):0,'Viewed · 7d')}</div>`;
+    const listBlock=(t,arr)=>(arr&&arr.length)?`<div style="margin-top:14px;"><div class="pm-sub">${t}</div><ul style="font-size:13.5px;color:rgba(251,247,240,0.8);line-height:1.6;margin:4px 0 0;padding-left:18px;">${arr.map(x=>`<li>${escapeHtml(x)}</li>`).join('')}</ul></div>`:'';
+    const postingHtml = `<div style="background:var(--ink-soft);border:1px solid var(--line-light);border-radius:16px;padding:20px 22px;margin-bottom:24px;">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+        <div style="min-width:0;cursor:pointer;" onclick="pmToggleBox()">
+          <div style="font-family:'Fraunces',serif;font-size:20px;font-weight:600;color:var(--paper);">${escapeHtml(p.title||'Role')} <span id="pmChevron" style="font-size:12px;color:rgba(251,247,240,0.4);">▾</span></div>
+          <div style="font-size:12.5px;color:rgba(251,247,240,0.6);margin-top:3px;">${escapeHtml(meta)} · <span style="color:${p.status==='active'?'var(--sage)':'rgba(251,247,240,0.4)'};">${escapeHtml(p.status)}</span></div>
+        </div>
+        <button class="jli-btn" type="button" onclick="openPostingForm('${id}')">Edit</button>
+      </div>
+      <div id="pmBox">${listBlock('Key responsibilities',p.responsibilities)}${listBlock('Qualifications',p.qualifications)}${(!(p.responsibilities||[]).length && !(p.qualifications||[]).length)?'<div style="font-size:13px;color:rgba(251,247,240,0.4);margin-top:10px;">No description added — use Edit to add details.</div>':''}</div>
+    </div>`;
+    const av = (photo,name) => `<div class="pm-cand-av" style="${photo?`background:url('${escapeHtml(photo)}') center/cover;`:''}">${photo?'':escapeHtml((String(name||'?').trim().charAt(0)||'?').toUpperCase())}</div>`;
+    const candCard = c => `<div class="pm-cand">${av(c.photo_url,c.full_name)}
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;color:var(--paper);font-size:14px;">${escapeHtml(c.full_name||'Candidate')}${c.mutual?' <span style="color:var(--sage);font-size:11px;">· matched</span>':''}</div>
+        <div style="font-size:12.5px;color:rgba(251,247,240,0.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(c.headline||'')}</div>
+      </div>
+      <div class="pm-cand-actions">
+        <button class="jli-btn" type="button" onclick="recruiterViewCandidate('${escapeHtml(c.seeker_id)}','${id}')">View profile</button>
+        ${c.mutual
+          ? `<button class="jli-btn primary" type="button" onclick="recruiterMessageFor('${id}','${escapeHtml(c.seeker_id)}','${escapeHtml((c.full_name||'Candidate').replace(/'/g,''))}')">Message</button>`
+          : `<button class="jli-btn primary" type="button" onclick="pmLikeBack('${id}','${escapeHtml(c.seeker_id)}')">Like back</button>`}
+      </div></div>`;
+    const interestedHtml = `<section style="margin-bottom:26px;"><h2 class="pm-h2">Interested candidates <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.4);">· ${(cands||[]).length}</span></h2>${(cands&&cands.length)?cands.map(candCard).join(''):'<div class="pm-empty">No candidates have shown interest yet.</div>'}</section>`;
+    const recCard = r => { const skills=(r.skills||[]).slice(0,4).map(s=>`<span class="jli-tag">${escapeHtml(s)}</span>`).join('');
+      return `<div class="pm-cand">${av(r.photo_url,r.name)}
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;color:var(--paper);font-size:14px;">${escapeHtml(r.name||'Candidate')}</div>
+          <div style="font-size:12.5px;color:rgba(251,247,240,0.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(r.headline||'')}</div>
+          ${skills?`<div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap;">${skills}</div>`:''}
+        </div>
+        <div class="pm-cand-actions">
+          <button class="jli-btn" type="button" onclick="recruiterViewCandidate('${escapeHtml(r.seeker_id)}','${id}')">View profile</button>
+          <button class="jli-btn primary" type="button" onclick="recruiterInviteFor('${id}','${escapeHtml(r.seeker_id)}')">Invite to chat</button>
+        </div></div>`; };
+    const recsHtml = `<section><h2 class="pm-h2">Potential matches <span style="font-size:12px;font-weight:400;color:rgba(251,247,240,0.4);">— based on skills</span></h2>${(recs&&recs.length)?recs.map(recCard).join(''):'<div class="pm-empty">No further recommendations right now.</div>'}</section>`;
+    el.innerHTML = statsHtml + postingHtml + interestedHtml + pmAudience(audience) + recsHtml;
+  }
+  window.openPostingManage = openPostingManage;
   function openPostingForm(idOrObj){
     const existing = typeof idOrObj === 'string' ? __postingsById[idOrObj] : (idOrObj && idOrObj.id ? idOrObj : null);
     __editingPostingId = existing ? existing.id : null;
@@ -8286,6 +8423,7 @@
   { const b=document.getElementById('discoverBackBtn'); if(b) b.onclick = () => goBack('/jobs'); }
   { const b=document.getElementById('discoverMsgsBtn'); if(b) b.onclick = () => navigate('/messages'); }
   { const b=document.getElementById('messagesBackBtn'); if(b) b.onclick = () => goBack(recruiterHome()); }
+  { const b=document.getElementById('pmBackBtn'); if(b) b.onclick = () => goBack('/hiring'); }
   { const b=document.getElementById('jobsDiscoverBtn'); if(b) b.onclick = () => navigate('/discover'); }
   { const b=document.getElementById('jobsTrackerBtn'); if(b) b.onclick = () => navigate('/tracker'); }
   { const b=document.getElementById('jobsMessagesBtn'); if(b) b.onclick = () => navigate('/messages'); }
@@ -8410,10 +8548,12 @@
       const jm = path.match(/^\/job\/([^/]+)\/?$/);
       const om = path.match(/^\/posting\/([^/]+)\/?$/);
       const mm = path.match(/^\/messages\/([^/]+)\/?$/);
+      const gm = path.match(/^\/managepost\/([^/]+)\/?$/);
       if(pm){ showProfilePage(decodeURIComponent(pm[1])); }
       else if(jm){ openJobDetail(decodeURIComponent(jm[1])); }
       else if(om){ openPostingDetail(decodeURIComponent(om[1])); }
       else if(mm){ openMessagesWith(decodeURIComponent(mm[1])); }
+      else if(gm){ openPostingManage(decodeURIComponent(gm[1])); }
       else if(path === '/main'){ openProfileView(); }
       else if(path === '/admin'){ showAdmin(); }
       // Skip a full board reload when it's already underneath (e.g. back from a job page).
