@@ -202,7 +202,11 @@
   .cand-badge.live-3{ color:var(--paper); border-color:var(--sage); background:rgba(122,158,126,0.28); }
   .cand-badge.live-7{ color:var(--sage); border-color:rgba(122,158,126,0.5); background:rgba(122,158,126,0.15); }
   .cand-badge.live-14{ color:rgba(122,158,126,0.85); border-color:rgba(122,158,126,0.3); background:rgba(122,158,126,0.07); }
-  .match-chip{ font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700; color:var(--coral); background:rgba(255,90,60,0.1); border:1px solid rgba(255,90,60,0.35); border-radius:20px; padding:2px 9px; white-space:nowrap; flex-shrink:0; }
+  .match-chip{ font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.02em; border:1px solid; border-radius:20px; padding:2px 9px; white-space:nowrap; flex-shrink:0; }
+  .match-chip.tier-vs{ color:var(--paper); background:rgba(122,158,126,0.30); border-color:var(--sage); }
+  .match-chip.tier-s{ color:var(--sage); background:rgba(122,158,126,0.14); border-color:rgba(122,158,126,0.5); }
+  .match-chip.tier-m{ color:var(--coral); background:rgba(255,90,60,0.1); border-color:rgba(255,90,60,0.35); }
+  .match-chip.tier-w{ color:rgba(251,247,240,0.45); background:rgba(255,255,255,0.03); border-color:var(--line-light); }
   /* message thread bubbles (sender + time + day separators) */
   .msg-day{ text-align:center; margin:12px 0 6px; }
   .msg-day span{ font-size:11px; color:rgba(251,247,240,0.4); background:var(--ink); border:1px solid var(--line-light); padding:2px 10px; border-radius:10px; font-family:'JetBrains Mono',monospace; }
@@ -7872,7 +7876,14 @@
       if(r.exp_years >= want.min && r.exp_years <= want.max) pts += 25;
       else { const gap = Math.min(Math.abs(r.exp_years - want.min), Math.abs(r.exp_years - want.max)); pts += Math.max(0, 25 - gap*4); }
     } else pts += 12;
-    return Math.max(1, Math.min(99, Math.round(pts / max * 100)));
+    return Math.max(1, Math.min(100, Math.round(pts / max * 100)));
+  }
+  // Bucket a 0–100 match score into a labeled tier (no raw % shown to recruiters).
+  function matchTier(score){
+    if(score >= 90) return { label:'Very Strong Fit', cls:'tier-vs' };
+    if(score >= 80) return { label:'Strong Fit', cls:'tier-s' };
+    if(score >= 70) return { label:'Mid-Fit', cls:'tier-m' };
+    return { label:'Weak-Fit', cls:'tier-w' };
   }
   async function pmDismiss(postingId, seekerId){
     const API = await gcAwaitAPI();
@@ -7936,7 +7947,7 @@
     const recCard = r => { const skills=(r.skills||[]).slice(0,4).map(s=>`<span class="jli-tag">${escapeHtml(s)}</span>`).join('');
       return `<div class="pm-cand">${av(r.photo_url,r.name)}
         <div style="flex:1;min-width:0;">
-          <div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:700;color:var(--paper);font-size:14px;">${escapeHtml(r.name||'Candidate')}</span><span class="match-chip">${r.__match}% match</span></div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><span style="font-weight:700;color:var(--paper);font-size:14px;">${escapeHtml(r.name||'Candidate')}</span><span class="match-chip ${matchTier(r.__match).cls}">${matchTier(r.__match).label}</span></div>
           <div style="font-size:12.5px;color:rgba(251,247,240,0.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(r.headline||'')}</div>
           ${candidateBadges(sigMap[r.seeker_id])}
           ${skills?`<div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap;">${skills}</div>`:''}
