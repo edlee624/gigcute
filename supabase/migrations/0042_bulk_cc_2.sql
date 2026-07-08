@@ -1,4 +1,4 @@
--- Bulk CC-harvested company boards, part 2/5 (1500 rows).
+-- Bulk CC-harvested company boards, part 2/7 (1500 rows).
 insert into public.job_sources (platform, slug, company_name, datacenter, site) values
  ('ashby','qualitate','qualitate',null,null),
  ('ashby','qualytics','qualytics',null,null),

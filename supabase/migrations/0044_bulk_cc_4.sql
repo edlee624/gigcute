@@ -1,4 +1,4 @@
--- Bulk CC-harvested company boards, part 4/5 (1500 rows).
+-- Bulk CC-harvested company boards, part 4/7 (1500 rows).
 insert into public.job_sources (platform, slug, company_name, datacenter, site) values
  ('greenhouse','bassabatherapy','bassabatherapy',null,null),
  ('greenhouse','baton','baton',null,null),
