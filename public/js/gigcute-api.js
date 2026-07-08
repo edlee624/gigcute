@@ -124,6 +124,18 @@ const profiles = {
     if (error) throw error;
     return data;
   },
+  // Record that the current user viewed a seeker's profile (RPC no-ops for
+  // anonymous callers and self-views). Fire-and-forget from the client.
+  async logProfileView(seekerId) {
+    const { error } = await requireClient().rpc('log_profile_view', { p_seeker: seekerId });
+    if (error) throw error;
+  },
+  // Distinct people who viewed the current user's profile in the last `days` days.
+  async myProfileViews(days = 7) {
+    const { data, error } = await requireClient().rpc('my_profile_views', { p_days: days });
+    if (error) throw error;
+    return data || 0;
+  },
   // Public shareable profile by id (any visible seeker) — for /profile/<id>.
   async publicProfile(id) {
     const { data, error } = await requireClient().rpc('public_profile', { p_id: id });

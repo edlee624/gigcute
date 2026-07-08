@@ -5059,14 +5059,21 @@
     const lbl = document.querySelector('.cs-progress-label span'); if(lbl) lbl.textContent = s + '% complete';
 
     // The /search dashboard (no preloaded profile) is a behind-the-overlay
-    // preview, so it's populated with lively demo activity. The profile sidebar
-    // (preloaded) stays real with honest zeros.
+    // preview, populated with demo activity for matches/saved. Profile VIEWS are
+    // now real (profile_views): distinct people who viewed you in the last 7 days,
+    // excluding yourself. New accounts legitimately show 0.
     if(preloaded){
       setText('statViews', '0'); setText('insightViews', '0'); setText('insightReplies', '0');
     } else {
-      setText('statMatches', '3'); setText('statViews', '27'); setText('statSaved', '4');
-      setText('insightViews', '27'); setText('insightReplies', '2');
+      setText('statMatches', '3'); setText('statSaved', '4');
+      setText('insightReplies', '2');
       gcRenderPreviewActivity();
+    }
+    // Real profile-view count (both the stat + the "N people viewed…" insight).
+    if(user && API && API.enabled && API.profiles && API.profiles.myProfileViews){
+      API.profiles.myProfileViews(7).then(n => { const v = String(n || 0); setText('statViews', v); setText('insightViews', v); }).catch(() => {});
+    } else if(!preloaded){
+      setText('statViews', '0'); setText('insightViews', '0');
     }
   }
   // Demo matches / invites / open roles / tracker for the /search preview.
@@ -6229,6 +6236,9 @@
       };
       shareId = data.code || id;        // share/Copy-link uses the short code
       try{ const u = await API.auth.currentUser(); own = !!(u && data.id && u.id === data.id); }catch(e){}
+      // Record a real profile view when someone OTHER than the owner opens it
+      // (the RPC also guards against self/anonymous). Fire-and-forget.
+      if(!own && data.id){ try{ API.profiles.logProfileView(data.id); }catch(e){} }
     }
     if(loadEl) loadEl.classList.remove('show');   // data is in; drop the spinner
     const ov = document.getElementById('profileViewOverlay');
