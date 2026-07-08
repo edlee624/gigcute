@@ -7558,6 +7558,11 @@
 
   // ===== RECRUITER (Phase 2: onboarding + postings) =====
   let __recruiterCompany = null;
+  // Reliable "this user is a recruiter" flag — `mode` is unreliable (never set to
+  // 'recruiter', and flipped to 'candidate' by profile views). Used to send the
+  // messaging Back button home to the recruiter dashboard ("Your postings").
+  let __amRecruiter = false;
+  function recruiterHome(){ return __amRecruiter ? '/hiring' : '/jobs'; }
   let __postingsById = {};
   let __editingPostingId = null;
   let __postLoginRecruiter = false;
@@ -7614,6 +7619,7 @@
     }catch(e){ fail((e && e.message) || 'Could not create company. Make sure your email is confirmed.'); btn.disabled = false; btn.textContent = old; }
   }
   async function showRecruiterApp(){
+    __amRecruiter = true;
     showScreen('screen-recruiter-app');
     // Give the dashboard a real history entry so browser-back from a candidate
     // profile (/profile/:id) returns here instead of the pre-login page.
@@ -7988,6 +7994,9 @@
     let convos = [];
     try{ convos = await API.chat.myConversations(); }catch(e){ console.warn('convos:', e && e.message); }
     try{ const u = await API.auth.currentUser(); if(u){ __convUid = u.id; __convState = convStateLoad(u.id); } }catch(e){}
+    // Authoritative role check so the Back button lands on the right home even on
+    // a fresh /messages load (i_am_recruiter is per-conversation; role is the user).
+    try{ const me = await API.profiles.me(); if(me && me.role){ __amRecruiter = (me.role === 'recruiter'); } else if((convos||[]).some(c => c.i_am_recruiter)){ __amRecruiter = true; } }catch(e){ if((convos||[]).some(c => c.i_am_recruiter)) __amRecruiter = true; }
     __convosCache = convos || [];
     __convById = {};
     __convosCache.forEach(c => { __convById[c.id] = { peer: c.i_am_recruiter ? (c.seeker_name || 'Candidate') : (c.company_name || 'Company'), sub: c.posting_title || '' }; });
@@ -8276,7 +8285,7 @@
   { const m=document.getElementById('candidatesModal'); if(m) m.addEventListener('click', e => { if(e.target===m || e.target===m.firstElementChild) closeCandidates(); }); }
   { const b=document.getElementById('discoverBackBtn'); if(b) b.onclick = () => goBack('/jobs'); }
   { const b=document.getElementById('discoverMsgsBtn'); if(b) b.onclick = () => navigate('/messages'); }
-  { const b=document.getElementById('messagesBackBtn'); if(b) b.onclick = () => goBack(mode === 'recruiter' ? '/hiring' : '/jobs'); }
+  { const b=document.getElementById('messagesBackBtn'); if(b) b.onclick = () => goBack(recruiterHome()); }
   { const b=document.getElementById('jobsDiscoverBtn'); if(b) b.onclick = () => navigate('/discover'); }
   { const b=document.getElementById('jobsTrackerBtn'); if(b) b.onclick = () => navigate('/tracker'); }
   { const b=document.getElementById('jobsMessagesBtn'); if(b) b.onclick = () => navigate('/messages'); }
