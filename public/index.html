@@ -7738,8 +7738,9 @@
     if(!active.length){
       el.innerHTML = statsRow; return;   // no active roles yet — postings section below prompts them to post
     }
+    // "Possible matches" moved to each posting's page (Open → Interested candidates);
+    // the dashboard keeps just the headline stats + one-sided interest.
     el.innerHTML = statsRow
-      + section('Possible matches', matches, "No matches yet. Like a candidate back below and if they’re into it too, it’s a match.")
       + section('Interested in your roles', interested, 'No candidate interest yet. Share your postings — direct roles get pinned atop the seeker board.');
   }
   async function recruiterLikeBackFor(postingId, seekerId){
