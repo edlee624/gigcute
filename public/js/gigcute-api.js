@@ -551,6 +551,16 @@ const interest = {
     if (error) throw error;
     return data || [];
   },
+  // Recruiter-facing signals for a batch of seekers → { [seekerId]: {in_demand, last_active} }.
+  async candidateSignals(seekerIds) {
+    const ids = [...new Set((seekerIds || []).filter(Boolean))];
+    if (!ids.length) return {};
+    const { data, error } = await requireClient().rpc('candidate_signals', { p_seekers: ids });
+    if (error) throw error;
+    const map = {};
+    (data || []).forEach(r => { map[r.seeker_id] = r; });
+    return map;
+  },
 };
 
 const invites = {
