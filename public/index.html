@@ -207,6 +207,8 @@
   .match-chip.tier-s{ color:var(--sage); background:rgba(122,158,126,0.14); border-color:rgba(122,158,126,0.5); }
   .match-chip.tier-m{ color:var(--coral); background:rgba(255,90,60,0.1); border-color:rgba(255,90,60,0.35); }
   .match-chip.tier-w{ color:rgba(251,247,240,0.45); background:rgba(255,255,255,0.03); border-color:var(--line-light); }
+  .notif-row{ display:flex; align-items:center; justify-content:space-between; font-size:13px; color:rgba(251,247,240,0.82); padding:7px 0; cursor:pointer; }
+  .notif-row input{ accent-color:var(--coral); width:16px; height:16px; cursor:pointer; }
   /* message thread bubbles (sender + time + day separators) */
   .msg-day{ text-align:center; margin:12px 0 6px; }
   .msg-day span{ font-size:11px; color:rgba(251,247,240,0.4); background:var(--ink); border:1px solid var(--line-light); padding:2px 10px; border-radius:10px; font-family:'JetBrains Mono',monospace; }
@@ -3941,6 +3943,13 @@
       <div style="font-weight:600; font-size:14px; color:var(--paper); margin-bottom:4px;">Profile visibility</div>
       <div id="settingsVisState" style="font-size:12.5px; color:rgba(251,247,240,0.55); line-height:1.5; margin-bottom:12px;">Loading…</div>
       <button class="ds-nav-btn" id="settingsPauseBtn" type="button" style="width:100%;">Pause my profile</button>
+    </div>
+    <!-- Email notifications -->
+    <div style="border:1px solid var(--line-light); border-radius:12px; padding:16px; margin-bottom:14px;">
+      <div style="font-weight:600; font-size:14px; color:var(--paper); margin-bottom:4px;">Email notifications</div>
+      <div style="font-size:12.5px; color:rgba(251,247,240,0.55); line-height:1.5; margin-bottom:12px;">Choose which emails GigCute sends you.</div>
+      <label class="notif-row"><span>Invitations to chat</span><input type="checkbox" id="notifInvites" checked></label>
+      <label class="notif-row"><span>New messages</span><input type="checkbox" id="notifMessages" checked></label>
     </div>
     <!-- Danger zone -->
     <div style="border:1px solid rgba(255,90,60,0.35); border-radius:12px; padding:16px;">
@@ -8777,8 +8786,18 @@
     const inp = document.getElementById('settingsDeleteInput'); if(inp) inp.value = '';
     const go = document.getElementById('settingsDeleteGo'); if(go){ go.disabled = true; go.style.opacity = '0.5'; go.textContent = 'Delete forever'; }
     await refreshSettingsVisibility();
+    await refreshNotifPrefs();
   }
   window.openSettings = openSettings;
+  async function refreshNotifPrefs(){
+    const ci = document.getElementById('notifInvites'), cm = document.getElementById('notifMessages');
+    if(!ci || !cm) return;
+    const API = await gcAwaitAPI(); let p = { email_invites:true, email_messages:true };
+    try{ if(API && API.enabled) p = await API.notifications.get(); }catch(e){}
+    ci.checked = p.email_invites !== false; cm.checked = p.email_messages !== false;
+  }
+  { const ci=document.getElementById('notifInvites'); if(ci) ci.onchange = async () => { const API=await gcAwaitAPI(); try{ await API.notifications.set({ email_invites: ci.checked }); if(typeof showToast==='function') showToast(ci.checked?'Invite emails on.':'Invite emails off.'); }catch(e){ if(typeof showToast==='function') showToast('Could not save.'); } }; }
+  { const cm=document.getElementById('notifMessages'); if(cm) cm.onchange = async () => { const API=await gcAwaitAPI(); try{ await API.notifications.set({ email_messages: cm.checked }); if(typeof showToast==='function') showToast(cm.checked?'Message emails on.':'Message emails off.'); }catch(e){ if(typeof showToast==='function') showToast('Could not save.'); } }; }
   function closeSettings(){ const m = document.getElementById('settingsModal'); if(m) m.style.display = 'none'; }
   async function refreshSettingsVisibility(){
     const stateEl = document.getElementById('settingsVisState');

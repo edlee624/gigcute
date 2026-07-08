@@ -48,7 +48,13 @@ Deno.serve(async (req) => {
   const role = (posting as any)?.title || "a role";
   const company = (posting as any)?.companies?.name || "A company";
 
+  const prefAllows = async (userId: string, col: string) => {
+    const { data } = await admin.from("notification_prefs").select(col).eq("user_id", userId).maybeSingle();
+    return !(data && (data as any)[col] === false);   // default on
+  };
+
   if (event === "invite_created") {
+    if (!(await prefAllows(inv.seeker_id, "email_invites"))) return json({ ok: true, skipped: "opted out" });
     const { data: u } = await admin.auth.admin.getUserById(inv.seeker_id);
     const body = `<p style="font-size:15px;line-height:1.5;"><b>${esc(company)}</b> invited you to connect about <b>${esc(role)}</b>.</p>
       ${inv.note ? `<p style="font-size:14px;color:#555;border-left:3px solid #eee;padding-left:12px;">${esc(inv.note)}</p>` : ""}
@@ -56,7 +62,7 @@ Deno.serve(async (req) => {
     await sendEmail(u?.user?.email, `${company} wants to chat — ${role}`, shell(body));
   } else if (event === "invite_accepted" || event === "invite_declined") {
     const ownerId = (posting as any)?.companies?.owner_id;
-    if (ownerId) {
+    if (ownerId && (await prefAllows(ownerId, "email_invites"))) {
       const { data: ou } = await admin.auth.admin.getUserById(ownerId);
       const { data: seeker } = await admin.from("profiles").select("full_name").eq("id", inv.seeker_id).single();
       const who = seeker?.full_name || "A candidate";

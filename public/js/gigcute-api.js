@@ -989,11 +989,28 @@ const prefs = {
   },
 };
 
+// ---- Notification preferences (per-user email toggles) --------------------
+const notifications = {
+  async get() {
+    const c = requireClient(); const { data: u } = await c.auth.getUser();
+    if (!u?.user) return { email_invites: true, email_messages: true };
+    const { data } = await c.from('notification_prefs').select('email_invites, email_messages').eq('user_id', u.user.id).maybeSingle();
+    return data || { email_invites: true, email_messages: true };
+  },
+  async set(patch) {
+    const c = requireClient(); const { data: u } = await c.auth.getUser();
+    if (!u?.user) return;
+    const { error } = await c.from('notification_prefs')
+      .upsert({ user_id: u.user.id, ...patch, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+    if (error) throw error;
+  },
+};
+
 window.GigCuteAPI = {
   enabled,
   supabase,
   prefs,
-  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat, support, events, jobs, tracker,
+  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat, support, events, jobs, tracker, notifications,
   isFreeEmailDomain,
 };
 
