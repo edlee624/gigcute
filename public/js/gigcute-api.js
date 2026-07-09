@@ -1033,11 +1033,45 @@ const notifications = {
   },
 };
 
+// ---- Plan limits + usage (Build 1) ----------------------------------------
+const limits = {
+  // Account-level usage/limits for the current recruiter.
+  async recruiter() {
+    const { data, error } = await requireClient().rpc('recruiter_limits');
+    if (error) throw error;
+    return (data && data[0]) || null;
+  },
+  // Ongoing-chat usage {used, max} for one posting the caller owns.
+  async postingChats(postingId) {
+    const { data, error } = await requireClient().rpc('posting_chat_usage', { p_posting: postingId });
+    if (error) throw error;
+    return (data && data[0]) || null;
+  },
+};
+
+// ---- Billing (Build 2 — scaffold, hidden until pricing is set) -------------
+// Requires the create-checkout / stripe-webhook edge functions + Stripe keys.
+const billing = {
+  // Start a Stripe Checkout session for a plan; returns a URL to redirect to.
+  async checkout(plan) {
+    const c = requireClient();
+    const { data: s } = await c.auth.getSession();
+    const token = s?.session?.access_token;
+    const resp = await fetch((window.GIGCUTE_FUNCTIONS_URL || '') + '/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: token ? `Bearer ${token}` : '' },
+      body: JSON.stringify({ plan }),
+    });
+    if (!resp.ok) throw new Error('Could not start checkout.');
+    return resp.json(); // { url }
+  },
+};
+
 window.GigCuteAPI = {
   enabled,
   supabase,
   prefs,
-  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat, support, events, jobs, tracker, notifications,
+  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat, support, events, jobs, tracker, notifications, limits, billing,
   isFreeEmailDomain,
 };
 

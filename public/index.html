@@ -3759,6 +3759,7 @@
       <div>
         <h1 style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; margin:0 0 2px;">Your Active <em style="color:var(--sage);font-style:italic;">postings</em></h1>
         <p style="color:rgba(251,247,240,0.55); font-size:14px; margin:0;">Create roles and meet candidates who fit. Postings stay live 14 days.</p>
+        <div id="recruiterLimitMeter" style="font-size:12px; font-family:'JetBrains Mono',monospace; letter-spacing:0.02em; margin-top:7px;"></div>
       </div>
       <button class="lm-cta-btn sage" id="newPostingBtn" type="button" style="font-size:14px; padding:11px 20px;">+ Post a job</button>
     </div>
@@ -7831,6 +7832,7 @@
     }
     if(expired.length && expWrap && expEl){ expWrap.style.display=''; expEl.innerHTML = expired.map(p => card(p, true)).join(''); }
     else if(expWrap){ expWrap.style.display='none'; if(expEl) expEl.innerHTML=''; }
+    gcRenderLimitMeter();
   }
   async function pausePosting(id){
     const API = await gcAwaitAPI();
@@ -7841,7 +7843,8 @@
   // Publish (paused → live, spends remaining days) or Repost (expired → fresh 14 days).
   async function repostPosting(id){
     const API = await gcAwaitAPI();
-    try{ await API.postings.activate(id); if(typeof showToast==='function') showToast('Posting is live.'); }catch(e){ if(typeof showToast==='function') showToast('Could not publish.'); }
+    try{ await API.postings.activate(id); if(typeof showToast==='function') showToast('Posting is live.'); }
+    catch(e){ if(gcIsLimitError(e)) gcLimitToast(e); else if(typeof showToast==='function') showToast('Could not publish.'); }
     renderRecruiterPostings();
   }
   window.repostPosting = repostPosting;
@@ -7853,6 +7856,75 @@
   }
   window.deleteExpiredPosting = deleteExpiredPosting;
   async function publishPosting(id){ return repostPosting(id); }   // back-compat
+
+  // ===== Plan limits (Build 1) — friendly walls; tiers stay hidden (Build 2) =====
+  // Server-side triggers are the source of truth; these just make the UI kind.
+  window.GC_SHOW_UPGRADE = window.GC_SHOW_UPGRADE || false; // flip on once pricing is set
+  function gcIsLimitError(e){ return !!(e && (['GC010','GC020','GC030'].includes(e.code) || /plan limit/i.test(e.message||''))); }
+  function gcLimitToast(e){
+    const msg = (e && e.message) || 'You have reached a plan limit.';
+    if(window.GC_SHOW_UPGRADE && typeof gcOpenUpgrade === 'function'){ gcOpenUpgrade(msg); return; }
+    if(typeof showToast === 'function') showToast(msg);
+  }
+  let __gcLimitsCache = null;
+  function gcInvalidateLimits(){ __gcLimitsCache = null; }
+  async function gcRecruiterLimits(force){
+    if(__gcLimitsCache && !force) return __gcLimitsCache;
+    try{ const API = await gcAwaitAPI(); __gcLimitsCache = await API.limits.recruiter(); }catch(e){ __gcLimitsCache = null; }
+    return __gcLimitsCache;
+  }
+  window.gcRecruiterLimits = gcRecruiterLimits;
+  // Small usage line under the dashboard heading: "1 / 2 active postings · 3 / 10 invites (30d)".
+  async function gcRenderLimitMeter(){
+    const el = document.getElementById('recruiterLimitMeter'); if(!el) return;
+    const L = await gcRecruiterLimits(true); if(!L){ el.innerHTML=''; return; }
+    const near = (u,m) => u >= m ? 'color:#e0857a;' : (u >= m-1 ? 'color:#e0b64a;' : 'color:rgba(251,247,240,0.55);');
+    const upgrade = window.GC_SHOW_UPGRADE
+      ? ` · <a href="#" onclick="gcOpenUpgrade();return false;" style="color:var(--sage);text-decoration:none;">Need more?</a>` : '';
+    el.innerHTML = `<span style="${near(L.used_active_postings,L.max_active_postings)}">${L.used_active_postings} / ${L.max_active_postings} active postings</span>`
+      + `<span style="color:rgba(251,247,240,0.3);"> · </span>`
+      + `<span style="${near(L.used_invites_30d,L.max_invites_per_30d)}">${L.used_invites_30d} / ${L.max_invites_per_30d} invites (30d)</span>`
+      + upgrade;
+  }
+  window.gcRenderLimitMeter = gcRenderLimitMeter;
+
+  // ===== Build 2 (HIDDEN until pricing is set): account upgrade + Stripe checkout ====
+  // Everything below is dormant while GC_SHOW_UPGRADE is false — no tiers/prices are
+  // shown to users. Flip the flag (and deploy the billing edge functions) to enable.
+  const GC_PLAN_ORDER = ['free','starter','pro','god'];
+  const GC_PLAN_LABEL = { free:'Free', starter:'Starter', pro:'Pro', god:'Max' };
+  async function gcOpenUpgrade(reason){
+    if(!window.GC_SHOW_UPGRADE) return; // stays hidden until pricing is decided
+    const API = await gcAwaitAPI();
+    let plans = [], cur = 'free';
+    try{ const r = await API.supabase.from('plan_limits').select('*'); plans = r.data || []; }catch(e){}
+    try{ const L = await gcRecruiterLimits(true); if(L) cur = L.plan; }catch(e){}
+    plans.sort((a,b)=> GC_PLAN_ORDER.indexOf(a.plan) - GC_PLAN_ORDER.indexOf(b.plan));
+    let ov = document.getElementById('gcUpgradeModal');
+    if(!ov){ ov = document.createElement('div'); ov.id='gcUpgradeModal'; ov.className='modal-overlay';
+      ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+      ov.addEventListener('click', e=>{ if(e.target===ov) ov.remove(); }); document.body.appendChild(ov); }
+    const card = pl => `<div style="flex:1;min-width:150px;background:var(--ink-soft);border:1px solid ${pl.plan===cur?'var(--sage)':'var(--line-light)'};border-radius:14px;padding:16px;">
+      <div style="font-family:'Fraunces',serif;font-size:18px;font-weight:600;">${GC_PLAN_LABEL[pl.plan]||pl.plan}${pl.plan===cur?' <span style="font-size:11px;color:var(--sage);">· current</span>':''}</div>
+      <ul style="list-style:none;padding:0;margin:10px 0;font-size:12.5px;color:rgba(251,247,240,0.7);line-height:1.9;">
+        <li>${pl.max_active_postings} active postings</li><li>${pl.max_chats_per_posting} chats / posting</li><li>${pl.max_invites_per_30d} invites / 30 days</li></ul>
+      ${pl.plan===cur ? '' : `<button class="lm-cta-btn sage" type="button" onclick="gcStartCheckout('${pl.plan}')" style="width:100%;font-size:13px;padding:9px;">Choose ${GC_PLAN_LABEL[pl.plan]||pl.plan}</button>`}
+    </div>`;
+    ov.innerHTML = `<div style="background:var(--ink);border:1px solid var(--line-light);border-radius:18px;max-width:720px;width:100%;padding:26px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+        <div><div style="font-family:'Fraunces',serif;font-size:22px;font-weight:600;">More capacity</div>
+        <div style="font-size:13px;color:rgba(251,247,240,0.55);margin-top:2px;">${escapeHtml(reason||'Raise your limits to keep hiring.')}</div></div>
+        <button class="jli-btn" type="button" onclick="document.getElementById('gcUpgradeModal').remove()">Close</button></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:18px;">${plans.map(card).join('')}</div></div>`;
+  }
+  window.gcOpenUpgrade = gcOpenUpgrade;
+  async function gcStartCheckout(plan){
+    const API = await gcAwaitAPI();
+    try{ const { url } = await API.billing.checkout(plan); if(url) location.href = url; }
+    catch(e){ if(typeof showToast==='function') showToast('Checkout isn’t available yet — please contact support.'); }
+  }
+  window.gcStartCheckout = gcStartCheckout;
+
   // ===== Posting manage page: stats · posting · interested · audience · matches =====
   let __pmPostingId = null;
   let __inviteContextPosting = null;   // set when a recruiter opens a candidate profile
@@ -7868,7 +7940,7 @@
       // If we're on that posting's manage page, refresh so the button flips to "Invited".
       if((document.querySelector('.screen.active')||{}).id === 'screen-posting-manage' && __pmPostingId === postingId) openPostingManage(postingId);
     }
-    catch(e){ if(typeof showToast === 'function') showToast('Could not send invite.'); }
+    catch(e){ if(gcIsLimitError(e)) gcLimitToast(e); else if(typeof showToast === 'function') showToast('Could not send invite.'); }
   }
   window.recruiterInviteFor = recruiterInviteFor;
   async function pmLikeBack(postingId, seekerId){
@@ -7981,6 +8053,7 @@
     try{ sigMap = await API.interest.candidateSignals([...(cands||[]).map(c=>c.seeker_id), ...(recs||[]).map(r=>r.seeker_id)]); }catch(e){}
     let inviteBy = {};
     try{ const invs = await API.invites.forPosting(id); (invs||[]).forEach(iv => { inviteBy[iv.seeker_id] = iv; }); }catch(e){}
+    let chatUse = null; try{ chatUse = await API.limits.postingChats(id); }catch(e){}
     const fmtInviteDate = iso => { try{ return new Date(iso).toLocaleDateString(undefined, { month:'short', day:'numeric' }); }catch(e){ return ''; } };
     // Interested candidates that were removed / chatted are hidden from the list.
     let dismissedSet = new Set();
@@ -8017,7 +8090,8 @@
         <button class="jli-btn" type="button" onclick="recruiterViewCandidate('${escapeHtml(c.seeker_id)}','${id}')">View profile</button>
         <button class="jli-btn pass pm-tip" type="button" data-tip="${inviteBy[c.seeker_id] ? 'Remove will also delete your invite' : 'Remove from interested'}" onclick="pmDismiss('${id}','${escapeHtml(c.seeker_id)}')" style="font-size:11px;padding:5px 10px;">Remove</button>
       </div></div>`;
-    const interestedHtml = `<section style="margin-bottom:26px;"><h2 class="pm-h2">Interested candidates <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.4);">· ${interestedCands.length}</span></h2>${interestedCands.length?interestedCands.map(candCard).join(''):'<div class="pm-empty">No candidates have shown interest yet.</div>'}</section>`;
+    const chatMeter = chatUse ? `<span class="pm-tip" data-tip="Ongoing chats for this posting. End a chat to free a slot." style="font-size:12px;font-weight:400;font-family:'JetBrains Mono',monospace;color:${chatUse.used>=chatUse.max?'#e0857a':(chatUse.used>=chatUse.max-1?'#e0b64a':'rgba(251,247,240,0.4)')};float:right;">${chatUse.used} / ${chatUse.max} chats</span>` : '';
+    const interestedHtml = `<section style="margin-bottom:26px;"><h2 class="pm-h2">Interested candidates <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.4);">· ${interestedCands.length}</span>${chatMeter}</h2>${interestedCands.length?interestedCands.map(candCard).join(''):'<div class="pm-empty">No candidates have shown interest yet.</div>'}</section>`;
     const recCard = r => { const skills=(r.skills||[]).slice(0,4).map(s=>`<span class="jli-tag">${escapeHtml(s)}</span>`).join('');
       return `<div class="pm-cand">${av(r.photo_url,r.name)}
         <div style="flex:1;min-width:0;">
@@ -8104,9 +8178,10 @@
     try{
       const posting = __editingPostingId ? await API.postings.update(__editingPostingId, payload) : await API.postings.create(payload);
       if(prompts.length && posting && posting.id){ try{ await API.postings.clearRequestedPrompts(posting.id); await API.postings.addRequestedPrompts(posting.id, prompts); }catch(e){} }
+      gcInvalidateLimits();
       closePostingForm();
       renderRecruiterPostings();
-    }catch(e){ fail((e && e.message) || 'Could not save the posting.'); }
+    }catch(e){ fail(gcIsLimitError(e) ? e.message : ((e && e.message) || 'Could not save the posting.')); }
   }
   window.openPostingForm = openPostingForm; window.publishPosting = publishPosting; window.showRecruiterApp = showRecruiterApp;
   // wiring
@@ -8427,7 +8502,8 @@
     const API = await gcAwaitAPI();
     try{ await API.invites.respond(inviteId, status); }catch(e){ if(typeof showToast==='function') showToast('Could not respond.'); return; }
     if(status === 'accepted' && postingId){
-      try{ let u = await API.auth.currentUser(); const convId = await API.chat.openConversation(postingId, u.id); openConversationRoute(convId); return; }catch(e){}
+      try{ let u = await API.auth.currentUser(); const convId = await API.chat.openConversation(postingId, u.id); openConversationRoute(convId); return; }
+      catch(e){ if(gcIsLimitError(e) && typeof showToast==='function') showToast(e.message); }
     }
     showMessages();
   }
@@ -8462,14 +8538,14 @@
   async function seekerOpenChat(postingId){
     const API = await gcAwaitAPI();
     try{ const u = await API.auth.currentUser(); const convId = await API.chat.openConversation(postingId, u.id); openConversationRoute(convId); }
-    catch(e){ if(typeof showToast === 'function') showToast('Could not open chat.'); }
+    catch(e){ if(gcIsLimitError(e)) gcLimitToast(e); else if(typeof showToast === 'function') showToast('Could not open chat.'); }
   }
   window.seekerOpenChat = seekerOpenChat;
   // Recruiter sends a formal invite to a candidate for the open posting.
   async function recruiterInvite(seekerId){
     const API = await gcAwaitAPI();
     try{ await API.invites.send({ postingId: __candPostingId, seekerId, note: 'We would love for you to consider this role.' }); if(typeof showToast==='function') showToast('Invite sent.'); }
-    catch(e){ if(typeof showToast==='function') showToast('Could not send invite.'); }
+    catch(e){ if(gcIsLimitError(e)) gcLimitToast(e); else if(typeof showToast==='function') showToast('Could not send invite.'); }
     loadCandidates();
   }
   window.recruiterInvite = recruiterInvite;
@@ -8575,7 +8651,7 @@
   async function recruiterMessage(seekerId, name){
     const API = await gcAwaitAPI();
     let convId = null;
-    try{ convId = await API.chat.openConversation(__candPostingId, seekerId); }catch(e){ if(typeof showToast==='function') showToast('Could not open chat.'); return; }
+    try{ convId = await API.chat.openConversation(__candPostingId, seekerId); }catch(e){ if(gcIsLimitError(e)) gcLimitToast(e); else if(typeof showToast==='function') showToast('Could not open chat.'); return; }
     closeCandidates(); openConversationRoute(convId);
   }
   window.recruiterMessage = recruiterMessage;
@@ -8583,7 +8659,7 @@
   async function recruiterMessageFor(postingId, seekerId, name){
     const API = await gcAwaitAPI();
     let convId = null;
-    try{ convId = await API.chat.openConversation(postingId, seekerId); }catch(e){ if(typeof showToast==='function') showToast('Could not open chat.'); return; }
+    try{ convId = await API.chat.openConversation(postingId, seekerId); }catch(e){ if(gcIsLimitError(e)) gcLimitToast(e); else if(typeof showToast==='function') showToast('Could not open chat.'); return; }
     openConversationRoute(convId);
   }
   window.recruiterMessageFor = recruiterMessageFor;
