@@ -494,6 +494,11 @@ const postings = {
     const { error } = await requireClient().rpc('dismiss_candidate', { p_posting: postingId, p_seeker: seekerId });
     if (error) throw error;
   },
+  // "Remove" an interested candidate: dismiss + withdraw invite + archive any open chat.
+  async removeCandidate(postingId, seekerId) {
+    const { error } = await requireClient().rpc('dismiss_candidate', { p_posting: postingId, p_seeker: seekerId, p_end_chat: true });
+    if (error) throw error;
+  },
   async update(id, patch) {
     const { data, error } = await requireClient().from('postings').update(patch).eq('id', id).select().single();
     if (error) throw error;

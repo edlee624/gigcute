@@ -8017,7 +8017,8 @@
   }
   async function pmDismiss(postingId, seekerId){
     const API = await gcAwaitAPI();
-    try{ await API.postings.dismissCandidate(postingId, seekerId); }catch(e){ if(typeof showToast==='function') showToast('Could not remove.'); return; }
+    // Remove = sever ties: dismiss from the list, withdraw the invite, and end any open chat.
+    try{ await API.postings.removeCandidate(postingId, seekerId); }catch(e){ if(typeof showToast==='function') showToast('Could not remove.'); return; }
     openPostingManage(postingId);   // re-render; next-best candidate backfills in
   }
   window.pmDismiss = pmDismiss;
@@ -8088,7 +8089,7 @@
           ? `<button class="jli-btn primary" type="button" onclick="pmMessageAndClear('${id}','${escapeHtml(c.seeker_id)}','${escapeHtml((c.full_name||'Candidate').replace(/'/g,''))}')">Message</button>`
           : `<button class="jli-btn primary" type="button" onclick="pmLikeBack('${id}','${escapeHtml(c.seeker_id)}')">Like back</button>`}
         <button class="jli-btn" type="button" onclick="recruiterViewCandidate('${escapeHtml(c.seeker_id)}','${id}')">View profile</button>
-        <button class="jli-btn pass pm-tip" type="button" data-tip="${inviteBy[c.seeker_id] ? 'Remove will also delete your invite' : 'Remove from interested'}" onclick="pmDismiss('${id}','${escapeHtml(c.seeker_id)}')" style="font-size:11px;padding:5px 10px;">Remove</button>
+        <button class="jli-btn pass pm-tip" type="button" data-tip="${c.mutual ? 'Removes them and ends your chat' : (inviteBy[c.seeker_id] ? 'Remove will also delete your invite' : 'Remove from interested')}" onclick="pmDismiss('${id}','${escapeHtml(c.seeker_id)}')" style="font-size:11px;padding:5px 10px;">Remove</button>
       </div></div>`;
     const chatMeter = chatUse ? `<span class="pm-tip" data-tip="Ongoing chats for this posting. End a chat to free a slot." style="font-size:12px;font-weight:400;font-family:'JetBrains Mono',monospace;color:${chatUse.used>=chatUse.max?'#e0857a':(chatUse.used>=chatUse.max-1?'#e0b64a':'rgba(251,247,240,0.4)')};float:right;">${chatUse.used} / ${chatUse.max} chats</span>` : '';
     const interestedHtml = `<section style="margin-bottom:26px;"><h2 class="pm-h2">Interested candidates <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.4);">· ${interestedCands.length}</span>${chatMeter}</h2>${interestedCands.length?interestedCands.map(candCard).join(''):'<div class="pm-empty">No candidates have shown interest yet.</div>'}</section>`;
