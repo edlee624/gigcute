@@ -570,8 +570,12 @@ const interest = {
 
 const invites = {
   async send({ postingId, seekerId, type = 'regular', note = '' }) {
+    // Conflict on the (posting_id, seeker_id) unique key — not the PK — so
+    // re-inviting the same candidate for the same role updates the existing
+    // invite instead of failing with a duplicate-key error.
     const { data, error } = await requireClient().from('invites')
-      .upsert({ posting_id: postingId, seeker_id: seekerId, type, note, status: 'pending' })
+      .upsert({ posting_id: postingId, seeker_id: seekerId, type, note, status: 'pending' },
+              { onConflict: 'posting_id,seeker_id' })
       .select().single();
     if (error) throw error;
     return data;
