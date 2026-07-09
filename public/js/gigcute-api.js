@@ -499,6 +499,10 @@ const postings = {
     if (error) throw error;
     return data;
   },
+  // Lifecycle: activate/repost (fresh 14 days if expired), pause (freeze budget), delete.
+  async activate(id) { const { error } = await requireClient().rpc('posting_activate', { p_id: id }); if (error) throw error; },
+  async pause(id)    { const { error } = await requireClient().rpc('posting_pause',    { p_id: id }); if (error) throw error; },
+  async remove(id)   { const { error } = await requireClient().rpc('posting_delete',   { p_id: id }); if (error) throw error; },
   async addScreeningQuestion(q) {
     // The DB trigger enforces tier limits and forces voluntary questions to be non-essential.
     const { data, error } = await requireClient().from('screening_questions').insert(q).select().single();

@@ -3757,12 +3757,17 @@
     <div id="recruiterOverview"></div>
     <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin:8px 0 22px; flex-wrap:wrap;">
       <div>
-        <h1 style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; margin:0 0 2px;">Your <em style="color:var(--sage);font-style:italic;">postings</em></h1>
-        <p style="color:rgba(251,247,240,0.55); font-size:14px; margin:0;">Create roles and meet candidates who fit.</p>
+        <h1 style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; margin:0 0 2px;">Your Active <em style="color:var(--sage);font-style:italic;">postings</em></h1>
+        <p style="color:rgba(251,247,240,0.55); font-size:14px; margin:0;">Create roles and meet candidates who fit. Postings stay live 14 days.</p>
       </div>
       <button class="lm-cta-btn sage" id="newPostingBtn" type="button" style="font-size:14px; padding:11px 20px;">+ Post a job</button>
     </div>
     <div id="recruiterPostings"></div>
+    <div id="recruiterExpiredWrap" style="display:none; margin-top:34px;">
+      <h2 style="font-family:'Fraunces',serif; font-size:22px; font-weight:600; margin:0 0 2px;">Expired <em style="color:rgba(251,247,240,0.5);font-style:italic;">postings</em></h2>
+      <p style="color:rgba(251,247,240,0.45); font-size:13px; margin:0 0 16px;">Stored for 30 days, then deleted. Repost to make one active again.</p>
+      <div id="recruiterExpired"></div>
+    </div>
   </div>
 </div>
 
@@ -7772,49 +7777,82 @@
   window.recruiterLikeBackFor = recruiterLikeBackFor;
   async function renderRecruiterPostings(){
     const el = document.getElementById('recruiterPostings'); if(!el) return;
+    const expEl = document.getElementById('recruiterExpired'), expWrap = document.getElementById('recruiterExpiredWrap');
     el.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:24px 0;">Loading…</div>';
     const API = await gcAwaitAPI();
     let list = [];
     try{ list = await API.postings.mine(); }catch(e){ console.warn('postings.mine:', e && e.message); }
     __postingsById = {};
     (list || []).forEach(p => { __postingsById[p.id] = p; });
-    if(!list || !list.length){
+    const live = (list||[]).filter(p => p.status === 'active' || p.status === 'draft');
+    const expired = (list||[]).filter(p => p.status === 'expired');
+    const money = v => v ? ('$' + (v >= 1000 ? Math.round(v/1000) + 'k' : v)) : '';
+    const statsArr = await Promise.all((list||[]).map(p => API.postings.stats(p.id).catch(()=>null)));
+    const statsById = {}; (list||[]).forEach((p,i)=>{ statsById[p.id]=statsArr[i]; });
+    const stat = (n,label) => `<span style="display:inline-flex;align-items:baseline;gap:4px;"><b style="font-family:'Fraunces',serif;font-size:15px;color:var(--paper);">${n||0}</b><span style="font-size:11px;color:rgba(251,247,240,0.5);">${label}</span></span>`;
+    const daysLeft = p => (p.status==='active' && p.expires_at) ? Math.max(0, Math.ceil((new Date(p.expires_at).getTime()-Date.now())/86400000)) : (p.days_remaining!=null ? p.days_remaining : 14);
+    const card = (p, expiredKind) => {
+      const sal = (p.salary_min||p.salary_max) ? `${money(p.salary_min)}${p.salary_max?'–'+money(p.salary_max):'+'}` : '';
+      const loc = [p.location_type, p.city].filter(Boolean).join(' · ');
+      const st = statsById[p.id] || {};
+      let statusHtml, actions;
+      if(expiredKind){
+        statusHtml = `<span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:rgba(251,247,240,0.4);">expired</span>`;
+        actions = `<button class="jli-btn primary" type="button" onclick="repostPosting('${p.id}')">Repost</button>
+                   <button class="jli-btn pass" type="button" onclick="deleteExpiredPosting('${p.id}')" style="font-size:11px;padding:5px 10px;">Delete</button>`;
+      } else if(p.status === 'active'){
+        statusHtml = `<span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--sage);">active</span><span style="font-size:11px;color:rgba(251,247,240,0.5);">· ${daysLeft(p)}d left</span>`;
+        actions = `<button class="jli-btn primary" type="button" onclick="openPostingManage('${p.id}')">Open</button>
+                   <button class="jli-btn" type="button" onclick="openPostingForm('${p.id}')">Edit</button>
+                   <button class="jli-btn" type="button" onclick="pausePosting('${p.id}')">Pause</button>`;
+      } else {
+        statusHtml = `<span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:#e0b64a;">paused</span><span style="font-size:11px;color:rgba(251,247,240,0.5);">· ${daysLeft(p)}d left</span>`;
+        actions = `<button class="jli-btn primary" type="button" onclick="repostPosting('${p.id}')">Publish</button>
+                   <button class="jli-btn" type="button" onclick="openPostingForm('${p.id}')">Edit</button>`;
+      }
+      const clickAttrs = expiredKind ? 'style="' : `onclick="openPostingManage('${p.id}')" style="cursor:pointer;`;
+      return `<div class="rec-posting" ${clickAttrs}background:var(--ink-soft);border:1px solid var(--line-light);border-radius:14px;padding:18px 20px;margin-bottom:12px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;">
+        <div style="min-width:0;">
+          <div style="font-family:'Fraunces',serif;font-size:17px;font-weight:600;color:var(--paper);">${escapeHtml(p.title||'Untitled role')}</div>
+          <div style="font-size:12.5px;color:rgba(251,247,240,0.6);margin-top:3px;">${escapeHtml([loc,sal].filter(Boolean).join(' · '))}</div>
+          <div style="display:flex;gap:16px;margin-top:10px;align-items:center;flex-wrap:wrap;">${stat(st.views,'viewed')}${stat(st.interested,'interested')}<span style="display:inline-flex;align-items:baseline;gap:5px;">${statusHtml}</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;" onclick="event.stopPropagation()">${actions}</div>
+      </div>`;
+    };
+    if(!live.length && !expired.length){
       el.innerHTML = `<div style="text-align:center; padding:48px 20px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:16px;">
         <div style="font-family:'Fraunces',serif; font-size:20px; font-style:italic; margin-bottom:8px;">No postings yet</div>
         <div style="font-size:14px; color:rgba(251,247,240,0.55); margin-bottom:16px;">Post your first role to start meeting candidates.</div>
         <button class="lm-cta-btn sage" type="button" onclick="openPostingForm()" style="font-size:14px;padding:11px 20px;">+ Post a job</button>
       </div>`;
-      return;
+    } else {
+      el.innerHTML = live.length ? live.map(p => card(p)).join('') : '<div class="pm-empty">No active postings right now — post a new role, or repost an expired one below.</div>';
     }
-    const money = v => v ? ('$' + (v >= 1000 ? Math.round(v/1000) + 'k' : v)) : '';
-    // Pull activity stats for each posting (views + interested) in parallel.
-    const statsArr = await Promise.all((list || []).map(p => API.postings.stats(p.id).catch(() => null)));
-    const statsById = {}; (list || []).forEach((p, i) => { statsById[p.id] = statsArr[i]; });
-    el.innerHTML = list.map(p => {
-      const sal = (p.salary_min || p.salary_max) ? `${money(p.salary_min)}${p.salary_max ? '–' + money(p.salary_max) : '+'}` : '';
-      const loc = [p.location_type, p.city].filter(Boolean).join(' · ');
-      const statusColor = p.status === 'active' ? 'var(--sage)' : 'rgba(251,247,240,0.4)';
-      const st = statsById[p.id] || {};
-      const stat = (n, label) => `<span style="display:inline-flex;align-items:baseline;gap:4px;"><b style="font-family:'Fraunces',serif;font-size:15px;color:var(--paper);">${n||0}</b><span style="font-size:11px;color:rgba(251,247,240,0.5);">${label}</span></span>`;
-      return `<div class="rec-posting" onclick="openPostingManage('${p.id}')" style="background:var(--ink-soft); border:1px solid var(--line-light); border-radius:14px; padding:18px 20px; margin-bottom:12px; display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap; cursor:pointer;">
-        <div style="min-width:0;">
-          <div style="font-family:'Fraunces',serif; font-size:17px; font-weight:600; color:var(--paper);">${escapeHtml(p.title || 'Untitled role')}</div>
-          <div style="font-size:12.5px; color:rgba(251,247,240,0.6); margin-top:3px;">${escapeHtml([loc, sal].filter(Boolean).join(' · '))}</div>
-          <div style="display:flex;gap:16px;margin-top:10px;align-items:center;">${stat(st.views,'viewed')}${stat(st.interested,'interested')}<span style="font-family:'JetBrains Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:${statusColor};">${escapeHtml(p.status)}</span></div>
-        </div>
-        <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;" onclick="event.stopPropagation()">
-          <button class="jli-btn primary" type="button" onclick="openPostingManage('${p.id}')">Open</button>
-          <button class="jli-btn" type="button" onclick="openPostingForm('${p.id}')">Edit</button>
-          ${p.status !== 'active' ? `<button class="jli-btn" type="button" onclick="publishPosting('${p.id}')">Publish</button>` : ''}
-        </div>
-      </div>`;
-    }).join('');
+    if(expired.length && expWrap && expEl){ expWrap.style.display=''; expEl.innerHTML = expired.map(p => card(p, true)).join(''); }
+    else if(expWrap){ expWrap.style.display='none'; if(expEl) expEl.innerHTML=''; }
   }
-  async function publishPosting(id){
+  async function pausePosting(id){
     const API = await gcAwaitAPI();
-    try{ await API.postings.update(id, { status:'active', published_at: new Date().toISOString() }); }catch(e){ if(typeof showToast==='function') showToast('Could not publish.'); }
+    try{ await API.postings.pause(id); if(typeof showToast==='function') showToast('Posting paused — the countdown is frozen.'); }catch(e){ if(typeof showToast==='function') showToast('Could not pause.'); }
     renderRecruiterPostings();
   }
+  window.pausePosting = pausePosting;
+  // Publish (paused → live, spends remaining days) or Repost (expired → fresh 14 days).
+  async function repostPosting(id){
+    const API = await gcAwaitAPI();
+    try{ await API.postings.activate(id); if(typeof showToast==='function') showToast('Posting is live.'); }catch(e){ if(typeof showToast==='function') showToast('Could not publish.'); }
+    renderRecruiterPostings();
+  }
+  window.repostPosting = repostPosting;
+  async function deleteExpiredPosting(id){
+    if(!window.confirm('Delete this posting permanently? This cannot be undone.')) return;
+    const API = await gcAwaitAPI();
+    try{ await API.postings.remove(id); }catch(e){ if(typeof showToast==='function') showToast('Could not delete.'); return; }
+    renderRecruiterPostings();
+  }
+  window.deleteExpiredPosting = deleteExpiredPosting;
+  async function publishPosting(id){ return repostPosting(id); }   // back-compat
   // ===== Posting manage page: stats · posting · interested · audience · matches =====
   let __pmPostingId = null;
   let __inviteContextPosting = null;   // set when a recruiter opens a candidate profile
@@ -8058,6 +8096,9 @@
       responsibilities: lines('pf-resp'), qualifications: lines('pf-qual'),
       status: publish ? 'active' : 'draft',
       published_at: publish ? new Date().toISOString() : null,
+      // Publishing starts the 14-day live window; drafts hold a fresh budget.
+      expires_at: publish ? new Date(Date.now() + 14*86400000).toISOString() : null,
+      days_remaining: 14,
     };
     const prompts = [...new Set(PF_PROMPT_IDS.map(id => (document.getElementById(id) || {}).value || '').filter(Boolean))];
     try{
@@ -8301,9 +8342,13 @@
     const seenMap = __convUid ? convSeenMap(__convUid) : {};
     const c = __convosCache.find(x => x.id === convId);
     const unread = convUnread(c, seenMap);
-    m.innerHTML = `<button class="conv-menu-item" data-act="toggleread" type="button">${unread ? 'Mark as read' : 'Mark as unread'}</button>
-      <button class="conv-menu-item" data-act="archive" type="button">${convIsArchived(convId) ? 'Unarchive' : 'Archive'}</button>
-      <button class="conv-menu-item danger" data-act="delete" type="button">Delete conversation</button>`;
+    const archived = convIsArchived(convId) || !!(c && c.ended_at);
+    // Archived / ended chats only offer "Delete conversation".
+    m.innerHTML = archived
+      ? `<button class="conv-menu-item danger" data-act="delete" type="button">Delete conversation</button>`
+      : `<button class="conv-menu-item" data-act="toggleread" type="button">${unread ? 'Mark as read' : 'Mark as unread'}</button>
+         <button class="conv-menu-item" data-act="archive" type="button">Archive</button>
+         <button class="conv-menu-item danger" data-act="delete" type="button">Delete conversation</button>`;
     const r = anchor.getBoundingClientRect();
     m.style.display = 'block';
     m.style.top = (window.scrollY + r.bottom + 4) + 'px';
