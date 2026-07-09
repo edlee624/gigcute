@@ -202,6 +202,10 @@
   .cand-badge.live-3{ color:var(--paper); border-color:var(--sage); background:rgba(122,158,126,0.28); }
   .cand-badge.live-7{ color:var(--sage); border-color:rgba(122,158,126,0.5); background:rgba(122,158,126,0.15); }
   .cand-badge.live-14{ color:rgba(122,158,126,0.85); border-color:rgba(122,158,126,0.3); background:rgba(122,158,126,0.07); }
+  /* hover tooltip for action buttons (e.g. Remove) */
+  .pm-tip{ position:relative; }
+  .pm-tip::after{ content:attr(data-tip); position:absolute; bottom:calc(100% + 7px); right:0; background:var(--ink); border:1px solid var(--line-light); color:rgba(251,247,240,0.92); font-size:11px; font-family:'Inter',sans-serif; font-weight:400; white-space:nowrap; padding:6px 10px; border-radius:8px; opacity:0; pointer-events:none; transition:opacity .12s; z-index:30; box-shadow:0 8px 22px -8px rgba(0,0,0,0.65); }
+  .pm-tip:hover::after, .pm-tip:focus::after{ opacity:1; }
   .match-chip{ font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.02em; border:1px solid; border-radius:20px; padding:2px 9px; white-space:nowrap; flex-shrink:0; }
   .match-chip.tier-vs{ color:var(--paper); background:rgba(122,158,126,0.30); border-color:var(--sage); }
   .match-chip.tier-s{ color:var(--sage); background:rgba(122,158,126,0.14); border-color:rgba(122,158,126,0.5); }
@@ -7971,7 +7975,7 @@
           ? `<button class="jli-btn primary" type="button" onclick="pmMessageAndClear('${id}','${escapeHtml(c.seeker_id)}','${escapeHtml((c.full_name||'Candidate').replace(/'/g,''))}')">Message</button>`
           : `<button class="jli-btn primary" type="button" onclick="pmLikeBack('${id}','${escapeHtml(c.seeker_id)}')">Like back</button>`}
         <button class="jli-btn" type="button" onclick="recruiterViewCandidate('${escapeHtml(c.seeker_id)}','${id}')">View profile</button>
-        <button class="jli-btn pass" type="button" title="Remove from interested" onclick="pmDismiss('${id}','${escapeHtml(c.seeker_id)}')" style="font-size:11px;padding:5px 10px;">Remove</button>
+        <button class="jli-btn pass pm-tip" type="button" data-tip="${inviteBy[c.seeker_id] ? 'Remove will also delete your invite' : 'Remove from interested'}" onclick="pmDismiss('${id}','${escapeHtml(c.seeker_id)}')" style="font-size:11px;padding:5px 10px;">Remove</button>
       </div></div>`;
     const interestedHtml = `<section style="margin-bottom:26px;"><h2 class="pm-h2">Interested candidates <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.4);">· ${interestedCands.length}</span></h2>${interestedCands.length?interestedCands.map(candCard).join(''):'<div class="pm-empty">No candidates have shown interest yet.</div>'}</section>`;
     const recCard = r => { const skills=(r.skills||[]).slice(0,4).map(s=>`<span class="jli-tag">${escapeHtml(s)}</span>`).join('');
@@ -7987,7 +7991,7 @@
             ? `<button class="jli-btn" type="button" disabled title="Invite already sent" style="opacity:0.5;cursor:default;">✓ Invited ${escapeHtml(fmtInviteDate(inviteBy[r.seeker_id].created_at))}</button>`
             : `<button class="jli-btn primary" type="button" onclick="recruiterInviteFor('${id}','${escapeHtml(r.seeker_id)}')">Invite to chat</button>`}
           <button class="jli-btn" type="button" onclick="recruiterViewCandidate('${escapeHtml(r.seeker_id)}','${id}')">View profile</button>
-          <button class="jli-btn pass" type="button" title="Not a fit — remove" onclick="pmDismiss('${id}','${escapeHtml(r.seeker_id)}')" style="font-size:11px;padding:5px 10px;">Remove</button>
+          <button class="jli-btn pass pm-tip" type="button" data-tip="${inviteBy[r.seeker_id] ? 'Remove will also delete your invite' : 'Not a fit — remove'}" onclick="pmDismiss('${id}','${escapeHtml(r.seeker_id)}')" style="font-size:11px;padding:5px 10px;">Remove</button>
         </div></div>`; };
     const recsHtml = `<section><h2 class="pm-h2">Potential matches <span style="font-size:12px;font-weight:400;color:rgba(251,247,240,0.4);">— based on skills</span></h2>${(recs&&recs.length)?recs.map(recCard).join(''):'<div class="pm-empty">No further recommendations right now.</div>'}</section>`;
     el.innerHTML = statsHtml + postingHtml + interestedHtml + pmAudience(audience) + recsHtml;
@@ -8696,7 +8700,12 @@
 
   // Poll for new messages so the badge appears without a navigation. Only runs
   // when the tab is visible; chatUnreadCheck no-ops in demo mode / when logged out.
-  setInterval(() => { if(!document.hidden && typeof chatUnreadCheck === 'function') chatUnreadCheck(); }, 45000);
+  setInterval(() => {
+    if(document.hidden) return;
+    if(typeof chatUnreadCheck === 'function') chatUnreadCheck();
+    // Keep an open inbox fresh so withdrawn invites (deleted by a recruiter) drop off.
+    if((document.querySelector('.screen.active')||{}).id === 'screen-messages' && typeof loadInvites === 'function') loadInvites();
+  }, 45000);
 
   // ----- Clickable GigCute logo → home, on every page -----
   function goHome(){ navigate('/'); }
