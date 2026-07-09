@@ -4487,6 +4487,15 @@
               </div>
 
               <div class="adv-filter-group">
+                <label>Date posted</label>
+                <div class="adv-filter-chips">
+                  <button class="adv-chip" data-filter="posted" data-value="1">Past 24 hours</button>
+                  <button class="adv-chip" data-filter="posted" data-value="7">Past week</button>
+                  <button class="adv-chip" data-filter="posted" data-value="30">Past month</button>
+                </div>
+              </div>
+
+              <div class="adv-filter-group">
                 <label>Experience level</label>
                 <div class="adv-filter-chips">
                   <button class="adv-chip" data-filter="seniority" data-value="Entry-level">Entry-level</button>
@@ -7243,7 +7252,7 @@
   // Renders the real ingested jobs inside the /search candidate-dashboard shell
   // (sidebar + rich search/filter chrome), un-gated. Recruiter/matching-only bits
   // (Top matches, invites, department/experience/equity/distance filters) are hidden.
-  let __dash = { q:'', remote:false, minSalary:null, employmentType:null, location:'', keywords:[], sort:'newest', offset:0, total:0, items:[], loading:false };
+  let __dash = { q:'', remote:false, minSalary:null, employmentType:null, location:'', keywords:[], postedWithin:null, sort:'newest', offset:0, total:0, items:[], loading:false };
   let __dashTimer = null;
   function mapEmpType(v){ return v==='Full-time'?'full_time':v==='Contract'?'contract':v==='Part-time'?'part_time':null; }
   function deptMap(v){ return ({Engineering:'engineer',Product:'product',Design:'design',Data:'data',Marketing:'marketing',Finance:'financ',Legal:'legal',People:'people'})[v] || String(v).toLowerCase(); }
@@ -7376,6 +7385,7 @@
     if(d.remote && !isRemote) return false;
     if(!empTypeMatch(p.employment_type, d.employmentType)) return false;
     if(d.minSalary){ const smin = p.salary_min||0, smax = p.salary_max||p.salary_min||0; if(!(smin >= d.minSalary || smax >= d.minSalary)) return false; }
+    if(d.postedWithin){ const dt = p.published_at || p.created_at; if(!(dt && (Date.now() - new Date(dt).getTime()) <= d.postedWithin*86400000)) return false; }
     const toks = d.locationTokens || [];
     if(toks.length){
       const locHay = [p.location_type, p.city].filter(Boolean).join(' ').toLowerCase();
@@ -7390,7 +7400,7 @@
     if(!listEl) return;
     const countEl = document.getElementById('roleCount'); if(countEl) countEl.textContent = __dash.total ? `${__dash.total} role${__dash.total !== 1 ? 's' : ''}` : '';
     const heading = document.getElementById('allRolesHeading');
-    if(heading) heading.innerHTML = (__dash.q || __dash.remote || __dash.minSalary || __dash.country || (__dash.employmentType && __dash.employmentType.length) || (__dash.keywordGroups && __dash.keywordGroups.length) || (__dash.locationTokens && __dash.locationTokens.length)) ? 'Search <em>results</em>' : 'All open <em>roles</em>';
+    if(heading) heading.innerHTML = (__dash.q || __dash.remote || __dash.minSalary || __dash.country || __dash.postedWithin || (__dash.employmentType && __dash.employmentType.length) || (__dash.keywordGroups && __dash.keywordGroups.length) || (__dash.locationTokens && __dash.locationTokens.length)) ? 'Search <em>results</em>' : 'All open <em>roles</em>';
     const directHtml = (__directPostings || []).filter(p => !__dismissedPostingIds.has(p.id) && postingMatchesDash(p)).map(dashPostingCard).join('');
     if(!__dash.items.length && !directHtml){
       listEl.innerHTML = `<div style="text-align:center;padding:44px 20px;color:rgba(251,247,240,0.4);"><div style="font-family:'Fraunces',serif;font-size:18px;font-style:italic;margin-bottom:6px;">No roles found</div><div style="font-size:13px;">Try adjusting your search or filters.</div></div>`;
@@ -7416,7 +7426,7 @@
         if(__dash.sort === 'match'){
           res = await loadMatchSorted(API, PAGE, reset);
         } else {
-          res = await API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, country:__dash.country, sort:__dash.sort });
+          res = await API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, country:__dash.country, postedWithin:__dash.postedWithin, sort:__dash.sort });
         }
       } else {
         res = filterSampleJobs(PAGE);
@@ -7532,20 +7542,20 @@
     // that small window would decimate results to ~0 — so when any such filter is
     // active, use the normal server-side filtered list (authoritative + paginated).
     const hasStructured = (__dash.employmentType && __dash.employmentType.length) || __dash.minSalary ||
-      (__dash.locationTokens && __dash.locationTokens.length) || (__dash.keywordGroups && __dash.keywordGroups.length) || __dash.country;
+      (__dash.locationTokens && __dash.locationTokens.length) || (__dash.keywordGroups && __dash.keywordGroups.length) || __dash.country || __dash.postedWithin;
     if(hasStructured){
-      return API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, country:__dash.country, sort:'newest' });
+      return API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, country:__dash.country, postedWithin:__dash.postedWithin, sort:'newest' });
     }
     if(!reset) return { jobs: [], total: __dash.total };   // match view is a single ranked page
     const kw = (typeof seekerJobKeywords === 'function') ? seekerJobKeywords() : { query:'' };
     const q = [kw.query, __dash.q].filter(Boolean).join(' or ');
-    if(!q) return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, country:__dash.country, sort:'newest' });
+    if(!q) return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, country:__dash.country, postedWithin:__dash.postedWithin, sort:'newest' });
     let ranked = [];
     try{ ranked = await API.jobs.search({ q, remote:__dash.remote || null, limit:50 }); }catch(e){ ranked = []; }
     // Resilience: if the ranked search returns nothing (e.g. it timed out on a
     // broad query), fall back to the newest-jobs list so Best match still shows
     // roles instead of an empty board.
-    if(!ranked.length){ return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, sort:'newest' }); }
+    if(!ranked.length){ return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, postedWithin:__dash.postedWithin, sort:'newest' }); }
     const ms = __dash.minSalary || 0, empTypes = __dash.employmentType || [], groups = __dash.keywordGroups || [];
     const locToks = (__dash.locationTokens || []).map(t => t.toLowerCase());
     ranked = ranked.filter(j => {
@@ -7574,6 +7584,7 @@
       && (!locToks.length || (__dash.locationOrRemote && j.remote) || locToks.some(t => String(j.location||'').toLowerCase().includes(t)))
       && countryMatch(j.location, __dash.country)
       && groups.every(g => g.some(k => `${j.title||''} ${(j.tags||[]).join(' ')}`.toLowerCase().includes(k.toLowerCase())))
+      && (!__dash.postedWithin || (j.posted_at && (Date.now() - new Date(j.posted_at).getTime()) <= __dash.postedWithin*86400000))
       && (!q || `${j.title} ${j.company} ${j.location}`.toLowerCase().includes(q)));
     if(__dash.sort === 'salary') f = f.slice().sort((a,b) => (b.salary_max||0) - (a.salary_max||0));
     else if(__dash.sort === 'alpha') f = f.slice().sort((a,b) => (a.title||'').localeCompare(b.title||''));
@@ -7603,6 +7614,8 @@
     const deptVals = [...document.querySelectorAll('#advFilterPanel .adv-chip[data-filter="dept"].active')].map(c => deptMap(c.dataset.value)).filter(Boolean);
     const senVals = [...document.querySelectorAll('#advFilterPanel .adv-chip[data-filter="seniority"].active')].map(c => senMap(c.dataset.value)).filter(Boolean);
     __dash.keywordGroups = [deptVals, senVals].filter(g => g.length);
+    const postedChip = document.querySelector('#advFilterPanel .adv-chip[data-filter="posted"].active');
+    __dash.postedWithin = postedChip ? parseInt(postedChip.dataset.value, 10) : null;
     const s = document.getElementById('jobSearch'); __dash.q = s ? s.value.trim() : '';
     const so = document.getElementById('jobSortSelect'); __dash.sort = so ? so.value : 'newest';
     const cy = document.getElementById('jobCountry'); __dash.country = dashCountry(cy ? cy.value : '');
@@ -7629,6 +7642,7 @@
       empType: g('#advFilterPanel .adv-chip[data-filter="empType"]'),
       dept: g('#advFilterPanel .adv-chip[data-filter="dept"]'),
       seniority: g('#advFilterPanel .adv-chip[data-filter="seniority"]'),
+      posted: g('#advFilterPanel .adv-chip[data-filter="posted"]'),
       metro: (document.getElementById('jobMetro')||{}).value || '',
       country: (document.getElementById('jobCountry')||{}).value || '',
       locText: (document.getElementById('jobLocationInput')||{}).value || '',
@@ -7645,6 +7659,7 @@
     setChips('#advFilterPanel .adv-chip[data-filter="empType"]', f.empType);
     setChips('#advFilterPanel .adv-chip[data-filter="dept"]', f.dept);
     setChips('#advFilterPanel .adv-chip[data-filter="seniority"]', f.seniority);
+    setChips('#advFilterPanel .adv-chip[data-filter="posted"]', f.posted);
     const set = (id,v) => { const el = document.getElementById(id); if(el && v != null) el.value = v; };
     set('jobMetro', f.metro); set('jobCountry', f.country); set('jobLocationInput', f.locText); set('jobSearch', f.q); set('jobSortSelect', f.sort || 'newest');
     const sl = document.getElementById('salarySlider'); if(sl){ sl.value = f.salary || 0; const sd = document.getElementById('salaryDisplay'); if(sd) sd.textContent = (f.salary > 0) ? ('$' + f.salary + 'k+') : 'Any'; }
@@ -7683,6 +7698,14 @@
       c.classList.toggle('active');
       syncDashFilters(); loadDashJobs(true);
     }));
+    // "Date posted" is single-select: picking one clears the others; clicking the
+    // active one again clears it (back to "any time").
+    document.querySelectorAll('#advFilterPanel .adv-chip[data-filter="posted"]').forEach(chip => once(chip, c => c.onclick = () => {
+      const wasActive = c.classList.contains('active');
+      document.querySelectorAll('#advFilterPanel .adv-chip[data-filter="posted"]').forEach(x => x.classList.remove('active'));
+      if(!wasActive) c.classList.add('active');
+      syncDashFilters(); loadDashJobs(true);
+    }));
   }
   function hideDashRecruiterBits(){
     const hide = el => { if(el) el.style.display = 'none'; };
@@ -7708,7 +7731,7 @@
     renderDashboard();          // hydrate the sidebar (async; sidebar only)
     hideDashRecruiterBits();
     wireDashControls();
-    __dash = { q:'', remote:false, minSalary:null, employmentType:[], keywordGroups:[], locationTokens:[], locationOrRemote:false, country:null, sort:'newest', offset:0, total:0, items:[], loading:false };
+    __dash = { q:'', remote:false, minSalary:null, employmentType:[], keywordGroups:[], locationTokens:[], locationOrRemote:false, country:null, postedWithin:null, sort:'newest', offset:0, total:0, items:[], loading:false };
     await loadSavedSet();     // so cards show the correct Save state
     loadPostingSets();        // client-side saved/dismissed state for direct postings
     __filtersRestored = false;

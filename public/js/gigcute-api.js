@@ -865,13 +865,18 @@ function parseSearch(q) {
 const jobs = {
   // List active jobs, newest first, with optional text search + remote filter.
   // Returns { jobs:[...], total }. total is the full match count (for paging).
-  async list({ limit = 20, offset = 0, q = '', remote = null, minSalary = null, employmentType = null, location = null, keywords = null, keywordGroups = null, locationTokens = null, locationOrRemote = false, country = null, sort = 'newest' } = {}) {
+  async list({ limit = 20, offset = 0, q = '', remote = null, minSalary = null, employmentType = null, location = null, keywords = null, keywordGroups = null, locationTokens = null, locationOrRemote = false, country = null, postedWithin = null, sort = 'newest' } = {}) {
     const clean = s => String(s || '').replace(/[(),%]/g, ' ').trim();
     let query = requireClient()
       .from('jobs')
       .select('*', { count: 'exact' })
       .eq('is_active', true);
     if (remote === true) query = query.eq('remote', true);
+    // "Date posted": keep only jobs posted within the last N days. A .gte on
+    // posted_at also drops rows with an unknown (null) posted_at, which is the
+    // right call — we can't claim an undated job is recent.
+    const days = parseInt(postedWithin, 10);
+    if (days > 0) query = query.gte('posted_at', new Date(Date.now() - days * 86400000).toISOString());
     // Country filter over free-text location. 'include' = matches any country token;
     // 'exclude' (used for United States, a US-dominant feed) = contains NO foreign
     // token, so "New York, NY" / "Austin, TX" / "United States" all count as US.
