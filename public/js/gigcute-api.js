@@ -476,6 +476,13 @@ const postings = {
     if (error) throw error;
     return data || null;
   },
+  // Seeker ids the owner has dismissed/handled for a posting.
+  async dismissedSeekers(postingId) {
+    const { data, error } = await requireClient().from('posting_dismissed')
+      .select('seeker_id').eq('posting_id', postingId);
+    if (error) throw error;
+    return (data || []).map(r => r.seeker_id);
+  },
   // Potential-match candidates for a posting (visible seekers not already interested or dismissed).
   async recommend(postingId, limit = 8) {
     const { data, error } = await requireClient().rpc('recommend_candidates', { p_posting: postingId, p_limit: limit });

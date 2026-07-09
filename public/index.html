@@ -7905,6 +7905,14 @@
     openPostingManage(postingId);   // re-render; next-best candidate backfills in
   }
   window.pmDismiss = pmDismiss;
+  // Message an interested candidate: clear them from the interested list (the chat
+  // is now in Messages), then open the conversation.
+  async function pmMessageAndClear(postingId, seekerId, name){
+    const API = await gcAwaitAPI();
+    try{ await API.postings.dismissCandidate(postingId, seekerId); }catch(e){}
+    recruiterMessageFor(postingId, seekerId, name);
+  }
+  window.pmMessageAndClear = pmMessageAndClear;
   async function openPostingManage(id){
     __amRecruiter = true;
     showScreen('screen-posting-manage');
@@ -7930,6 +7938,10 @@
     let inviteBy = {};
     try{ const invs = await API.invites.forPosting(id); (invs||[]).forEach(iv => { inviteBy[iv.seeker_id] = iv; }); }catch(e){}
     const fmtInviteDate = iso => { try{ return new Date(iso).toLocaleDateString(undefined, { month:'short', day:'numeric' }); }catch(e){ return ''; } };
+    // Interested candidates that were removed / chatted are hidden from the list.
+    let dismissedSet = new Set();
+    try{ dismissedSet = new Set(await API.postings.dismissedSeekers(id)); }catch(e){}
+    const interestedCands = (cands || []).filter(c => !dismissedSet.has(c.seeker_id));
     const money = v => v ? ('$' + (v>=1000 ? Math.round(v/1000)+'k' : v)) : '';
     const sal = (p.salary_min||p.salary_max) ? `${money(p.salary_min)}${p.salary_max?'–'+money(p.salary_max):'+'}` : '';
     const meta = [ [p.location_type,p.city].filter(Boolean).join(' · '), p.employment_type, sal ].filter(Boolean).join(' · ');
@@ -7955,12 +7967,13 @@
         ${candidateBadges(sigMap[c.seeker_id])}
       </div>
       <div class="pm-cand-actions">
-        <button class="jli-btn" type="button" onclick="recruiterViewCandidate('${escapeHtml(c.seeker_id)}','${id}')">View profile</button>
         ${c.mutual
-          ? `<button class="jli-btn primary" type="button" onclick="recruiterMessageFor('${id}','${escapeHtml(c.seeker_id)}','${escapeHtml((c.full_name||'Candidate').replace(/'/g,''))}')">Message</button>`
+          ? `<button class="jli-btn primary" type="button" onclick="pmMessageAndClear('${id}','${escapeHtml(c.seeker_id)}','${escapeHtml((c.full_name||'Candidate').replace(/'/g,''))}')">Message</button>`
           : `<button class="jli-btn primary" type="button" onclick="pmLikeBack('${id}','${escapeHtml(c.seeker_id)}')">Like back</button>`}
+        <button class="jli-btn" type="button" onclick="recruiterViewCandidate('${escapeHtml(c.seeker_id)}','${id}')">View profile</button>
+        <button class="jli-btn pass" type="button" title="Remove from interested" onclick="pmDismiss('${id}','${escapeHtml(c.seeker_id)}')" style="font-size:11px;padding:5px 10px;">Remove</button>
       </div></div>`;
-    const interestedHtml = `<section style="margin-bottom:26px;"><h2 class="pm-h2">Interested candidates <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.4);">· ${(cands||[]).length}</span></h2>${(cands&&cands.length)?cands.map(candCard).join(''):'<div class="pm-empty">No candidates have shown interest yet.</div>'}</section>`;
+    const interestedHtml = `<section style="margin-bottom:26px;"><h2 class="pm-h2">Interested candidates <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.4);">· ${interestedCands.length}</span></h2>${interestedCands.length?interestedCands.map(candCard).join(''):'<div class="pm-empty">No candidates have shown interest yet.</div>'}</section>`;
     const recCard = r => { const skills=(r.skills||[]).slice(0,4).map(s=>`<span class="jli-tag">${escapeHtml(s)}</span>`).join('');
       return `<div class="pm-cand">${av(r.photo_url,r.name)}
         <div style="flex:1;min-width:0;">
