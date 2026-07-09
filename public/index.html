@@ -7818,8 +7818,13 @@
   window.recruiterViewCandidate = recruiterViewCandidate;
   async function recruiterInviteFor(postingId, seekerId){
     const API = await gcAwaitAPI();
-    try{ await API.invites.send({ postingId, seekerId, note:'We would love for you to consider this role.' }); if(typeof showToast==='function') showToast('Invite sent — they’ll see it in their inbox.'); }
-    catch(e){ if(typeof showToast==='function') showToast('Could not send invite.'); }
+    try{
+      await API.invites.send({ postingId, seekerId, note:'We would love for you to consider this role.' });
+      if(typeof showToast === 'function') showToast('Invite sent — they’ll see it in their inbox.');
+      // If we're on that posting's manage page, refresh so the button flips to "Invited".
+      if((document.querySelector('.screen.active')||{}).id === 'screen-posting-manage' && __pmPostingId === postingId) openPostingManage(postingId);
+    }
+    catch(e){ if(typeof showToast === 'function') showToast('Could not send invite.'); }
   }
   window.recruiterInviteFor = recruiterInviteFor;
   async function pmLikeBack(postingId, seekerId){
@@ -7922,6 +7927,9 @@
     (recs||[]).sort((a,b) => (b.__match||0) - (a.__match||0));
     let sigMap = {};
     try{ sigMap = await API.interest.candidateSignals([...(cands||[]).map(c=>c.seeker_id), ...(recs||[]).map(r=>r.seeker_id)]); }catch(e){}
+    let inviteBy = {};
+    try{ const invs = await API.invites.forPosting(id); (invs||[]).forEach(iv => { inviteBy[iv.seeker_id] = iv; }); }catch(e){}
+    const fmtInviteDate = iso => { try{ return new Date(iso).toLocaleDateString(undefined, { month:'short', day:'numeric' }); }catch(e){ return ''; } };
     const money = v => v ? ('$' + (v>=1000 ? Math.round(v/1000)+'k' : v)) : '';
     const sal = (p.salary_min||p.salary_max) ? `${money(p.salary_min)}${p.salary_max?'–'+money(p.salary_max):'+'}` : '';
     const meta = [ [p.location_type,p.city].filter(Boolean).join(' · '), p.employment_type, sal ].filter(Boolean).join(' · ');
@@ -7962,7 +7970,9 @@
           ${skills?`<div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap;">${skills}</div>`:''}
         </div>
         <div class="pm-cand-actions">
-          <button class="jli-btn primary" type="button" onclick="recruiterInviteFor('${id}','${escapeHtml(r.seeker_id)}')">Invite to chat</button>
+          ${inviteBy[r.seeker_id]
+            ? `<button class="jli-btn" type="button" disabled title="Invite already sent" style="opacity:0.5;cursor:default;">✓ Invited ${escapeHtml(fmtInviteDate(inviteBy[r.seeker_id].created_at))}</button>`
+            : `<button class="jli-btn primary" type="button" onclick="recruiterInviteFor('${id}','${escapeHtml(r.seeker_id)}')">Invite to chat</button>`}
           <button class="jli-btn" type="button" onclick="recruiterViewCandidate('${escapeHtml(r.seeker_id)}','${id}')">View profile</button>
           <button class="jli-btn pass" type="button" title="Not a fit — remove" onclick="pmDismiss('${id}','${escapeHtml(r.seeker_id)}')" style="font-size:11px;padding:5px 10px;">Remove</button>
         </div></div>`; };

@@ -580,6 +580,13 @@ const invites = {
     if (error) throw error;
     return data;
   },
+  // Invites the caller has sent for a posting they own → for showing "Invited on…".
+  async forPosting(postingId) {
+    const { data, error } = await requireClient().from('invites')
+      .select('seeker_id, status, created_at').eq('posting_id', postingId);
+    if (error) throw error;
+    return data || [];
+  },
   async respond(inviteId, status) { // 'accepted' | 'declined'
     const { data, error } = await requireClient().from('invites')
       .update({ status, responded_at: new Date().toISOString() }).eq('id', inviteId).select().single();

@@ -22,6 +22,8 @@ begin
   insert into public.posting_dismissed (posting_id, seeker_id, created_by)
   values (p_posting, p_seeker, auth.uid())
   on conflict (posting_id, seeker_id) do nothing;
+  -- removing a candidate also withdraws any invite to them for this posting
+  delete from public.invites where posting_id = p_posting and seeker_id = p_seeker;
 end $$;
 grant execute on function public.dismiss_candidate(uuid, uuid) to authenticated;
 
