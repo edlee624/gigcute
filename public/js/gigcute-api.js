@@ -684,6 +684,11 @@ const chat = {
     if (error) throw error;
     return data;
   },
+  // End (archive) a conversation — either participant can. Auto-deleted after 31 days.
+  async endConversation(conversationId) {
+    const { error } = await requireClient().rpc('end_conversation', { p_conv: conversationId });
+    if (error) throw error;
+  },
   // Read receipts: stamp read_at on the OTHER party's unread messages in this
   // conversation (RLS "msg: recipient mark read" allows a participant to update).
   async markRead(conversationId) {

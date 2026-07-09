@@ -206,6 +206,7 @@
   .pm-tip{ position:relative; }
   .pm-tip::after{ content:attr(data-tip); position:absolute; bottom:calc(100% + 7px); right:0; background:var(--ink); border:1px solid var(--line-light); color:rgba(251,247,240,0.92); font-size:11px; font-family:'Inter',sans-serif; font-weight:400; white-space:nowrap; padding:6px 10px; border-radius:8px; opacity:0; pointer-events:none; transition:opacity .12s; z-index:30; box-shadow:0 8px 22px -8px rgba(0,0,0,0.65); }
   .pm-tip:hover::after, .pm-tip:focus::after{ opacity:1; }
+  .pm-tip.tip-down::after{ bottom:auto; top:calc(100% + 7px); white-space:normal; width:250px; text-align:left; line-height:1.45; }
   .match-chip{ font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; letter-spacing:0.02em; border:1px solid; border-radius:20px; padding:2px 9px; white-space:nowrap; flex-shrink:0; }
   .match-chip.tier-vs{ color:var(--paper); background:rgba(122,158,126,0.30); border-color:var(--sage); }
   .match-chip.tier-s{ color:var(--sage); background:rgba(122,158,126,0.14); border-color:rgba(122,158,126,0.5); }
@@ -3876,6 +3877,7 @@
               <div id="chatPeer" style="font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--paper); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
               <div id="chatPeerSub" style="font-size:12px; color:rgba(251,247,240,0.5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
             </div>
+            <button class="ds-nav-btn pm-tip tip-down" id="chatEndBtn" type="button" data-tip="Archives this chat, kept 31 days, then auto-deleted — this keeps GigCute low-cost for everyone." style="margin-left:auto; flex-shrink:0;">End chat</button>
           </div>
           <div id="chatMessages" class="thread-body"></div>
           <div class="thread-composer">
@@ -8257,9 +8259,12 @@
   function renderConvList(){
     const el = document.getElementById('conversationList'); if(!el) return;
     const seenMap = __convUid ? convSeenMap(__convUid) : {};
+    // An "ended" chat (ended_at set) is treated as archived and shows a deletion countdown.
+    const isArch = c => convIsArchived(c.id) || !!c.ended_at;
+    const deletesInDays = c => Math.max(0, 31 - Math.floor((Date.now() - new Date(c.ended_at).getTime()) / 86400000));
     let list = __convosCache.filter(c => !convIsDeleted(c.id));
-    if(__convFilter === 'archived') list = list.filter(c => convIsArchived(c.id));
-    else { list = list.filter(c => !convIsArchived(c.id)); if(__convFilter === 'unread') list = list.filter(c => convUnread(c, seenMap)); }
+    if(__convFilter === 'archived') list = list.filter(isArch);
+    else { list = list.filter(c => !isArch(c)); if(__convFilter === 'unread') list = list.filter(c => convUnread(c, seenMap)); }
     if(!list.length){
       const msg = __convFilter === 'archived' ? 'No archived conversations' : __convFilter === 'unread' ? 'No unread messages' : 'No conversations yet';
       el.innerHTML = `<div style="text-align:center; padding:34px 18px;"><div style="font-family:'Fraunces',serif; font-size:16px; font-style:italic; margin-bottom:6px; color:rgba(251,247,240,0.7);">${msg}</div>${__convFilter==='all'?'<div style="font-size:12.5px; color:rgba(251,247,240,0.5);">When you match, you can message here.</div>':''}</div>`;
@@ -8274,6 +8279,7 @@
         <div class="conv-main">
           <div class="conv-name">${escapeHtml(peer)}</div>
           <div class="conv-sub">${escapeHtml(sub)}</div>
+          ${c.ended_at ? `<div style="font-size:11px;color:rgba(251,247,240,0.4);font-family:'JetBrains Mono',monospace;margin-top:2px;">Ended · deletes in ${deletesInDays(c)}d</div>` : ''}
         </div>
         <div class="conv-meta">
           <div class="conv-meta-top"><span class="conv-time">${escapeHtml(chatRelTime(c.last_message_at))}</span><button class="conv-more" type="button" data-more="${c.id}" aria-label="Conversation options">⋯</button></div>
@@ -8337,6 +8343,15 @@
     const tv = document.getElementById('threadView'); if(tv) tv.style.display = 'none';
     const empty = document.getElementById('threadEmpty'); if(empty) empty.style.display = 'flex';
     if(/^\/messages\/[^/]+/.test(location.pathname)) window.history.replaceState({}, '', '/messages');
+  }
+  // End the open chat: archive server-side (deletes after 31 days), close the pane, refresh.
+  async function endCurrentChat(){
+    const convId = __chatConvId; if(!convId) return;
+    const API = await gcAwaitAPI();
+    try{ await API.chat.endConversation(convId); if(typeof showToast === 'function') showToast('Chat ended — archived, auto-deletes in 31 days.'); }
+    catch(e){ if(typeof showToast === 'function') showToast('Could not end chat.'); return; }
+    closeThreadPane();
+    showMessages();
   }
   window.showMessages = showMessages;
   // Seeker's pending invitations (recruiter reached out proactively).
@@ -8530,6 +8545,12 @@
 
   { const b=document.getElementById('chatBack'); if(b) b.onclick = closeChat; }
   { const b=document.getElementById('chatSend'); if(b) b.onclick = sendChatMessage; }
+  { const b=document.getElementById('chatEndBtn'); if(b) b.onclick = () => {
+      if(!__chatConvId) return;
+      if(b.dataset.armed !== '1'){ b.dataset.armed = '1'; b.textContent = 'Confirm end'; setTimeout(() => { if(b.dataset.armed === '1'){ b.dataset.armed = ''; b.textContent = 'End chat'; } }, 4000); return; }
+      b.dataset.armed = ''; b.textContent = 'End chat';
+      endCurrentChat();
+    }; }
   { const i=document.getElementById('chatInput'); if(i) i.addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); sendChatMessage(); } }); }
   { const s=document.getElementById('convSearch'); if(s) s.addEventListener('input', () => { const q=(s.value||'').trim().toLowerCase(); document.querySelectorAll('#conversationList .conv-row').forEach(r => { r.style.display = (!q || (r.getAttribute('data-search')||'').indexOf(q)>=0) ? '' : 'none'; }); }); }
   document.querySelectorAll('#convFilters .conv-filter').forEach(c => c.onclick = () => { document.querySelectorAll('#convFilters .conv-filter').forEach(x => x.classList.remove('active')); c.classList.add('active'); __convFilter = c.getAttribute('data-filter'); if(typeof renderConvList === 'function') renderConvList(); });
