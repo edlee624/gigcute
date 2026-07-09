@@ -188,6 +188,24 @@
   .conv-menu-item{ display:block; width:100%; text-align:left; background:none; border:none; color:rgba(251,247,240,0.85); font-family:'Inter',sans-serif; font-size:13px; padding:8px 10px; border-radius:7px; cursor:pointer; }
   .conv-menu-item:hover{ background:rgba(255,255,255,0.06); }
   .conv-menu-item.danger{ color:var(--coral); }
+  /* ===== "How this works" contextual help ===== */
+  .gc-help-pill{ display:inline-flex; align-items:center; gap:4px; background:none; border:1px solid var(--line-light); color:rgba(251,247,240,0.5); font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.03em; padding:3px 9px; border-radius:999px; cursor:pointer; vertical-align:middle; margin-left:8px; transition:border-color .15s,color .15s; }
+  .gc-help-pill:hover{ border-color:var(--sage); color:var(--sage); }
+  .gc-help-overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.62); z-index:9998; display:flex; align-items:center; justify-content:center; padding:20px; animation:gcHelpIn .12s ease; }
+  @keyframes gcHelpIn{ from{ opacity:0; } to{ opacity:1; } }
+  .gc-help-card{ background:var(--ink); border:1px solid var(--line-light); border-radius:18px; max-width:540px; width:100%; padding:24px 26px 22px; max-height:86vh; overflow-y:auto; }
+  .gc-help-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:6px; }
+  .gc-help-eyebrow{ font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--sage); margin-bottom:4px; }
+  .gc-help-title{ font-family:'Fraunces',serif; font-size:21px; font-weight:600; color:var(--paper); line-height:1.2; }
+  .gc-help-x{ background:none; border:none; color:rgba(251,247,240,0.45); font-size:15px; cursor:pointer; padding:2px 6px; line-height:1; }
+  .gc-help-x:hover{ color:var(--paper); }
+  .gc-help-body{ font-size:14px; line-height:1.62; color:rgba(251,247,240,0.82); }
+  .gc-help-body p{ margin:10px 0; }
+  .gc-help-body ul{ margin:8px 0; padding-left:18px; }
+  .gc-help-body li{ margin-bottom:7px; }
+  .gc-help-body strong{ color:var(--paper); font-weight:600; }
+  .gc-help-note{ margin-top:14px; background:var(--ink-soft); border:1px solid var(--line-light); border-left:3px solid var(--sage); border-radius:8px; padding:10px 12px; font-size:12.5px; color:rgba(251,247,240,0.7); }
+  .gc-help-foot{ margin-top:18px; text-align:right; }
   /* ===== Recruiter posting-manage page ===== */
   .pm-h2{ font-family:'Fraunces',serif; font-size:19px; font-weight:600; color:var(--paper); margin:0 0 12px; }
   .pm-sub{ font-family:'JetBrains Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--sage-soft); }
@@ -3757,7 +3775,7 @@
     <div id="recruiterOverview"></div>
     <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin:8px 0 22px; flex-wrap:wrap;">
       <div>
-        <h1 style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; margin:0 0 2px;">Your Active <em style="color:var(--sage);font-style:italic;">postings</em></h1>
+        <h1 style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; margin:0 0 2px;">Your Active <em style="color:var(--sage);font-style:italic;">postings</em><button type="button" class="gc-help-pill" onclick="gcHelp('postings')">&#9432; How this works</button></h1>
         <p style="color:rgba(251,247,240,0.55); font-size:14px; margin:0;">Create roles and meet candidates who fit. Postings stay live 14 days.</p>
         <div id="recruiterLimitMeter" style="font-size:12px; font-family:'JetBrains Mono',monospace; letter-spacing:0.02em; margin-top:7px;"></div>
       </div>
@@ -5950,13 +5968,90 @@
   window.openTour = openTour;
   // Recruiter walkthrough — same modal/engine, different steps + seen key.
   const RECRUITER_TOUR_STEPS = [
-    { num:'Welcome', title:'Hiring, reimagined', body:'This is <strong>GigCute-Recruit</strong>. You meet candidates as <strong>more than a résumé</strong> — you see how they actually think through the prompts they answer, then match and chat directly.' },
-    { num:'Post a role', title:'Post your first job', body:'Hit <strong>“+ Post a job”</strong> to add a role — title, comp, location, and responsibilities. You can even <strong>request specific prompts</strong> for candidates to answer, so you learn what matters to you.' },
+    { num:'Welcome', title:'Hiring, reimagined', body:'This is <strong>GigCute-Recruit</strong>. You meet candidates as <strong>more than a résumé</strong> — you see how they actually think through the prompts they answer, then match and chat directly. Every section below also has a <strong>“&#9432; How this works”</strong> button if you want the details later.' },
+    { num:'Post a role', title:'Post your first job', body:'Hit <strong>“+ Post a job”</strong> to add a role — title, comp, location, and responsibilities. You can even <strong>request specific prompts</strong> for candidates to answer, so you learn what matters to you. Save it as a <strong>draft</strong> anytime; drafts don’t go live until you publish.' },
+    { num:'Posting lifecycle', title:'Live for 14 days', body:'A published role stays live for <strong>14 days</strong> — you’ll see the days remaining next to its status. <strong>Pause</strong> takes it offline and freezes that countdown; <strong>publishing again spends the banked days</strong>. Expired roles wait 30 days in an <strong>Expired</strong> section where you can <strong>Repost</strong> (fresh 14 days) or delete them.' },
     { num:'Get seen', title:'Your posting stands out', body:'Direct postings get <strong>premium placement</strong> — pinned to the top of the seeker job board with a <strong>“GigCute Direct Job Posting”</strong> badge, above the aggregated feed. Candidates notice you first.' },
-    { num:'Meet candidates', title:'See who’s interested', body:'When a candidate taps <strong>Interested</strong>, they appear under your posting. Open their <strong>full GigCute profile</strong> — prompts, projects, and work history — not just a one-page résumé.' },
-    { num:'Match & chat', title:'Match, then talk', body:'Like a candidate back to create a <strong>match</strong>, then start a <strong>conversation right in GigCute</strong>. Just the people who are genuinely interested.' },
+    { num:'Meet candidates', title:'See who’s interested', body:'Open a posting to see its activity. <strong>Interested candidates</strong> raised their hand for that exact role; <strong>Who’s looking</strong> is an anonymized read on everyone who viewed it; <strong>Potential matches</strong> are skill-based recommendations, each with a <strong>fit tier</strong> (Very Strong → Weak).' },
+    { num:'Invite & match', title:'Reach out, or match back', body:'<strong>Invite</strong> a potential match to chat and they’ll see it in their inbox. When someone’s already interested, <strong>Like back</strong> to create a match and unlock messaging. <strong>Remove</strong> clears a candidate — and, for someone you’re chatting with, ends that chat too.' },
+    { num:'Match & chat', title:'Talk right here', body:'Message matched candidates directly in GigCute — no email ping-pong. <strong>End chat</strong> archives a conversation (kept 31 days, then auto-deleted) to keep things tidy and the service low-cost.' },
+    { num:'Your limits', title:'Room to grow', body:'Your plan sets how many <strong>live postings</strong>, <strong>chats per posting</strong>, and <strong>invites per 30 days</strong> you get. The meter on your dashboard shows where you stand — it turns amber as you near a limit and red at it. Pausing a role or ending a chat frees capacity.' },
   ];
   window.openRecruiterTour = () => openTour(RECRUITER_TOUR_STEPS, 'gc_recruiter_tour_seen');
+
+  // ===== "How this works" — contextual, per-section help for recruiters =====
+  // Each key is a section; gcHelpBtn(key) renders the little pill, gcHelp(key)
+  // opens the explainer. Content is deliberately nuanced — it spells out the
+  // rules a recruiter can't infer from the UI alone (limits, lifecycle, privacy).
+  const GC_HELP = {
+    postings: { eyebrow:'Dashboard', title:'Your postings & how they live', body:`
+      <p>This is home base. Every role you post shows here with its live stats and status.</p>
+      <ul>
+        <li><strong>14-day live window.</strong> A published posting stays active for 14 days. The counter next to <strong>active</strong> (e.g. “9d left”) shows what’s remaining.</li>
+        <li><strong>Pause / Save as draft.</strong> Pausing takes the role offline and <strong>freezes</strong> the countdown — the days you had left are banked. Publishing again spends that same budget (it doesn’t reset to 14).</li>
+        <li><strong>Expired postings</strong> drop into their own section below, kept for <strong>30 days</strong>. <strong>Repost</strong> gives a fresh 14 days; <strong>Delete</strong> removes it for good.</li>
+        <li><strong>Open</strong> a posting to see who’s interested, who’s viewing, and recommended matches.</li>
+      </ul>
+      <div class="gc-help-note">Only <strong>live</strong> postings count against your plan’s posting limit — drafts are free. The meter under the heading shows where you stand (it turns amber as you approach a limit, red when you’re at it).</div>` },
+    stats: { eyebrow:'Posting metrics', title:'What these numbers mean', body:`
+      <ul>
+        <li><strong>Viewed</strong> — unique people who opened this role. Your own views don’t count, and repeat visits from the same person are only counted once.</li>
+        <li><strong>Interested</strong> — candidates who tapped “Interested.” These are the people in your <strong>Interested candidates</strong> list below.</li>
+        <li><strong>Viewed · 7d</strong> — views in just the last 7 days, so you can see if a role is heating up or going cold.</li>
+      </ul>` },
+    interested: { eyebrow:'Interested candidates', title:'The people who raised a hand', body:`
+      <p>Everyone here tapped <strong>Interested</strong> on this exact role — warm, opted-in candidates.</p>
+      <ul>
+        <li><strong>Like back</strong> creates a <strong>match</strong> and unlocks messaging. Once matched, the button becomes <strong>Message</strong>.</li>
+        <li><strong>Message</strong> opens the chat and quietly clears the person from this list — they now live in your <strong>Messages</strong>, not here.</li>
+        <li><strong>View profile</strong> shows their full GigCute profile — prompts, projects, work history — not just a résumé.</li>
+        <li><strong>Remove</strong> severs ties for this role: it drops them from the list, withdraws any invite, <strong>and ends an open chat</strong> (the conversation is archived, then auto-deleted in 31 days).</li>
+      </ul>
+      <div class="gc-help-note">The <strong>“x / y chats”</strong> tag on the right counts ongoing conversations for this posting against your plan limit. End a chat to free a slot.</div>` },
+    audience: { eyebrow:'Who’s looking', title:'Anonymized viewer insights', body:`
+      <p>An aggregate picture of the <strong>signed-in seekers who viewed</strong> this role — broken down by work setup and experience, and split by whether they liked it or scrolled past.</p>
+      <ul>
+        <li>Use it to read the market: if strong-experience viewers keep passing, your comp, title, or requirements may be off.</li>
+        <li>It’s <strong>always aggregated</strong> — you never see who an individual viewer was. Only candidates who tap Interested reveal themselves (in the list above).</li>
+        <li>It stays hidden until enough people have viewed, so no one can be re-identified from a tiny sample.</li>
+      </ul>` },
+    matches: { eyebrow:'Potential matches', title:'Recommendations & fit tiers', body:`
+      <p>Candidates we surface for you based on how their skills overlap with this posting — even if they haven’t found your role yet.</p>
+      <ul>
+        <li><strong>Fit tier</strong> summarizes the match strength: <strong>Very Strong Fit</strong> (90–100%), <strong>Strong Fit</strong> (80–89%), <strong>Mid-Fit</strong> (70–79%), <strong>Weak-Fit</strong> (below). It’s a starting signal, not a verdict — read the profile.</li>
+        <li><strong>Invite to chat</strong> sends them an invite; they see it in their inbox and can accept to open a conversation. Once sent, the button shows <strong>“Invite sent on &lt;date&gt;”</strong> and disables so you don’t double-invite.</li>
+        <li><strong>Remove</strong> drops a candidate so the next-best one backfills — and withdraws any invite you sent them.</li>
+      </ul>
+      <div class="gc-help-note">Invites are rate-limited by your plan (a rolling 30-day allowance). The usage meter on your dashboard tracks how many you’ve used.</div>` },
+    chat: { eyebrow:'Messages', title:'Conversations & keeping them tidy', body:`
+      <p>You chat directly with matched and invited candidates here — no email ping-pong.</p>
+      <ul>
+        <li><strong>End chat</strong> archives a conversation. It’s kept for <strong>31 days</strong> then auto-deleted — that’s deliberate, to keep GigCute low-cost for everyone. (It’s a two-tap confirm so you can’t archive by accident.)</li>
+        <li>Once a chat is <strong>archived</strong>, the only option left is <strong>Delete conversation</strong>.</li>
+        <li>Ongoing chats count toward a <strong>per-posting limit</strong> on your plan; ending one frees a slot for a new candidate.</li>
+      </ul>` },
+  };
+  function gcHelp(key){
+    const h = GC_HELP[key]; if(!h) return;
+    let ov = document.getElementById('gcHelpModal');
+    if(!ov){
+      ov = document.createElement('div'); ov.id = 'gcHelpModal'; ov.className = 'gc-help-overlay';
+      ov.addEventListener('click', e => { if(e.target === ov) ov.remove(); });
+      document.body.appendChild(ov);
+    }
+    ov.innerHTML = `<div class="gc-help-card" role="dialog" aria-modal="true">
+      <div class="gc-help-head">
+        <div><div class="gc-help-eyebrow">${escapeHtml(h.eyebrow||'How this works')}</div><div class="gc-help-title">${escapeHtml(h.title)}</div></div>
+        <button type="button" class="gc-help-x" aria-label="Close" onclick="document.getElementById('gcHelpModal').remove()">✕</button>
+      </div>
+      <div class="gc-help-body">${h.body}</div>
+      <div class="gc-help-foot"><button type="button" class="lm-cta-btn sage" style="font-size:13px;padding:9px 18px;" onclick="document.getElementById('gcHelpModal').remove()">Got it</button></div>
+    </div>`;
+  }
+  window.gcHelp = gcHelp;
+  // Small inline "How this works" pill for a section header.
+  function gcHelpBtn(key){ return `<button type="button" class="gc-help-pill" onclick="gcHelp('${key}')">&#9432; How this works</button>`; }
+  window.gcHelpBtn = gcHelpBtn;
 
   // ===== INTERVIEW CHEAT SHEET (printable prep document) =====
   // The setup prompts double as common interview questions. Owners can print their
@@ -7951,7 +8046,7 @@
   window.pmLikeBack = pmLikeBack;
   function pmAudience(a){
     const total = a ? ((a.liked_count||0)+(a.other_count||0)) : 0;
-    if(!total) return `<section style="margin-bottom:26px;"><h2 class="pm-h2">Who’s looking</h2><div class="pm-empty">Not enough view activity yet — this fills in as signed-in seekers view your role.</div></section>`;
+    if(!total) return `<section style="margin-bottom:26px;"><h2 class="pm-h2">Who’s looking${gcHelpBtn('audience')}</h2><div class="pm-empty">Not enough view activity yet — this fills in as signed-in seekers view your role.</div></section>`;
     const dist = obj => { const e = Object.entries(obj||{}).sort((x,y)=>y[1]-x[1]); return e.length ? e.map(([k,v])=>`<div style="display:flex;justify-content:space-between;font-size:12.5px;color:rgba(251,247,240,0.72);margin-bottom:3px;"><span>${escapeHtml(k)}</span><span style="color:rgba(251,247,240,0.45);">${v}</span></div>`).join('') : '<div style="font-size:12px;color:rgba(251,247,240,0.35);">—</div>'; };
     const col = (title,count,ws,exp) => `<div style="flex:1;min-width:190px;background:var(--ink-soft);border:1px solid var(--line-light);border-radius:12px;padding:14px 16px;">
       <div style="font-weight:700;color:var(--paper);font-size:14px;">${title} <span style="color:rgba(251,247,240,0.4);font-weight:400;">· ${count}</span></div>
@@ -7959,7 +8054,7 @@
         ? `<div style="margin-top:10px;"><div class="pm-sub">Work setup</div>${dist(ws)}</div><div style="margin-top:12px;"><div class="pm-sub">Experience</div>${dist(exp)}</div>`
         : `<div style="font-size:12px;color:rgba(251,247,240,0.4);margin-top:8px;">Breakdown shows once at least 3 people are in this group (protects individual privacy).</div>`}
     </div>`;
-    return `<section style="margin-bottom:26px;"><h2 class="pm-h2">Who’s looking <span style="font-size:12px;font-weight:400;color:rgba(251,247,240,0.4);">— signed-in viewers, aggregated</span></h2>
+    return `<section style="margin-bottom:26px;"><h2 class="pm-h2">Who’s looking <span style="font-size:12px;font-weight:400;color:rgba(251,247,240,0.4);">— signed-in viewers, aggregated</span>${gcHelpBtn('audience')}</h2>
       <div style="display:flex;gap:12px;flex-wrap:wrap;">
         ${col('Interested', a.liked_count||0, a.work_setup&&a.work_setup.liked, a.experience&&a.experience.liked)}
         ${col('Viewed, didn’t like', a.other_count||0, a.work_setup&&a.work_setup.other, a.experience&&a.experience.other)}
@@ -8065,7 +8160,7 @@
     const meta = [ [p.location_type,p.city].filter(Boolean).join(' · '), p.employment_type, sal ].filter(Boolean).join(' · ');
     const views = stats ? (stats.views||0) : 0, interested = stats ? (stats.interested||0) : (cands||[]).length;
     const statCard = (n,label) => `<div style="flex:1;min-width:120px;background:var(--ink-soft);border:1px solid var(--line-light);border-radius:14px;padding:16px 18px;"><div style="font-family:'Fraunces',serif;font-size:28px;font-weight:600;color:var(--coral);">${n}</div><div style="font-size:11px;color:rgba(251,247,240,0.55);text-transform:uppercase;letter-spacing:0.05em;font-family:'JetBrains Mono',monospace;margin-top:2px;">${label}</div></div>`;
-    const statsHtml = `<div style="display:flex;gap:12px;margin-bottom:22px;flex-wrap:wrap;">${statCard(views,'Viewed')}${statCard(interested,'Interested')}${statCard(stats?(stats.views_7d||0):0,'Viewed · 7d')}</div>`;
+    const statsHtml = `<div style="display:flex;justify-content:flex-end;margin-bottom:6px;">${gcHelpBtn('stats')}</div><div style="display:flex;gap:12px;margin-bottom:22px;flex-wrap:wrap;">${statCard(views,'Viewed')}${statCard(interested,'Interested')}${statCard(stats?(stats.views_7d||0):0,'Viewed · 7d')}</div>`;
     const listBlock=(t,arr)=>(arr&&arr.length)?`<div style="margin-top:14px;"><div class="pm-sub">${t}</div><ul style="font-size:13.5px;color:rgba(251,247,240,0.8);line-height:1.6;margin:4px 0 0;padding-left:18px;">${arr.map(x=>`<li>${escapeHtml(x)}</li>`).join('')}</ul></div>`:'';
     const postingHtml = `<div style="background:var(--ink-soft);border:1px solid var(--line-light);border-radius:16px;padding:20px 22px;margin-bottom:24px;">
       <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
@@ -8092,7 +8187,7 @@
         <button class="jli-btn pass pm-tip" type="button" data-tip="${c.mutual ? 'Removes them and ends your chat' : (inviteBy[c.seeker_id] ? 'Remove will also delete your invite' : 'Remove from interested')}" onclick="pmDismiss('${id}','${escapeHtml(c.seeker_id)}')" style="font-size:11px;padding:5px 10px;">Remove</button>
       </div></div>`;
     const chatMeter = chatUse ? `<span class="pm-tip" data-tip="Ongoing chats for this posting. End a chat to free a slot." style="font-size:12px;font-weight:400;font-family:'JetBrains Mono',monospace;color:${chatUse.used>=chatUse.max?'#e0857a':(chatUse.used>=chatUse.max-1?'#e0b64a':'rgba(251,247,240,0.4)')};float:right;">${chatUse.used} / ${chatUse.max} chats</span>` : '';
-    const interestedHtml = `<section style="margin-bottom:26px;"><h2 class="pm-h2">Interested candidates <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.4);">· ${interestedCands.length}</span>${chatMeter}</h2>${interestedCands.length?interestedCands.map(candCard).join(''):'<div class="pm-empty">No candidates have shown interest yet.</div>'}</section>`;
+    const interestedHtml = `<section style="margin-bottom:26px;"><h2 class="pm-h2">Interested candidates <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.4);">· ${interestedCands.length}</span>${gcHelpBtn('interested')}${chatMeter}</h2>${interestedCands.length?interestedCands.map(candCard).join(''):'<div class="pm-empty">No candidates have shown interest yet.</div>'}</section>`;
     const recCard = r => { const skills=(r.skills||[]).slice(0,4).map(s=>`<span class="jli-tag">${escapeHtml(s)}</span>`).join('');
       return `<div class="pm-cand">${av(r.photo_url,r.name)}
         <div style="flex:1;min-width:0;">
@@ -8108,7 +8203,7 @@
           <button class="jli-btn" type="button" onclick="recruiterViewCandidate('${escapeHtml(r.seeker_id)}','${id}')">View profile</button>
           <button class="jli-btn pass pm-tip" type="button" data-tip="${inviteBy[r.seeker_id] ? 'Remove will also delete your invite' : 'Not a fit — remove'}" onclick="pmDismiss('${id}','${escapeHtml(r.seeker_id)}')" style="font-size:11px;padding:5px 10px;">Remove</button>
         </div></div>`; };
-    const recsHtml = `<section><h2 class="pm-h2">Potential matches <span style="font-size:12px;font-weight:400;color:rgba(251,247,240,0.4);">— based on skills</span></h2>${(recs&&recs.length)?recs.map(recCard).join(''):'<div class="pm-empty">No further recommendations right now.</div>'}</section>`;
+    const recsHtml = `<section><h2 class="pm-h2">Potential matches <span style="font-size:12px;font-weight:400;color:rgba(251,247,240,0.4);">— based on skills</span>${gcHelpBtn('matches')}</h2>${(recs&&recs.length)?recs.map(recCard).join(''):'<div class="pm-empty">No further recommendations right now.</div>'}</section>`;
     el.innerHTML = statsHtml + postingHtml + interestedHtml + pmAudience(audience) + recsHtml;
   }
   window.openPostingManage = openPostingManage;
@@ -8367,6 +8462,10 @@
     // a fresh /messages load (i_am_recruiter is per-conversation; role is the user).
     try{ const me = await API.profiles.me(); if(me && me.role){ __amRecruiter = (me.role === 'recruiter'); } else if((convos||[]).some(c => c.i_am_recruiter)){ __amRecruiter = true; } }catch(e){ if((convos||[]).some(c => c.i_am_recruiter)) __amRecruiter = true; }
     __convosCache = convos || [];
+    // Recruiters get a "How this works" pill on the inbox (chat limits / archiving);
+    // seekers don't, since that guidance is recruiter-specific.
+    { const t = document.querySelector('#screen-messages .inbox-list-title');
+      if(t) t.innerHTML = 'Messaging' + (__amRecruiter ? gcHelpBtn('chat') : ''); }
     __convById = {};
     __convosCache.forEach(c => { __convById[c.id] = { peer: c.i_am_recruiter ? (c.seeker_name || 'Candidate') : (c.company_name || 'Company'), sub: c.posting_title || '' }; });
     renderConvList();
