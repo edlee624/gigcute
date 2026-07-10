@@ -8140,11 +8140,9 @@
     openPostingManage(postingId);   // re-render; next-best candidate backfills in
   }
   window.pmDismiss = pmDismiss;
-  // Message an interested candidate: clear them from the interested list (the chat
-  // is now in Messages), then open the conversation.
+  // Message an interested candidate: open the conversation. A live chat now exists,
+  // so on return they surface under "Currently chatting" (not the interested list).
   async function pmMessageAndClear(postingId, seekerId, name){
-    const API = await gcAwaitAPI();
-    try{ await API.postings.dismissCandidate(postingId, seekerId); }catch(e){}
     recruiterMessageFor(postingId, seekerId, name);
   }
   window.pmMessageAndClear = pmMessageAndClear;
@@ -8159,12 +8157,18 @@
     if(!p){ try{ const mine = await API.postings.mine(); (mine||[]).forEach(x=>__postingsById[x.id]=x); p = __postingsById[id]; }catch(e){} }
     if(!p){ el.innerHTML = '<div style="padding:40px 0;color:rgba(251,247,240,0.5);">Posting not found.</div>'; return; }
     __pmPostingId = id;
-    const [stats, cands, audience, recs] = await Promise.all([
+    const [stats, cands, audience, recs, convos] = await Promise.all([
       API.postings.stats(id).catch(()=>null),
       API.interest.seekersWhoLiked(id).catch(()=>[]),
       API.postings.audience(id).catch(()=>null),
-      API.postings.recommend(id, 12).catch(()=>[])
+      API.postings.recommend(id, 12).catch(()=>[]),
+      API.chat.myConversations().catch(()=>[])
     ]);
+    // Active (not-ended) chats for THIS posting → the "Currently chatting" section.
+    const chatConvs = (convos || [])
+      .filter(cv => cv.posting_id === id && cv.i_am_recruiter && !cv.ended_at)
+      .sort((a,b) => new Date(b.last_message_at||0) - new Date(a.last_message_at||0));
+    const chattingSet = new Set(chatConvs.map(cv => cv.seeker_id));
     // Attach an explainable match score + rank by it (fetched pool is skill-ranked).
     (recs||[]).forEach(r => { r.__match = candMatchScore(p, r); });
     (recs||[]).sort((a,b) => (b.__match||0) - (a.__match||0));
@@ -8174,10 +8178,16 @@
     try{ const invs = await API.invites.forPosting(id); (invs||[]).forEach(iv => { inviteBy[iv.seeker_id] = iv; }); }catch(e){}
     let chatUse = null; try{ chatUse = await API.limits.postingChats(id); }catch(e){}
     const fmtInviteDate = iso => { try{ return new Date(iso).toLocaleDateString(undefined, { month:'short', day:'numeric' }); }catch(e){ return ''; } };
-    // Interested candidates that were removed / chatted are hidden from the list.
+    // Interested candidates that were removed are hidden; those with a live chat move
+    // up into "Currently chatting" instead of showing here.
     let dismissedSet = new Set();
     try{ dismissedSet = new Set(await API.postings.dismissedSeekers(id)); }catch(e){}
-    const interestedCands = (cands || []).filter(c => !dismissedSet.has(c.seeker_id));
+    const interestedCands = (cands || []).filter(c => !dismissedSet.has(c.seeker_id) && !chattingSet.has(c.seeker_id));
+    // Photo/headline lookup so chat cards can show a face + role (my_conversations
+    // only carries the name).
+    const infoBySeeker = {};
+    (cands || []).forEach(c => { infoBySeeker[c.seeker_id] = { photo:c.photo_url, headline:c.headline, name:c.full_name }; });
+    (recs  || []).forEach(r => { if(!infoBySeeker[r.seeker_id]) infoBySeeker[r.seeker_id] = { photo:r.photo_url, headline:r.headline, name:r.name }; });
     const money = v => v ? ('$' + (v>=1000 ? Math.round(v/1000)+'k' : v)) : '';
     const sal = (p.salary_min||p.salary_max) ? `${money(p.salary_min)}${p.salary_max?'–'+money(p.salary_max):'+'}` : '';
     const meta = [ [p.location_type,p.city].filter(Boolean).join(' · '), p.employment_type, sal ].filter(Boolean).join(' · ');
@@ -8209,6 +8219,19 @@
         <button class="jli-btn" type="button" onclick="recruiterViewCandidate('${escapeHtml(c.seeker_id)}','${id}')">View profile</button>
         <button class="jli-btn pass pm-tip" type="button" data-tip="${c.mutual ? 'Removes them and ends your chat' : (inviteBy[c.seeker_id] ? 'Remove will also delete your invite' : 'Remove from interested')}" onclick="pmDismiss('${id}','${escapeHtml(c.seeker_id)}')" style="font-size:11px;padding:5px 10px;">Remove</button>
       </div></div>`;
+    // "Currently chatting" — candidates with a live conversation for this posting.
+    // The whole card opens the thread in Messages.
+    const chatTimeAgo = iso => { if(!iso) return ''; const s=(Date.now()-new Date(iso).getTime())/1000; if(s<60)return 'just now'; if(s<3600)return Math.floor(s/60)+'m ago'; if(s<86400)return Math.floor(s/3600)+'h ago'; return Math.floor(s/86400)+'d ago'; };
+    const chatCard = cv => { const info = infoBySeeker[cv.seeker_id] || {}; const nm = cv.seeker_name || info.name || 'Candidate'; const t = chatTimeAgo(cv.last_message_at);
+      return `<div class="pm-cand" style="cursor:pointer;" onclick="openConversationRoute('${escapeHtml(String(cv.id))}')">${av(info.photo,nm)}
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;color:var(--paper);font-size:14px;">${escapeHtml(nm)} <span style="color:var(--sage);font-size:11px;">· chatting</span></div>
+          <div style="font-size:12.5px;color:rgba(251,247,240,0.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(info.headline||'')}${t?` <span style="color:rgba(251,247,240,0.35);">· ${t}</span>`:''}</div>
+        </div>
+        <div class="pm-cand-actions" onclick="event.stopPropagation()">
+          <button class="jli-btn primary" type="button" onclick="openConversationRoute('${escapeHtml(String(cv.id))}')">Open chat →</button>
+        </div></div>`; };
+    const chattingHtml = chatConvs.length ? `<section style="margin-bottom:26px;"><h2 class="pm-h2">Currently chatting <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.4);">· ${chatConvs.length}</span></h2>${chatConvs.map(chatCard).join('')}</section>` : '';
     const chatMeter = chatUse ? `<span class="pm-tip" data-tip="Ongoing chats for this posting. End a chat to free a slot." style="font-size:12px;font-weight:400;font-family:'JetBrains Mono',monospace;color:${chatUse.used>=chatUse.max?'#e0857a':(chatUse.used>=chatUse.max-1?'#e0b64a':'rgba(251,247,240,0.4)')};float:right;">${chatUse.used} / ${chatUse.max} chats</span>` : '';
     const interestedHtml = `<section style="margin-bottom:26px;"><h2 class="pm-h2">Interested candidates <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.4);">· ${interestedCands.length}</span>${gcHelpBtn('interested')}${chatMeter}</h2>${interestedCands.length?interestedCands.map(candCard).join(''):'<div class="pm-empty">No candidates have shown interest yet.</div>'}</section>`;
     const recCard = r => { const skills=(r.skills||[]).slice(0,4).map(s=>`<span class="jli-tag">${escapeHtml(s)}</span>`).join('');
@@ -8226,8 +8249,9 @@
           <button class="jli-btn" type="button" onclick="recruiterViewCandidate('${escapeHtml(r.seeker_id)}','${id}')">View profile</button>
           <button class="jli-btn pass pm-tip" type="button" data-tip="${inviteBy[r.seeker_id] ? 'Remove will also delete your invite' : 'Not a fit — remove'}" onclick="pmDismiss('${id}','${escapeHtml(r.seeker_id)}')" style="font-size:11px;padding:5px 10px;">Remove</button>
         </div></div>`; };
-    const recsHtml = `<section><h2 class="pm-h2">Potential matches <span style="font-size:12px;font-weight:400;color:rgba(251,247,240,0.4);">— based on skills</span>${gcHelpBtn('matches')}</h2>${(recs&&recs.length)?recs.map(recCard).join(''):'<div class="pm-empty">No further recommendations right now.</div>'}</section>`;
-    el.innerHTML = statsHtml + postingHtml + interestedHtml + pmAudience(audience) + recsHtml;
+    const recsList = (recs || []).filter(r => !chattingSet.has(r.seeker_id));
+    const recsHtml = `<section><h2 class="pm-h2">Potential matches <span style="font-size:12px;font-weight:400;color:rgba(251,247,240,0.4);">— based on skills</span>${gcHelpBtn('matches')}</h2>${recsList.length?recsList.map(recCard).join(''):'<div class="pm-empty">No further recommendations right now.</div>'}</section>`;
+    el.innerHTML = statsHtml + postingHtml + chattingHtml + interestedHtml + pmAudience(audience) + recsHtml;
   }
   window.openPostingManage = openPostingManage;
   function openPostingForm(idOrObj){
