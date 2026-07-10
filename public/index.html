@@ -6436,6 +6436,7 @@
     let code = null; try{ const s = await API.seeker.get(user.id); code = s && s.public_code; }catch(e){}
     navigate('/profile/' + (code || user.id));
   }
+  window.openProfileView = openProfileView;   // used by inline onclick (seeker home Profile button)
   // The profile page at /profile/<id> — a standalone page (own profile or a
   // shared one). Renders as the whole page, not an overlay over the dashboard.
   async function showProfilePage(id){
