@@ -7373,15 +7373,8 @@
   }
   function closePostingDetail(){ const m = document.getElementById('postingDetailModal'); if(m) m.style.display = 'none'; document.body.style.overflow = ''; }
   window.openPostingDetail = openPostingDetail;
-  // Card click (anywhere except the Apply link) navigates to the detail PAGE, so
-  // it gets a real URL + browser back returns to the board.
-  document.addEventListener('click', e => {
-    if(e.target.closest('a')) return;                 // let apply / links work
-    const jobCard = e.target.closest('[data-jobkey]');
-    if(jobCard){ navigate('/job/' + encodeURIComponent(jobCard.getAttribute('data-jobkey'))); return; }
-    const postCard = e.target.closest('[data-postingid]');
-    if(postCard) navigate('/posting/' + encodeURIComponent(postCard.getAttribute('data-postingid')));
-  });
+  // Cards no longer open on a body click — the explicit "View" button opens the
+  // detail page. (Users should read the ad before applying / showing interest.)
   // Close = browser back (returns to the board), keeping history in sync.
   { const b=document.getElementById('jdClose'); if(b) b.onclick = () => goBack('/jobs'); }
   { const b=document.getElementById('pdClose'); if(b) b.onclick = () => goBack('/jobs'); }
@@ -7474,11 +7467,10 @@
         ${(() => { const src = (p.responsibilities && p.responsibilities[0]) || (p.qualifications && p.qualifications[0]) || ''; const pv = descPreview(src); return pv ? `<div class="jli-preview">${escapeHtml(pv)}</div>` : ''; })()}
       </div>
       <div class="jli-actions">
-        <button class="jli-btn primary" type="button" onclick="event.stopPropagation(); expressInterest('${p.id}', this)" ${liked?'disabled':''}>${liked?'✓ Interest sent':'♥ Interested'}</button>
-        <button class="jli-btn" type="button" data-savepost="${escapeHtml(String(p.id))}" onclick="event.stopPropagation(); togglePostingSave('${p.id}', this)">${saved?'♥ Saved':'♡ Save'}</button>
-        <button class="jli-btn" type="button" onclick="event.stopPropagation(); GigCuteNavigate('/posting/${p.id}')">Details</button>
-        <button class="jli-btn pass" type="button" title="Not interested — hide this posting" onclick="event.stopPropagation(); dismissPosting('${p.id}')" style="font-size:11px;padding:5px 10px;">Remove</button>
-        <div style="font-size:10.5px;color:rgba(251,247,240,0.4);text-align:right;max-width:150px;">Posted directly by the hiring team</div>
+        <button class="jli-btn primary" type="button" onclick="GigCuteNavigate('/posting/${p.id}')">View</button>
+        <button class="jli-btn" type="button" data-savepost="${escapeHtml(String(p.id))}" onclick="togglePostingSave('${p.id}', this)">${saved?'♥ Saved':'♡ Save'}</button>
+        <button class="jli-btn pass" type="button" title="Not interested — hide this posting" onclick="dismissPosting('${p.id}')" style="font-size:11px;padding:5px 10px;">Remove</button>
+        ${liked ? `<div style="font-size:11px;color:var(--sage);font-family:'JetBrains Mono',monospace;text-align:right;margin-top:2px;">✓ Interest Shown</div>` : `<div style="font-size:10.5px;color:rgba(251,247,240,0.4);text-align:right;max-width:150px;">Posted directly by the hiring team</div>`}
       </div>
     </div>`;
   }
@@ -7489,6 +7481,7 @@
       await API.interest.seekerLike(id);
       __likedPostings.add(id);
       if(btn){ btn.textContent = '✓ Interest sent'; btn.disabled = true; }
+      if(typeof renderDashJobs === 'function') renderDashJobs();   // card now shows "Interest Shown"
       if(typeof showToast === 'function') showToast('Sent — the hiring team will see your interest.');
     }catch(e){
       // seekerLike needs a logged-in seeker; close any open detail + send them to log in
@@ -7520,11 +7513,10 @@
         ${(() => { const pv = descPreview(j.description); return pv ? `<div class="jli-preview">${escapeHtml(pv)}</div>` : ''; })()}
       </div>
       <div class="jli-actions">
-        <a class="jli-btn primary" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow" onclick="event.stopPropagation(); trackApplyClick('${key}')" style="text-decoration:none;text-align:center;">Apply ↗</a>
-        <button class="jli-btn" type="button" data-savejob="${escapeHtml(j.id||'')}" onclick="event.stopPropagation(); toggleSaveJob('${key}')">${isSaved(j)?'♥ Saved':'♡ Save'}</button>
-        <button class="jli-btn" type="button">Details</button>
-        <button class="jli-btn pass" type="button" title="Not interested — hide this job" onclick="event.stopPropagation(); dismissJob('${key}')" style="font-size:11px;padding:5px 10px;">Remove</button>
-        ${posted ? `<div style="font-size:10.5px;color:rgba(251,247,240,0.35);text-align:right;">${posted}</div>` : ''}
+        <button class="jli-btn primary" type="button" onclick="GigCuteNavigate('/job/${encodeURIComponent(key)}')">View</button>
+        <button class="jli-btn" type="button" data-savejob="${escapeHtml(j.id||'')}" onclick="toggleSaveJob('${key}')">${isSaved(j)?'♥ Saved':'♡ Save'}</button>
+        <button class="jli-btn pass" type="button" title="Not interested — hide this job" onclick="dismissJob('${key}')" style="font-size:11px;padding:5px 10px;">Remove</button>
+        ${isApplied(j) ? `<div style="font-size:11px;color:var(--sage);font-family:'JetBrains Mono',monospace;text-align:right;margin-top:2px;">✓ Marked Applied${__savedByJob[j.id] && __savedByJob[j.id].applied_at ? ' on '+fmtAppliedDate(__savedByJob[j.id].applied_at) : ''}</div>` : (posted ? `<div style="font-size:10.5px;color:rgba(251,247,240,0.35);text-align:right;">${posted}</div>` : '')}
       </div>
     </div>`;
   }
@@ -8055,6 +8047,8 @@
     __dash = { q:'', remote:false, minSalary:null, employmentType:[], keywordGroups:[], locationTokens:[], locationOrRemote:false, country:null, postedWithin:null, sort:'newest', offset:0, total:0, items:[], loading:false };
     await loadSavedSet();     // so cards show the correct Save state
     loadPostingSets();        // client-side saved/dismissed state for direct postings
+    // Which direct postings the seeker already showed interest in → "Interest Shown".
+    try{ const _api = await gcAwaitAPI(); if(_api && _api.enabled){ const likes = await _api.interest.myLikes(); __likedPostings = new Set(likes); } }catch(e){}
     __filtersRestored = false;
     await restoreFilters();   // reapply the user's saved filters, then fill __dash
     __filtersRestored = true;
@@ -9261,6 +9255,7 @@
     catch(e){ if(typeof showToast==='function') showToast('Could not update tracker.'); }
     refreshSaveBtns(job);
     jdRenderApplied(job);   // reflect "Marked Applied on <date>" on the open job detail
+    if(typeof renderDashJobs === 'function') renderDashJobs();   // and on the board card
   }
   async function showTracker(){
     showScreen('screen-tracker');

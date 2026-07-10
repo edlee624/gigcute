@@ -545,6 +545,15 @@ const postings = {
 
 // ---- Interest / invites / matches -----------------------------------------
 const interest = {
+  // Posting ids the current seeker has expressed interest in (for "Interest Shown").
+  async myLikes() {
+    const c = requireClient();
+    const { data: u } = await c.auth.getUser();
+    if (!u?.user) return [];
+    const { data, error } = await c.from('seeker_interest').select('posting_id').eq('seeker_id', u.user.id);
+    if (error) return [];
+    return (data || []).map(r => r.posting_id);
+  },
   async seekerLike(postingId) {
     const c = requireClient();
     const { data: u } = await c.auth.getUser();
