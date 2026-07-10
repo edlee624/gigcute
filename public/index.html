@@ -1808,10 +1808,8 @@
     grid-template-columns:48px 1fr auto;
     gap:0 14px;
     align-items:start;
-    cursor:pointer;
     transition:border-color .15s ease;
   }
-  .job-list-item:hover{ border-color:rgba(255,90,60,0.4); }
   /* Direct recruiter postings — premium highlight to stand out from the ATS feed */
   .job-list-item.direct{ border:2.5px solid var(--coral); box-shadow:0 0 0 3px rgba(255,90,60,0.12); background:linear-gradient(180deg, rgba(255,90,60,0.06), var(--ink-soft) 60%); }
   .job-list-item.direct:hover{ border-color:var(--coral); box-shadow:0 0 0 3px rgba(255,90,60,0.2); }
@@ -1859,7 +1857,8 @@
     cursor:pointer; font-family:'Inter',sans-serif;
   }
   .jli-answer-btn:hover{ background:rgba(255,90,60,0.1); }
-  .jli-actions{ display:flex; flex-direction:column; gap:6px; }
+  .jli-actions{ display:flex; flex-direction:column; gap:6px; width:118px; flex-shrink:0; }
+  .jli-btn{ text-align:center; }
   .jli-btn{
     background:var(--ink); border:1.5px solid var(--line-light);
     border-radius:8px; color:rgba(251,247,240,0.7);
