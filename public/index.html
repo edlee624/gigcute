@@ -9160,6 +9160,8 @@
   }
   async function showTracker(){
     showScreen('screen-tracker');
+    // Clear removed entries whose ad has since closed, so the Removed list stays fresh.
+    try{ const API = await gcAwaitAPI(); if(API && API.enabled && API.tracker.pruneDismissed) await API.tracker.pruneDismissed(); }catch(e){}
     renderTracker();
   }
   window.showTracker = showTracker;

@@ -1029,6 +1029,12 @@ const tracker = {
     const { error } = await requireClient().from('tracked_jobs').delete().eq('id', id);
     if (error) throw error;
   },
+  // Clear "Removed" (dismissed) entries whose ad has closed (inactive or gone).
+  async pruneDismissed() {
+    const { data, error } = await requireClient().rpc('tracker_prune_dismissed');
+    if (error) throw error;
+    return data || 0;
+  },
 };
 
 // ---- Per-user preferences (saved filters, etc.) — private to each user --------
