@@ -188,6 +188,7 @@
   .conv-menu-item{ display:block; width:100%; text-align:left; background:none; border:none; color:rgba(251,247,240,0.85); font-family:'Inter',sans-serif; font-size:13px; padding:8px 10px; border-radius:7px; cursor:pointer; }
   .conv-menu-item:hover{ background:rgba(255,255,255,0.06); }
   .conv-menu-item.danger{ color:var(--coral); }
+  .conv-menu-sep{ height:1px; background:var(--line-light); margin:5px 6px; }
   /* ===== "How this works" contextual help ===== */
   .gc-help-pill{ display:inline-flex; align-items:center; gap:4px; background:none; border:1px solid var(--line-light); color:rgba(251,247,240,0.5); font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.03em; padding:3px 9px; border-radius:999px; cursor:pointer; vertical-align:middle; margin-left:8px; transition:border-color .15s,color .15s; }
   .gc-help-pill:hover{ border-color:var(--sage); color:var(--sage); }
@@ -3936,6 +3937,7 @@
               <div id="chatPeerSub" style="font-size:12px; color:rgba(251,247,240,0.5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
             </div>
             <button class="ds-nav-btn pm-tip tip-down end-chat-btn" id="chatEndBtn" type="button" data-tip="Archives this chat, kept 30 days, then auto-deleted — this keeps GigCute low-cost for everyone." style="margin-left:auto; flex-shrink:0;">End chat</button>
+            <button class="ds-nav-btn" id="chatMoreBtn" type="button" aria-label="Report or block" style="flex-shrink:0; margin-left:8px; padding:7px 11px;">⋯</button>
           </div>
           <div id="chatMessages" class="thread-body"></div>
           <div class="thread-composer">
@@ -8707,12 +8709,17 @@
     const c = __convosCache.find(x => x.id === convId);
     const unread = convUnread(c, seenMap);
     const archived = convIsArchived(convId) || !!(c && c.ended_at);
-    // Archived / ended chats only offer "Delete conversation".
-    m.innerHTML = archived
+    let peer = (__convById[convId] && __convById[convId].peer) || 'this user';
+    if(peer.length > 20) peer = peer.slice(0, 18) + '…';
+    // Report / Block are always available; the rest depends on archive state.
+    const safetyItems = `<div class="conv-menu-sep"></div>
+      <button class="conv-menu-item" data-act="report" type="button">Report spam or suspicious</button>
+      <button class="conv-menu-item danger" data-act="block" type="button">Block ${escapeHtml(peer)}</button>`;
+    m.innerHTML = (archived
       ? `<button class="conv-menu-item danger" data-act="delete" type="button">Delete conversation</button>`
       : `<button class="conv-menu-item" data-act="toggleread" type="button">${unread ? 'Mark as read' : 'Mark as unread'}</button>
          <button class="conv-menu-item" data-act="archive" type="button">Archive</button>
-         <button class="conv-menu-item danger" data-act="delete" type="button">Delete conversation</button>`;
+         <button class="conv-menu-item danger" data-act="delete" type="button">Delete conversation</button>`) + safetyItems;
     const r = anchor.getBoundingClientRect();
     m.style.display = 'block';
     m.style.top = (window.scrollY + r.bottom + 4) + 'px';
@@ -8721,13 +8728,29 @@
       e.stopPropagation();
       const act = b.getAttribute('data-act');
       if(act === 'delete' && b.dataset.armed !== '1'){ b.dataset.armed = '1'; b.textContent = 'Confirm delete?'; return; }
+      if(act === 'block'  && b.dataset.armed !== '1'){ b.dataset.armed = '1'; b.textContent = 'Confirm block?'; return; }
       convMenuAction(convId, act);
     });
     setTimeout(() => document.addEventListener('click', convMenuDocClick, true), 0);
   }
-  function convMenuAction(convId, act){
+  async function convMenuAction(convId, act){
     closeConvMenu();
     const c = __convosCache.find(x => x.id === convId);
+    if(act === 'report'){
+      const API = await gcAwaitAPI();
+      try{ await API.reports.file({ targetType:'conversation', targetId:convId, reason:'spam_or_suspicious', details:'' }); if(typeof showToast==='function') showToast('Reported — thank you. Our team will review it.'); }
+      catch(e){ if(typeof showToast==='function') showToast('Could not submit the report.'); }
+      return;
+    }
+    if(act === 'block'){
+      const API = await gcAwaitAPI();
+      try{ await API.safety.blockConversationPeer(convId); if(typeof showToast==='function') showToast('Blocked. They can no longer message you, and this chat is archived.'); }
+      catch(e){ if(typeof showToast==='function') showToast('Could not block this user.'); return; }
+      if(__chatConvId === convId) closeThreadPane();
+      try{ __convosCache = await (await gcAwaitAPI()).chat.myConversations(); }catch(e){}
+      renderConvList();
+      return;
+    }
     if(act === 'toggleread'){
       const map = convSeenMap(__convUid);
       const unread = convUnread(c, convSeenMap(__convUid));
@@ -8955,6 +8978,7 @@
 
   { const b=document.getElementById('chatBack'); if(b) b.onclick = closeChat; }
   { const b=document.getElementById('chatSend'); if(b) b.onclick = sendChatMessage; }
+  { const b=document.getElementById('chatMoreBtn'); if(b) b.onclick = (e) => { e.stopPropagation(); if(__chatConvId) openConvMenu(__chatConvId, b); }; }
   { const b=document.getElementById('chatEndBtn'); if(b) b.onclick = () => {
       if(!__chatConvId) return;
       if(b.dataset.armed !== '1'){ b.dataset.armed = '1'; b.textContent = 'Confirm end'; b.classList.add('armed'); setTimeout(() => { if(b.dataset.armed === '1'){ b.dataset.armed = ''; b.textContent = 'End chat'; b.classList.remove('armed'); } }, 4000); return; }

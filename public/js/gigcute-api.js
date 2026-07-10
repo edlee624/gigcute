@@ -847,6 +847,23 @@ const reports = {
   },
 };
 
+// ---- Block users (prevents messaging both ways; archives the conversation) ----
+const safety = {
+  async blockConversationPeer(conversationId) {
+    const { error } = await requireClient().rpc('block_conversation_peer', { p_conv: conversationId });
+    if (error) throw error;
+  },
+  async unblock(userId) {
+    const { error } = await requireClient().rpc('unblock_user', { p_target: userId });
+    if (error) throw error;
+  },
+  async blockedIds() {
+    const { data, error } = await requireClient().rpc('my_blocks');
+    if (error) throw error;
+    return (data || []).map(r => (typeof r === 'string' ? r : r.my_blocks)).filter(Boolean);
+  },
+};
+
 // Parse a search box string into light boolean parts:
 //   "quoted phrases" stay intact · OR (or |) → any-match · leading - or ! excludes.
 // Default (no OR) means every positive term must appear. Returns null when empty.
@@ -1087,7 +1104,7 @@ window.GigCuteAPI = {
   enabled,
   supabase,
   prefs,
-  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat, support, events, jobs, tracker, notifications, limits, billing,
+  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat, support, events, jobs, tracker, notifications, limits, billing, safety,
   isFreeEmailDomain,
 };
 
