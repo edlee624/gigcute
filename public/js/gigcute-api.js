@@ -693,10 +693,16 @@ const chat = {
     if (error) throw error;
     return data;
   },
-  // End (archive) a conversation — either participant can. Auto-deleted after 31 days.
+  // End (archive) a conversation — either participant can. Auto-deleted after 30 days.
   async endConversation(conversationId) {
     const { error } = await requireClient().rpc('end_conversation', { p_conv: conversationId });
     if (error) throw error;
+  },
+  // Lightweight end-state {ended_at, ended_by} for the live thread notice / poll.
+  async endState(conversationId) {
+    const { data, error } = await requireClient().rpc('conversation_end_state', { p_conv: conversationId });
+    if (error) throw error;
+    return (data && data[0]) || null;
   },
   // Read receipts: stamp read_at on the OTHER party's unread messages in this
   // conversation (RLS "msg: recipient mark read" allows a participant to update).

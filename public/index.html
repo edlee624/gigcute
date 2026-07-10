@@ -251,6 +251,7 @@
   .thread-back{ display:none; padding:6px 10px; }
   .thread-body{ flex:1; overflow-y:auto; padding:18px; display:flex; flex-direction:column; gap:3px; min-height:0; }
   .thread-composer{ display:flex; gap:8px; padding:14px 18px; border-top:1px solid var(--line-light); }
+  .chat-ended-notice{ margin:18px auto 8px; max-width:82%; text-align:center; font-size:12.5px; line-height:1.55; color:rgba(251,247,240,0.62); background:var(--ink-soft); border:1px solid var(--line-light); border-radius:12px; padding:11px 15px; }
   @media (max-width:760px){
     .inbox{ grid-template-columns:1fr; }
     .inbox-thread{ display:none; }
@@ -1431,6 +1432,8 @@
   .ds-nav-btn.nav-msg:hover{ background:var(--sage-soft); border-color:var(--sage-soft); }
   .ds-nav-btn.nav-msg .msg-ico{ flex-shrink:0; }
   .ds-nav-btn.nav-msg.has-unread::after{ width:8px; height:8px; background:var(--coral); box-shadow:0 0 0 2px var(--sage); }
+  /* Prominent GigCute Search (filled coral pill, a touch larger). */
+  .ds-nav-btn.nav-search{ padding:8px 18px; font-size:13.5px; font-weight:700; }
   /* End chat: a red (danger) button; fills solid red once armed for confirm. */
   .end-chat-btn{ border-color:var(--coral); color:var(--coral); }
   .end-chat-btn:hover{ background:rgba(255,90,60,0.12); }
@@ -3510,7 +3513,7 @@
     .ds-nav .brand-img{ height:24px; }
     .ds-nav-right{ gap:8px; }
     .ds-nav-btn{ padding:7px 11px; font-size:12px; }
-    #navPostingsBtn, #navNewPostingBtn, #navProfileBtn, #navViewProfileBtn{ display:none !important; }
+    #navPostingsBtn, #navNewPostingBtn, #navProfileBtn{ display:none !important; }
     /* landing "for recruiters" button: shrink + tuck in so it doesn't collide with the logo (beat inline styles) */
     #screen-landing #goRecruit{ font-size:11px !important; padding:6px 10px !important; top:12px !important; right:12px !important; }
     #screen-landing .ob-top .hero-logo{ width:150px !important; }
@@ -3915,7 +3918,7 @@
               <div id="chatPeer" style="font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--paper); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
               <div id="chatPeerSub" style="font-size:12px; color:rgba(251,247,240,0.5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
             </div>
-            <button class="ds-nav-btn pm-tip tip-down end-chat-btn" id="chatEndBtn" type="button" data-tip="Archives this chat, kept 31 days, then auto-deleted — this keeps GigCute low-cost for everyone." style="margin-left:auto; flex-shrink:0;">End chat</button>
+            <button class="ds-nav-btn pm-tip tip-down end-chat-btn" id="chatEndBtn" type="button" data-tip="Archives this chat, kept 30 days, then auto-deleted — this keeps GigCute low-cost for everyone." style="margin-left:auto; flex-shrink:0;">End chat</button>
           </div>
           <div id="chatMessages" class="thread-body"></div>
           <div class="thread-composer">
@@ -4340,7 +4343,7 @@
   <nav class="ds-nav">
     <div class="wordmark"><img src="/logo.png" class="brand-img" alt="GigCute"></div>
     <div class="ds-nav-right">
-      <button class="ds-nav-btn" id="navSearchBtn" type="button" style="display:inline-flex;align-items:center;gap:7px;">
+      <button class="ds-nav-btn primary nav-search" id="navSearchBtn" type="button" style="display:inline-flex;align-items:center;gap:7px;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
         GigCute Search
       </button>
@@ -4348,8 +4351,7 @@
       <button class="ds-nav-btn primary" id="navNewPostingBtn" type="button" style="display:none;">+ New posting</button>
 
       <button class="ds-nav-btn nav-msg" id="navMessagesBtn" type="button"><svg class="msg-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Messages</button>
-      <button class="ds-nav-btn" id="navViewProfileBtn" type="button" style="display:none;">View Profile</button>
-      <button class="ds-nav-btn" id="navProfileBtn" type="button">Edit Profile</button>
+      <button class="ds-nav-btn" id="navProfileBtn" type="button">Profile</button>
       <div class="nav-account">
         <div class="ds-nav-avatar" id="navAvatar">M</div>
         <div class="nav-dropdown" id="navDropdown" hidden>
@@ -4413,7 +4415,6 @@
         <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
           <button class="ds-nav-btn" id="jobsDiscoverBtn" type="button">♥ Discover roles</button>
           <button class="ds-nav-btn" id="jobsTrackerBtn" type="button">Job tracker</button>
-          <button class="ds-nav-btn nav-msg" id="jobsMessagesBtn" type="button"><svg class="msg-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Messages</button>
         </div>
         <!-- search + filters -->
         <div style="margin-bottom:24px;">
@@ -5083,7 +5084,7 @@
     const seekPane = document.getElementById('seekPane');
     if(seekPane) seekPane.classList.add('active');
     const showEl = (id, disp) => { const el = document.getElementById(id); if(el) el.style.display = disp; };
-    showEl('navProfileBtn',''); showEl('navViewProfileBtn','');
+    showEl('navProfileBtn','');
   }
   // Search dashboard (/search): hydrate the sidebar from the logged-in seeker's
   // real profile. Matches/invites/open-roles/tracker need the recruiter+postings
@@ -5218,9 +5219,8 @@
       <tr><td>${r.role}</td><td>${r.company}</td><td><span style="${pill}${r.color}">${r.status}</span></td><td style="color:rgba(251,247,240,0.55);">${r.date}</td></tr>`).join(''));
   }
   // Nav buttons: edit/view profile (swipe-deck profileBtn is gone).
-  { const b = document.getElementById('navViewProfileBtn'); if(b) b.onclick = () => { if(typeof openProfileView==='function') openProfileView(); }; }
   { const b = document.getElementById('navProfileBtn'); if(b) b.onclick = () => { if(typeof openProfileView==='function') openProfileView(); }; }
-  { const b = document.getElementById('navMessagesBtn'); if(b) b.style.display = 'none'; }
+  { const b = document.getElementById('navMessagesBtn'); if(b){ b.style.display = ''; b.onclick = () => navigate('/messages'); } }
 
   // ================= SEEKER FLOW =================
   document.getElementById('sk1Next').onclick = () => showScreen('screen-seeker-2');
@@ -6000,7 +6000,7 @@
     { num:'Get seen', title:'Your posting stands out', body:'Direct postings get <strong>premium placement</strong> — pinned to the top of the seeker job board with a <strong>“GigCute Direct Job Posting”</strong> badge, above the aggregated feed. Candidates notice you first.' },
     { num:'Meet candidates', title:'See who’s interested', body:'Open a posting to see its activity. <strong>Interested candidates</strong> raised their hand for that exact role; <strong>Who’s looking</strong> is an anonymized read on everyone who viewed it; <strong>Potential matches</strong> are skill-based recommendations, each with a <strong>fit tier</strong> (Very Strong → Weak).' },
     { num:'Invite & match', title:'Reach out, or match back', body:'<strong>Invite</strong> a potential match to chat and they’ll see it in their inbox. When someone’s already interested, <strong>Like back</strong> to create a match and unlock messaging. <strong>Remove</strong> clears a candidate — and, for someone you’re chatting with, ends that chat too.' },
-    { num:'Match & chat', title:'Talk right here', body:'Message matched candidates directly in GigCute — no email ping-pong. <strong>End chat</strong> archives a conversation (kept 31 days, then auto-deleted) to keep things tidy and the service low-cost.' },
+    { num:'Match & chat', title:'Talk right here', body:'Message matched candidates directly in GigCute — no email ping-pong. <strong>End chat</strong> archives a conversation (kept 30 days, then auto-deleted) to keep things tidy and the service low-cost.' },
     { num:'Your limits', title:'Room to grow', body:'Your plan sets how many <strong>live postings</strong>, <strong>chats per posting</strong>, and <strong>invites per 30 days</strong> you get. The meter on your dashboard shows where you stand — it turns amber as you near a limit and red at it. Pausing a role or ending a chat frees capacity.' },
   ];
   window.openRecruiterTour = () => openTour(RECRUITER_TOUR_STEPS, 'gc_recruiter_tour_seen');
@@ -6031,7 +6031,7 @@
         <li><strong>Like back</strong> creates a <strong>match</strong> and unlocks messaging. Once matched, the button becomes <strong>Message</strong>.</li>
         <li><strong>Message</strong> opens the chat and quietly clears the person from this list — they now live in your <strong>Messages</strong>, not here.</li>
         <li><strong>View profile</strong> shows their full GigCute profile — prompts, projects, work history — not just a résumé.</li>
-        <li><strong>Remove</strong> severs ties for this role: it drops them from the list, withdraws any invite, <strong>and ends an open chat</strong> (the conversation is archived, then auto-deleted in 31 days).</li>
+        <li><strong>Remove</strong> severs ties for this role: it drops them from the list, withdraws any invite, <strong>and ends an open chat</strong> (the conversation is archived, then auto-deleted in 30 days).</li>
       </ul>
       <div class="gc-help-note">The <strong>“x / y chats”</strong> tag on the right counts ongoing conversations for this posting against your plan limit. End a chat to free a slot.</div>` },
     audience: { eyebrow:'Who’s looking', title:'Anonymized viewer insights', body:`
@@ -6052,7 +6052,7 @@
     chat: { eyebrow:'Messages', title:'Conversations & keeping them tidy', body:`
       <p>You chat directly with matched and invited candidates here — no email ping-pong.</p>
       <ul>
-        <li><strong>End chat</strong> archives a conversation. It’s kept for <strong>31 days</strong> then auto-deleted — that’s deliberate, to keep GigCute low-cost for everyone. (It’s a two-tap confirm so you can’t archive by accident.)</li>
+        <li><strong>End chat</strong> archives a conversation. It’s kept for <strong>30 days</strong> then auto-deleted — that’s deliberate, to keep GigCute low-cost for everyone. (It’s a two-tap confirm so you can’t archive by accident.)</li>
         <li>Once a chat is <strong>archived</strong>, the only option left is <strong>Delete conversation</strong>.</li>
         <li>Ongoing chats count toward a <strong>per-posting limit</strong> on your plan; ending one frees a slot for a new candidate.</li>
       </ul>` },
@@ -8442,13 +8442,26 @@
     if(diff === 1) return 'Yesterday';
     return d.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
   }
+  // Reflect an ended chat in the composer: no typing/sending, and hide "End chat".
+  function setChatEndedUI(ended){
+    const inp = document.getElementById('chatInput'), send = document.getElementById('chatSend'), endBtn = document.getElementById('chatEndBtn');
+    if(inp){ inp.disabled = !!ended; inp.placeholder = ended ? 'This chat has ended.' : 'Write a message…'; }
+    if(send){ send.disabled = !!ended; send.style.opacity = ended ? '0.4' : ''; }
+    if(endBtn){ endBtn.style.display = ended ? 'none' : ''; }
+  }
   async function loadChatMessages(){
     const el = document.getElementById('chatMessages'); if(!el) return;
     const API = await gcAwaitAPI();
     if(!__chatMyId){ try{ const u = await API.auth.currentUser(); __chatMyId = u && u.id; }catch(e){} }
+    // Has either party ended this chat? Drives the notice + composer lock (polled live).
+    let endState = null; try{ endState = await API.chat.endState(__chatConvId); }catch(e){}
+    const ended = !!(endState && endState.ended_at);
+    const endedBy = ended ? ((endState.ended_by && endState.ended_by === __chatMyId) ? 'you' : (__chatPeerName || 'the other participant')) : '';
+    const endNotice = ended ? `<div class="chat-ended-notice">Chat was ended by ${escapeHtml(endedBy)}. This chat will be moved to archived and stored for 30 days.</div>` : '';
+    setChatEndedUI(ended);
     let msgs = [];
     try{ msgs = await API.chat.listMessages(__chatConvId); }catch(e){ console.warn('messages:', e && e.message); }
-    if(!msgs || !msgs.length){ el.innerHTML = '<div style="color:rgba(251,247,240,0.4); text-align:center; padding:24px; margin:auto;">Say hello 👋</div>'; return; }
+    if(!msgs || !msgs.length){ el.innerHTML = endNotice || '<div style="color:rgba(251,247,240,0.4); text-align:center; padding:24px; margin:auto;">Say hello 👋</div>'; return; }
     const peer = __chatPeerName || 'Them';
     let html = '', lastDay = '', lastSender = null;
     msgs.forEach(m => {
@@ -8472,6 +8485,7 @@
       const st = last.read_at ? ('Read · ' + new Date(last.read_at).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' })) : 'Sent';
       html += `<div class="msg-status">${escapeHtml(st)}</div>`;
     }
+    html += endNotice;
     el.innerHTML = html;
     el.scrollTop = el.scrollHeight;
   }
@@ -8487,7 +8501,7 @@
   // ---- New-message indicator: a coral dot on the Messages buttons when the
   // newest conversation activity is newer than the last time this user opened
   // Messages (stored per-user in localStorage; no schema change needed). ----
-  const MSG_BTN_IDS = ['jobsMessagesBtn','discoverMsgsBtn','recruiterMsgsBtn','navMessagesBtn','pmMsgsBtn','trackerMsgsBtn'];
+  const MSG_BTN_IDS = ['discoverMsgsBtn','recruiterMsgsBtn','navMessagesBtn','pmMsgsBtn','trackerMsgsBtn'];
   function setUnreadBadges(has){ MSG_BTN_IDS.forEach(id => { const b = document.getElementById(id); if(b) b.classList.toggle('has-unread', !!has); }); }
   async function newestConversationTs(API){
     try{ const cs = await API.chat.listConversations(); return (cs || []).reduce((m,c) => (c.last_message_at && c.last_message_at > m) ? c.last_message_at : m, ''); }catch(e){ return ''; }
@@ -8543,7 +8557,7 @@
     const seenMap = __convUid ? convSeenMap(__convUid) : {};
     // An "ended" chat (ended_at set) is treated as archived and shows a deletion countdown.
     const isArch = c => convIsArchived(c.id) || !!c.ended_at;
-    const deletesInDays = c => Math.max(0, 31 - Math.floor((Date.now() - new Date(c.ended_at).getTime()) / 86400000));
+    const deletesInDays = c => Math.max(0, 30 - Math.floor((Date.now() - new Date(c.ended_at).getTime()) / 86400000));
     let list = __convosCache.filter(c => !convIsDeleted(c.id));
     if(__convFilter === 'archived') list = list.filter(isArch);
     else { list = list.filter(c => !isArch(c)); if(__convFilter === 'unread') list = list.filter(c => convUnread(c, seenMap)); }
@@ -8630,11 +8644,11 @@
     const empty = document.getElementById('threadEmpty'); if(empty) empty.style.display = 'flex';
     if(/^\/messages\/[^/]+/.test(location.pathname)) window.history.replaceState({}, '', '/messages');
   }
-  // End the open chat: archive server-side (deletes after 31 days), close the pane, refresh.
+  // End the open chat: archive server-side (deletes after 30 days), close the pane, refresh.
   async function endCurrentChat(){
     const convId = __chatConvId; if(!convId) return;
     const API = await gcAwaitAPI();
-    try{ await API.chat.endConversation(convId); if(typeof showToast === 'function') showToast('Chat ended — archived, auto-deletes in 31 days.'); }
+    try{ await API.chat.endConversation(convId); if(typeof showToast === 'function') showToast('Chat ended — archived, auto-deletes in 30 days.'); }
     catch(e){ if(typeof showToast === 'function') showToast('Could not end chat.'); return; }
     closeThreadPane();
     showMessages();
@@ -8849,7 +8863,6 @@
   { const b=document.getElementById('pmBackBtn'); if(b) b.onclick = () => goBack('/hiring'); }
   { const b=document.getElementById('jobsDiscoverBtn'); if(b) b.onclick = () => navigate('/discover'); }
   { const b=document.getElementById('jobsTrackerBtn'); if(b) b.onclick = () => navigate('/tracker'); }
-  { const b=document.getElementById('jobsMessagesBtn'); if(b) b.onclick = () => navigate('/messages'); }
 
   // ===== JOB TRACKER (save / applied) =====
   let __savedByJob = {};   // job_id -> saved_jobs row (for card state)
