@@ -4049,6 +4049,7 @@
     <div id="jdTags" class="jli-tags" style="margin-top:14px;"></div>
     <div style="display:flex; gap:14px; align-items:center; margin-top:20px; flex-wrap:wrap;">
       <a id="jdApply" href="#" target="_blank" rel="noopener noreferrer nofollow" class="lm-cta-btn" style="text-decoration:none; font-size:14px;">Apply on source ↗</a>
+      <button id="jdRemove" type="button" class="ds-nav-btn" style="font-size:12.5px;">✕ Remove</button>
       <button id="jdReport" type="button" class="ds-nav-btn" style="border-color:rgba(255,90,60,0.4); color:var(--coral); font-size:12.5px;">⚑ Report</button>
       <div id="jdSource" style="font-size:11.5px; color:rgba(251,247,240,0.4);"></div>
     </div>
@@ -4071,6 +4072,7 @@
     <div id="pdSalary" style="font-size:14px; color:var(--sage-soft); margin-top:6px;"></div>
     <div style="display:flex; gap:14px; align-items:center; margin-top:20px; flex-wrap:wrap;">
       <button id="pdInterested" type="button" class="lm-cta-btn" style="font-size:14px;">♥ Interested</button>
+      <button id="pdRemove" type="button" class="ds-nav-btn" style="font-size:12.5px;">✕ Remove</button>
       <button id="pdReport" type="button" class="ds-nav-btn" style="border-color:rgba(255,90,60,0.4); color:var(--coral); font-size:12.5px;">⚑ Report</button>
       <div style="font-size:11.5px; color:rgba(251,247,240,0.4);">Posted directly by the hiring team — express interest and they’ll see your full GigCute profile.</div>
     </div>
@@ -7349,6 +7351,19 @@
   }
   wireReportBtn('jdReport', 'job', () => __jdKey);
   wireReportBtn('pdReport', 'posting', () => __pdId);
+  // Remove a match from the detail view — dismiss it and drop it from today's home set.
+  { const b=document.getElementById('jdRemove'); if(b) b.onclick = () => {
+      const j = __jobsById[__jdKey]; if(j && j.id && typeof gcHomeMatchesRemove==='function') gcHomeMatchesRemove(j.id);
+      dismissJob(__jdKey);
+      if(typeof showToast==='function') showToast('Removed from your matches.');
+      goBack('/home');
+    }; }
+  { const b=document.getElementById('pdRemove'); if(b) b.onclick = () => {
+      if(typeof gcHomeMatchesRemove==='function') gcHomeMatchesRemove(__pdId);
+      dismissPosting(__pdId);
+      if(typeof showToast==='function') showToast('Removed from your matches.');
+      goBack('/home');
+    }; }
   { const m=document.getElementById('jobDetailModal'); if(m) m.addEventListener('click', e => { if(e.target === m || e.target === m.firstElementChild) goBack('/jobs'); }); }
 
   // ===== JOB BOARD — dashboard layout (powers /jobs and /search with real jobs) =====
@@ -7862,29 +7877,67 @@
       </div>`;
     }).join('');
   }
+  // ---- Daily "Potential job matches": up to 5/day, direct + ATS, relevance-ranked,
+  // stable for the day (cached), each removable from its detail view. ----
+  function gcHomeMatchesGet(){ try{ return JSON.parse(localStorage.getItem('gc_home_matches') || 'null'); }catch(e){ return null; } }
+  function gcHomeMatchesSet(o){ try{ localStorage.setItem('gc_home_matches', JSON.stringify(o)); }catch(e){} }
+  function gcTodayStr(){ const d = new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+  window.gcHomeMatchesRemove = function(id){
+    const cache = gcHomeMatchesGet(); if(!cache) return;
+    cache.items = (cache.items||[]).filter(it => String(it.data && it.data.id) !== String(id));
+    gcHomeMatchesSet(cache);
+  };
+  async function computeHomeMatches(API){
+    const sig = seekerRelevanceSig();
+    let direct = [];
+    try{ direct = (await API.postings.listActive()) || []; }catch(e){}
+    direct = direct.filter(p => !__dismissedPostingIds.has(p.id))
+                   .map(p => ({ type:'direct', data:p, rel: scoreJobForSeeker(postingToJobShape(p), sig) }));
+    let ats = [];
+    try{ const kw = (typeof seekerJobKeywords==='function') ? seekerJobKeywords() : null;
+      if(kw && kw.query){ ats = await API.jobs.search({ q: kw.query, limit: 25 }); } }catch(e){}
+    if(!ats || !ats.length){ try{ const r = await API.jobs.list({ limit:25 }); ats = r.jobs || []; }catch(e){} }
+    ats = (ats||[]).filter(j => !isDismissed(j))
+                   .map(j => ({ type:'ats', data:j, rel: scoreJobForSeeker(j, sig) }));
+    const pool = direct.concat(ats);
+    pool.sort((a,b) => (b.rel||0) - (a.rel||0));   // best matches first; direct + ATS mixed
+    return pool.slice(0, 5);
+  }
   async function renderHomeMatches(API){
     const el = document.getElementById('shMatches'); if(!el) return;
     el.innerHTML = '<div class="sh-loading">Loading…</div>';
-    let jobs = [];
-    try{ const kw = (typeof seekerJobKeywords === 'function') ? seekerJobKeywords() : null;
-      if(kw && kw.query){ jobs = await API.jobs.search({ q: kw.query, limit: 6 }); } }catch(e){}
-    if(!jobs || !jobs.length){ try{ const r = await API.jobs.list({ limit:6 }); jobs = r.jobs || []; }catch(e){} }
-    if(!jobs || !jobs.length){ el.innerHTML = '<div class="sh-empty">Add your skills and preferences to your profile to see roles tailored to you.</div>'; return; }
+    loadPostingSets();
+    try{ if(typeof loadSavedSet === 'function') await loadSavedSet(); }catch(e){}
+    const today = gcTodayStr();
+    let cache = gcHomeMatchesGet();
+    if(!cache || cache.date !== today){ cache = { date: today, items: await computeHomeMatches(API) }; gcHomeMatchesSet(cache); }
+    const items = (cache.items || []).filter(it => it.type === 'direct'
+      ? !__dismissedPostingIds.has(it.data.id) : !isDismissed(it.data));
+    const browse = `<button class="sh-more" type="button" onclick="GigCuteNavigate('/search')">Browse all open roles →</button>`;
+    if(!items.length){ el.innerHTML = `<div class="sh-empty">You're all caught up on today's matches — new ones arrive tomorrow. Meanwhile, browse the full board.</div>` + browse; return; }
     const money = v => v ? ('$'+(v>=1000?Math.round(v/1000)+'k':v)) : '';
-    el.innerHTML = jobs.slice(0,6).map(j => {
-      // Register the job so the /job/:key detail view can resolve it (the board
-      // normally does this; the home page must too or the card opens nothing).
-      const key = jobKey(j); __jobsById[key] = j;
+    el.innerHTML = items.map(it => {
+      const rel = (it.rel != null) ? relChipHTML(it.rel) : '';
+      if(it.type === 'direct'){
+        const p = it.data; __directById[p.id] = p;
+        const co = p.companies || {};
+        const sal = (p.salary_min||p.salary_max) ? `${money(p.salary_min)}${p.salary_max?'–'+money(p.salary_max):'+'}` : '';
+        const meta = [ [p.location_type,p.city].filter(Boolean).join(' · '), sal ].filter(Boolean).join(' · ');
+        return `<div class="sh-card" onclick="GigCuteNavigate('/posting/${p.id}')">
+          <div style="flex:1;min-width:0;">${rel}
+            <div class="sh-card-title">${escapeHtml(p.title||'Role')} <span class="direct-badge" style="vertical-align:middle;">★ Direct</span></div>
+            <div class="sh-card-sub">${escapeHtml(co.name||'A company')}${meta?` · ${escapeHtml(meta)}`:''}</div>
+          </div><div class="sh-go">View →</div></div>`;
+      }
+      const j = it.data; const key = jobKey(j); __jobsById[key] = j;
       const sal = (j.salary_min||j.salary_max) ? `${money(j.salary_min)}${j.salary_max?'–'+money(j.salary_max):'+'}` : '';
       const meta = [j.location || (j.remote?'Remote':''), sal].filter(Boolean).join(' · ');
       return `<div class="sh-card" onclick="GigCuteNavigate('/job/${encodeURIComponent(key)}')">
-        <div style="flex:1;min-width:0;">
+        <div style="flex:1;min-width:0;">${rel}
           <div class="sh-card-title">${escapeHtml(j.title||'Role')}</div>
           <div class="sh-card-sub">${escapeHtml(j.company||'')}${meta?` · ${escapeHtml(meta)}`:''}</div>
-        </div>
-        <div class="sh-go">View →</div>
-      </div>`;
-    }).join('') + `<button class="sh-more" type="button" onclick="GigCuteNavigate('/search')">Browse all open roles →</button>`;
+        </div><div class="sh-go">View →</div></div>`;
+    }).join('') + browse;
   }
   async function renderHomeViews(API){
     const el = document.getElementById('shViews'); if(!el) return;
