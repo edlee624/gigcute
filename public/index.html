@@ -4951,9 +4951,13 @@
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     window.scrollTo(0,0);
-    // Persistent home logo: show on flow screens (landing/app have their own wordmark)
+    // Persistent home logo: only for flow screens that lack their own header logo.
+    // Any screen with a .wordmark (or the landing, which brands itself) hides it so
+    // we never show two logos.
     var hl = document.getElementById('homeLogo');
-    if(hl) hl.style.display = (id === 'screen-app' || id === 'screen-landing' || id === 'screen-admin') ? 'none' : 'block';
+    var activeScreen = document.getElementById(id);
+    var hasHeaderLogo = !!(activeScreen && activeScreen.querySelector('.wordmark'));
+    if(hl) hl.style.display = (id === 'screen-landing' || hasHeaderLogo) ? 'none' : 'block';
     // sync URL for mapped top-level pages (the app screen is handled by setMode)
     if(!__applyingRoute && id !== 'screen-app'){
       const p = PATH_BY_SCREEN[id];
@@ -7834,6 +7838,7 @@
     if(!__applyingRoute && location.pathname !== '/home'){ window.history.pushState({}, '', '/home'); __didInAppNav = true; }
     const API = await gcAwaitAPI();
     let me = null; try{ me = await API.profiles.me(); }catch(e){}
+    __amRecruiter = !!(me && me.role === 'recruiter');   // keep the logo → home target correct
     const first = me && me.full_name ? String(me.full_name).trim().split(/\s+/)[0] : '';
     const nameEl = document.getElementById('shName'); if(nameEl) nameEl.innerHTML = first ? (', <em style="color:var(--coral);font-style:italic;">'+escapeHtml(first)+'</em>') : '';
     renderHomeChats(API); renderHomeMatches(API); renderHomeViews(API);
@@ -9196,8 +9201,9 @@
   function goBack(fallback){ if(__didInAppNav){ history.back(); } else { navigate(fallback || '/'); } }
   window.gcGoBack = goBack;
   window.addEventListener('popstate', () => applyRoute(location.pathname));
-  // Clicking the GigCute wordmark (any header) returns to the landing page.
-  document.addEventListener('click', e => { if(e.target.closest('.wordmark')) navigate('/'); });
+  // Clicking the GigCute wordmark (any app header) returns the signed-in user to
+  // their own home — recruiters to the hiring dashboard, seekers to their landing.
+  document.addEventListener('click', e => { if(e.target.closest('.wordmark')) navigate(__amRecruiter ? '/hiring' : '/home'); });
 
   // Poll for new messages so the badge appears without a navigation. Only runs
   // when the tab is visible; chatUnreadCheck no-ops in demo mode / when logged out.
@@ -9208,14 +9214,13 @@
     if((document.querySelector('.screen.active')||{}).id === 'screen-messages' && typeof loadInvites === 'function') loadInvites();
   }, 45000);
 
-  // ----- Clickable GigCute logo → home, on every page -----
-  function goHome(){ navigate('/'); }
+  // ----- Clickable GigCute logo → home -----
+  // homeLogo only appears on flow / logged-out screens, so it goes to the public
+  // landing. Header .wordmark clicks (app pages) are handled globally and route to
+  // the signed-in user's own home (see the delegated handler by popstate).
   (function(){
     var hl = document.getElementById('homeLogo');
-    if(hl) hl.onclick = goHome;
-    document.querySelectorAll('.ds-nav .wordmark, .admin-wordmark, #screen-landing .wordmark').forEach(w => {
-      w.style.cursor = 'pointer'; w.title = 'Home'; w.addEventListener('click', goHome);
-    });
+    if(hl){ hl.style.cursor = 'pointer'; hl.title = 'Home'; hl.onclick = () => navigate('/'); }
   })();
 
   // Show the "pending verification" banner when a backend recruiter's company
