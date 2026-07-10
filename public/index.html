@@ -4053,6 +4053,7 @@
       <button id="jdReport" type="button" class="ds-nav-btn" style="border-color:rgba(255,90,60,0.4); color:var(--coral); font-size:12.5px;">⚑ Report</button>
       <div id="jdSource" style="font-size:11.5px; color:rgba(251,247,240,0.4);"></div>
     </div>
+    <div id="jdApplied" style="display:none; margin-top:14px; font-size:13px; color:var(--sage); font-weight:600; font-family:'JetBrains Mono',monospace;"></div>
     <div id="jdDesc" style="font-size:15px; color:rgba(251,247,240,0.82); line-height:1.75; margin-top:24px; white-space:pre-wrap; max-width:800px;"></div>
     <div id="jdFullNote" style="font-size:12.5px; color:rgba(251,247,240,0.45); margin-top:22px; padding-top:16px; border-top:1px solid var(--line-light); max-width:800px;"></div>
   </div>
@@ -7289,6 +7290,11 @@
           ? `Adzuna shows a shortened preview of the description — open “Apply on source” above for the complete posting and to apply.`
           : `Open “Apply on source” above to apply on the company's site.`)
       : '';
+    jdRenderApplied(j);   // from current tracker cache…
+    // …and, on a cold open (tracker not loaded yet, e.g. deep link), fetch it once.
+    if(!Object.keys(__savedByJob).length){
+      gcAwaitAPI().then(async API => { try{ if(API && API.enabled && typeof loadSavedSet==='function') await loadSavedSet(); }catch(e){} if(__jdKey === key) jdRenderApplied(j); });
+    }
     const modal = document.getElementById('jobDetailModal');
     modal.style.display = 'block'; modal.scrollTop = 0;
     document.body.style.overflow = 'hidden';
@@ -9111,6 +9117,14 @@
   }
   function isSaved(job){ return !!(job && job.id && __savedByJob[job.id] && __savedByJob[job.id].status !== 'dismissed'); }
   function isDismissed(job){ return !!(job && job.id && __savedByJob[job.id] && __savedByJob[job.id].status === 'dismissed'); }
+  function isApplied(job){ return !!(job && job.id && __savedByJob[job.id] && __savedByJob[job.id].status === 'applied'); }
+  function fmtAppliedDate(iso){ try{ return new Date(iso).toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }); }catch(e){ return ''; } }
+  // Show "Marked Applied on <date>" on the job detail when the tracker has it as applied.
+  function jdRenderApplied(job){
+    const el = document.getElementById('jdApplied'); if(!el) return;
+    if(job && isApplied(job)){ const at = __savedByJob[job.id].applied_at; el.textContent = '✓ Marked Applied' + (at ? ' on ' + fmtAppliedDate(at) : ''); el.style.display = ''; }
+    else { el.style.display = 'none'; el.textContent = ''; }
+  }
   async function dismissJob(key){
     const job = __jobsById[key]; if(!job) return;
     const API = await gcAwaitAPI();
@@ -9158,6 +9172,7 @@
     try{ const row = await API.tracker.save(job, 'applied'); if(job.id) __savedByJob[job.id] = row; if(typeof showToast==='function') showToast('Marked as applied ✓'); }
     catch(e){ if(typeof showToast==='function') showToast('Could not update tracker.'); }
     refreshSaveBtns(job);
+    jdRenderApplied(job);   // reflect "Marked Applied on <date>" on the open job detail
   }
   async function showTracker(){
     showScreen('screen-tracker');
