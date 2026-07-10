@@ -4049,6 +4049,7 @@
     <div id="jdTags" class="jli-tags" style="margin-top:14px;"></div>
     <div style="display:flex; gap:14px; align-items:center; margin-top:20px; flex-wrap:wrap;">
       <a id="jdApply" href="#" target="_blank" rel="noopener noreferrer nofollow" class="lm-cta-btn" style="text-decoration:none; font-size:14px;">Apply on source ↗</a>
+      <button id="jdReport" type="button" class="ds-nav-btn" style="border-color:rgba(255,90,60,0.4); color:var(--coral); font-size:12.5px;">⚑ Report</button>
       <div id="jdSource" style="font-size:11.5px; color:rgba(251,247,240,0.4);"></div>
     </div>
     <div id="jdDesc" style="font-size:15px; color:rgba(251,247,240,0.82); line-height:1.75; margin-top:24px; white-space:pre-wrap; max-width:800px;"></div>
@@ -4070,6 +4071,7 @@
     <div id="pdSalary" style="font-size:14px; color:var(--sage-soft); margin-top:6px;"></div>
     <div style="display:flex; gap:14px; align-items:center; margin-top:20px; flex-wrap:wrap;">
       <button id="pdInterested" type="button" class="lm-cta-btn" style="font-size:14px;">♥ Interested</button>
+      <button id="pdReport" type="button" class="ds-nav-btn" style="border-color:rgba(255,90,60,0.4); color:var(--coral); font-size:12.5px;">⚑ Report</button>
       <div style="font-size:11.5px; color:rgba(251,247,240,0.4);">Posted directly by the hiring team — express interest and they’ll see your full GigCute profile.</div>
     </div>
     <div id="pdBody" style="margin-top:28px; max-width:760px;"></div>
@@ -4088,10 +4090,11 @@
 
     <div class="auth-error" id="seekerLoginError">Incorrect email or password. Please try again.</div>
 
-    <div class="field"><label for="seeker-login-email">Email</label><input type="email" id="seeker-login-email" placeholder="maya@email.com" autocomplete="email"></div>
+    <form id="seekerLoginForm" autocomplete="on" onsubmit="return false;">
+    <div class="field"><label for="seeker-login-email">Email</label><input type="email" id="seeker-login-email" name="username" placeholder="maya@email.com" autocomplete="username" autocapitalize="none" spellcheck="false"></div>
     <div class="field password-field">
       <label for="seeker-login-pw">Password</label>
-      <input type="password" id="seeker-login-pw" placeholder="••••••••" autocomplete="current-password">
+      <input type="password" id="seeker-login-pw" name="password" placeholder="••••••••" autocomplete="current-password">
       <button class="pw-toggle" type="button" data-target="seeker-login-pw" aria-label="Show password">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
@@ -4099,6 +4102,7 @@
     <div class="forgot-row"><button class="auth-link" id="seekerForgotBtn" type="button">Forgot password?</button></div>
 
     <button class="ob-primary" id="seekerLoginBtn" type="button">Log in</button>
+    </form>
 
     <div class="auth-footer">
       Don't have an account? <a href="#" id="seekerSignupLink">Create one →</a>
@@ -7249,9 +7253,22 @@
     if(sig.prefersRemote && j.remote) bonus += 0.05;
     return Math.max(1, Math.min(99, Math.round((score / max * 0.88 + bonus) * 100)));
   }
+  // The seeker's relevance signal (title terms + skills + remote pref), lower-cased.
+  function seekerRelevanceSig(){
+    const kw = (typeof seekerJobKeywords === 'function') ? seekerJobKeywords() : null;
+    if(!kw) return { terms:[], skills:[], prefersRemote:false };
+    return { terms:(kw.terms||[]).map(t=>String(t).toLowerCase()), skills:(kw.skills||[]).map(s=>String(s).toLowerCase()), prefersRemote:!!kw.prefersRemote };
+  }
+  // Map a GigCute direct posting to the job shape scoreJobForSeeker expects.
+  function postingToJobShape(p){
+    return { title:p.title||'', description:[(p.responsibilities||[]).join(' '), (p.qualifications||[]).join(' '), p.seniority||'', p.department||''].join(' '),
+             remote:String(p.location_type||'').toLowerCase().includes('remote'), posted_at:p.published_at||p.created_at };
+  }
   // ---- Job detail view ----
+  let __jdKey = null, __pdId = null;
   function openJobDetail(key){
     const j = __jobsById[key]; if(!j) return;
+    __jdKey = key;
     const loc = j.remote ? ('Remote' + (j.location && !/remote/i.test(j.location) ? ' · ' + j.location : '')) : (j.location || '');
     const type = j.employment_type ? String(j.employment_type).replace(/_/g,' ') : '';
     document.getElementById('jdTitle').textContent = j.title || 'Untitled role';
@@ -7278,6 +7295,7 @@
   let __directById = {};
   async function openPostingDetail(id){
     const p = __directById[id]; if(!p) return;
+    __pdId = id;
     try{ if(window.GigCuteAPI && window.GigCuteAPI.enabled) window.GigCuteAPI.postings.logView(id); }catch(e){}   // record the view (owner-views skipped server-side)
     const co = p.companies || {};
     const money = v => v ? ('$' + (v>=1000 ? Math.round(v/1000)+'k' : v)) : '';
@@ -7312,6 +7330,24 @@
   // Close = browser back (returns to the board), keeping history in sync.
   { const b=document.getElementById('jdClose'); if(b) b.onclick = () => goBack('/jobs'); }
   { const b=document.getElementById('pdClose'); if(b) b.onclick = () => goBack('/jobs'); }
+  // Report spam / suspicious activity — a two-tap confirm to avoid misfires.
+  async function gcReportTarget(type, id){
+    if(!id) return;
+    const API = await gcAwaitAPI();
+    try{ await API.reports.file({ targetType:type, targetId:String(id), reason:'spam_or_suspicious', details:'' }); if(typeof showToast==='function') showToast('Reported — thank you. Our team will review it.'); }
+    catch(e){ if(typeof showToast==='function') showToast('Could not submit the report.'); }
+  }
+  window.gcReportTarget = gcReportTarget;
+  function wireReportBtn(btnId, type, getId){
+    const b = document.getElementById(btnId); if(!b) return;
+    b.onclick = () => {
+      if(b.dataset.armed !== '1'){ b.dataset.armed = '1'; b.textContent = 'Confirm report?'; setTimeout(() => { if(b.dataset.armed==='1'){ b.dataset.armed=''; b.textContent='⚑ Report'; } }, 4000); return; }
+      b.dataset.armed = ''; b.textContent = '⚑ Report';
+      gcReportTarget(type, getId());
+    };
+  }
+  wireReportBtn('jdReport', 'job', () => __jdKey);
+  wireReportBtn('pdReport', 'posting', () => __pdId);
   { const m=document.getElementById('jobDetailModal'); if(m) m.addEventListener('click', e => { if(e.target === m || e.target === m.firstElementChild) goBack('/jobs'); }); }
 
   // ===== JOB BOARD — dashboard layout (powers /jobs and /search with real jobs) =====
@@ -7363,6 +7399,7 @@
       <div class="job-logo" style="display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:18px;color:var(--coral);">${escapeHtml(initial)}</div>
       <div style="min-width:0;">
         <span class="direct-badge">★ GigCute Direct Job Posting</span>
+        ${(p.__relevance != null) ? relChipHTML(p.__relevance) : ''}
         <div class="jli-company">${escapeHtml(co.name || 'A company')}${meta ? ` · ${escapeHtml(meta)}` : ''}</div>
         <div class="jli-role">${escapeHtml(p.title || 'Role')}</div>
         ${sal ? `<div style="font-size:12.5px;color:var(--sage-soft);margin-bottom:2px;">${escapeHtml(sal)}</div>` : ''}
@@ -7467,7 +7504,10 @@
     const countEl = document.getElementById('roleCount'); if(countEl) countEl.textContent = __dash.total ? `${__dash.total} role${__dash.total !== 1 ? 's' : ''}` : '';
     const heading = document.getElementById('allRolesHeading');
     if(heading) heading.innerHTML = (__dash.q || __dash.remote || __dash.minSalary || __dash.country || __dash.postedWithin || (__dash.employmentType && __dash.employmentType.length) || (__dash.keywordGroups && __dash.keywordGroups.length) || (__dash.locationTokens && __dash.locationTokens.length)) ? 'Search <em>results</em>' : 'All open <em>roles</em>';
-    const directHtml = (__directPostings || []).filter(p => !__dismissedPostingIds.has(p.id) && postingMatchesDash(p)).map(dashPostingCard).join('');
+    const relSig = seekerRelevanceSig();
+    const directList = (__directPostings || []).filter(p => !__dismissedPostingIds.has(p.id) && postingMatchesDash(p));
+    directList.forEach(p => { p.__relevance = scoreJobForSeeker(postingToJobShape(p), relSig); });
+    const directHtml = directList.map(dashPostingCard).join('');
     if(!__dash.items.length && !directHtml){
       listEl.innerHTML = `<div style="text-align:center;padding:44px 20px;color:rgba(251,247,240,0.4);"><div style="font-family:'Fraunces',serif;font-size:18px;font-style:italic;margin-bottom:6px;">No roles found</div><div style="font-size:13px;">Try adjusting your search or filters.</div></div>`;
     } else {
