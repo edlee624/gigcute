@@ -4365,7 +4365,7 @@
 
 <!-- ===== SEEKER HOME / LANDING ===== -->
 <div class="screen" id="screen-seeker-home">
-  <div style="max-width:920px; margin:0 auto; padding:22px 22px 80px;">
+  <div style="max-width:1120px; margin:0 auto; padding:22px 22px 80px;">
     <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:26px; flex-wrap:wrap;">
       <div class="wordmark"><img src="/logo.png" class="brand-img" alt="GigCute" style="height:26px;"></div>
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -4375,22 +4375,49 @@
       </div>
     </div>
 
-    <h1 style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; margin:0 0 24px;">Welcome back<span id="shName"></span></h1>
+    <div style="display:flex; gap:28px; align-items:flex-start; flex-wrap:wrap;">
+      <aside class="cand-sidebar" style="position:static; height:auto; top:auto; border-right:none; padding:0; overflow:visible;">
+        <div class="cs-profile-card">
+          <div class="cs-avatar" id="shSideAvatar">?</div>
+          <div class="cs-name" id="shSideName">Your profile</div>
+          <div class="cs-title" id="shSideTitle"></div>
+          <div class="cs-stat-row"><div class="cs-stat"><div class="n" id="shSideViews">0</div><div class="l">Views</div></div></div>
+        </div>
+        <div class="cs-section-label">Profile strength</div>
+        <div>
+          <div class="cs-progress-bar"><div class="cs-progress-fill" id="shStrengthBar" style="width:0%"></div></div>
+          <div class="cs-progress-label"><span id="shStrengthLbl">0% complete</span><span><button class="cd-section-link" type="button" onclick="if(window.openProfileEdit)openProfileEdit()" style="font-size:11px;">Improve</button></span></div>
+        </div>
+        <div class="cs-section-label">Insights</div>
+        <div class="cs-insight" style="cursor:default;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span><span class="n" id="shSideInsight">0</span> people viewed your profile this week</span></div>
+        <div class="cs-section-label">Tools</div>
+        <div class="cs-insight" onclick="GigCuteNavigate('/tracker')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg><span>Job tracker</span></div>
+      </aside>
 
-    <section style="margin-bottom:30px;">
-      <h2 class="sh-h2">Active chats <span class="sh-count" id="shChatsCount"></span></h2>
-      <div id="shChats"></div>
-    </section>
+      <div style="flex:1; min-width:280px;">
+        <h1 style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; margin:0 0 24px;">Welcome back<span id="shName"></span></h1>
 
-    <section style="margin-bottom:30px;">
-      <h2 class="sh-h2">Potential job matches</h2>
-      <div id="shMatches"></div>
-    </section>
+        <section id="shInvitesWrap" style="margin-bottom:30px; display:none;">
+          <h2 class="sh-h2">New invites <span class="sh-count" id="shInvitesCount"></span></h2>
+          <div id="shInvites"></div>
+        </section>
 
-    <section>
-      <h2 class="sh-h2">Profile views</h2>
-      <div id="shViews"></div>
-    </section>
+        <section style="margin-bottom:30px;">
+          <h2 class="sh-h2">Active chats <span class="sh-count" id="shChatsCount"></span></h2>
+          <div id="shChats"></div>
+        </section>
+
+        <section style="margin-bottom:30px;">
+          <h2 class="sh-h2">Potential job matches</h2>
+          <div id="shMatches"></div>
+        </section>
+
+        <section>
+          <h2 class="sh-h2">Profile views</h2>
+          <div id="shViews"></div>
+        </section>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -7860,9 +7887,52 @@
     __amRecruiter = !!(me && me.role === 'recruiter');   // keep the logo → home target correct
     const first = me && me.full_name ? String(me.full_name).trim().split(/\s+/)[0] : '';
     const nameEl = document.getElementById('shName'); if(nameEl) nameEl.innerHTML = first ? (', <em style="color:var(--coral);font-style:italic;">'+escapeHtml(first)+'</em>') : '';
-    renderHomeChats(API); renderHomeMatches(API); renderHomeViews(API);
+    hydrateHomeSidebar(API, me);
+    renderHomeInvites(API); renderHomeChats(API); renderHomeMatches(API); renderHomeViews(API);
   }
   window.showSeekerHome = showSeekerHome;
+  // Fill the seeker-home left sidebar (mirrors the board sidebar): identity,
+  // profile strength, this-week views, and the Job tracker link.
+  async function hydrateHomeSidebar(API, me){
+    const setT = (id,v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
+    const fullName = (me && me.full_name) || '';
+    const parts = fullName.trim().split(/\s+/).filter(Boolean);
+    const first = parts[0] || '', lastInit = parts[1] ? parts[1].charAt(0)+'.' : '';
+    setT('shSideName', first ? (first + (lastInit ? ' '+lastInit : '')) : 'Your profile');
+    setT('shSideAvatar', (first.charAt(0) || '?').toUpperCase());
+    let p = {}; try{ if(typeof gcLoadSeekerProfile==='function') await gcLoadSeekerProfile(API); p = (typeof seekerProfile!=='undefined' && seekerProfile) || {}; }catch(e){}
+    setT('shSideTitle', p.title || (me && me.headline) || '');
+    let v7 = 0; try{ v7 = await API.profiles.myProfileViews(7); }catch(e){}
+    setT('shSideViews', v7 || 0); setT('shSideInsight', v7 || 0);
+    let s = 0;
+    if(fullName) s += 15; if(p.title) s += 15; if(p.photo) s += 10; if(p.resumeUrl) s += 15;
+    if(p.linkedinUrl) s += 10; if((p.workHistory||[]).length) s += 15; if((p.favoritePrompts||[]).length >= 3) s += 20;
+    const bar = document.getElementById('shStrengthBar'); if(bar) bar.style.width = s + '%';
+    setT('shStrengthLbl', s + '% complete');
+  }
+  // New (pending) recruiter invites, shown on the home with Accept / Decline.
+  async function renderHomeInvites(API){
+    const wrap = document.getElementById('shInvitesWrap'), el = document.getElementById('shInvites'); if(!el) return;
+    let myId = null; try{ const u = await API.auth.currentUser(); myId = u && u.id; }catch(e){}
+    let invs = []; try{ invs = await API.invites.inbox(); }catch(e){}
+    invs = (invs || []).filter(iv => iv.seeker_id === myId);
+    if(!invs.length){ if(wrap) wrap.style.display = 'none'; el.innerHTML = ''; return; }
+    if(wrap) wrap.style.display = '';
+    const cEl = document.getElementById('shInvitesCount'); if(cEl) cEl.textContent = '· ' + invs.length;
+    el.innerHTML = invs.map(iv => {
+      const role = (iv.postings && iv.postings.title) || 'A role';
+      const company = (iv.postings && iv.postings.companies && iv.postings.companies.name) || 'A company';
+      return `<div style="background:var(--ink-soft); border:1px solid var(--coral); border-radius:12px; padding:14px 16px; margin-bottom:10px;">
+        <div style="font-size:12.5px; color:rgba(251,247,240,0.6);">${escapeHtml(company)} invited you to</div>
+        <div style="font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--paper); margin:2px 0 4px;">${escapeHtml(role)}</div>
+        ${iv.note ? `<div style="font-size:12.5px; color:rgba(251,247,240,0.6); margin-bottom:6px;">"${escapeHtml(iv.note)}"</div>` : ''}
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="jli-btn primary" type="button" onclick="respondInvite('${iv.id}','accepted','${iv.posting_id}')">Accept</button>
+          <button class="jli-btn pass" type="button" onclick="respondInvite('${iv.id}','declined')">Decline</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
   function homeTimeAgo(iso){ if(!iso) return ''; const s=(Date.now()-new Date(iso).getTime())/1000; if(s<60)return 'just now'; if(s<3600)return Math.floor(s/60)+'m ago'; if(s<86400)return Math.floor(s/3600)+'h ago'; return Math.floor(s/86400)+'d ago'; }
   async function renderHomeChats(API){
     const el = document.getElementById('shChats'); if(!el) return;
