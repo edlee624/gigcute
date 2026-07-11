@@ -6644,9 +6644,10 @@
         }))
       : 0;
 
-    // Photo
+    // Photo — escape for the style attribute AND neutralize quotes inside url('')
+    // (p.photo is another user's data; unescaped it could break out of the attribute).
     const photoStyle = p.photo
-      ? `background-image:url('${p.photo}');`
+      ? `background-image:url('${escapeHtml(String(p.photo).replace(/'/g, '%27'))}');`
       : '';
     const photoInitial = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
 
@@ -7512,9 +7513,9 @@
         ${(() => { const pv = descPreview(j.description); return pv ? `<div class="jli-preview">${escapeHtml(pv)}</div>` : ''; })()}
       </div>
       <div class="jli-actions">
-        <button class="jli-btn primary" type="button" onclick="GigCuteNavigate('/job/${encodeURIComponent(key)}')">View</button>
-        <button class="jli-btn" type="button" data-savejob="${escapeHtml(j.id||'')}" onclick="toggleSaveJob('${key}')">${isSaved(j)?'♥ Saved':'♡ Save'}</button>
-        <button class="jli-btn pass" type="button" title="Not interested — hide this job" onclick="dismissJob('${key}')" style="font-size:11px;padding:5px 10px;">Remove</button>
+        <button class="jli-btn primary" type="button" onclick="GigCuteNavigate('/job/'+encodeURIComponent(this.closest('[data-jobkey]').getAttribute('data-jobkey')))">View</button>
+        <button class="jli-btn" type="button" data-savejob="${escapeHtml(j.id||'')}" onclick="toggleSaveJob(this.closest('[data-jobkey]').getAttribute('data-jobkey'))">${isSaved(j)?'♥ Saved':'♡ Save'}</button>
+        <button class="jli-btn pass" type="button" title="Not interested — hide this job" onclick="dismissJob(this.closest('[data-jobkey]').getAttribute('data-jobkey'))" style="font-size:11px;padding:5px 10px;">Remove</button>
         ${isApplied(j) ? `<div style="font-size:11px;color:var(--sage);font-family:'JetBrains Mono',monospace;text-align:right;margin-top:2px;">✓ Marked Applied${__savedByJob[j.id] && __savedByJob[j.id].applied_at ? ' on '+fmtAppliedDate(__savedByJob[j.id].applied_at) : ''}</div>` : (posted ? `<div style="font-size:10.5px;color:rgba(251,247,240,0.35);text-align:right;">${posted}</div>` : '')}
       </div>
     </div>`;
@@ -8018,7 +8019,7 @@
       const j = it.data; const key = jobKey(j); __jobsById[key] = j;
       const sal = (j.salary_min||j.salary_max) ? `${money(j.salary_min)}${j.salary_max?'–'+money(j.salary_max):'+'}` : '';
       const meta = [j.location || (j.remote?'Remote':''), sal].filter(Boolean).join(' · ');
-      return `<div class="sh-card" onclick="GigCuteNavigate('/job/${encodeURIComponent(key)}')">
+      return `<div class="sh-card" data-jobkey="${escapeHtml(key)}" onclick="GigCuteNavigate('/job/'+encodeURIComponent(this.getAttribute('data-jobkey')))">
         <div style="flex:1;min-width:0;">${rel}
           <div class="sh-card-title">${escapeHtml(j.title||'Role')}</div>
           <div class="sh-card-sub">${escapeHtml(j.company||'')}${meta?` · ${escapeHtml(meta)}`:''}</div>
