@@ -24,7 +24,7 @@ type JobRow = {
   location: string | null; remote: boolean; employment_type: string | null;
   category: string | null; salary_min: number | null; salary_max: number | null;
   salary_currency: string | null; url: string; description: string | null;
-  tags: string[]; posted_at: string | null; is_active: boolean;
+  tags: string[]; posted_at: string | null; is_active: boolean; last_seen_at?: string;
 };
 type Src = { id?: string; slug: string; company_name?: string | null; datacenter?: string | null; site?: string | null };
 type Report = { fetched: number; upserted: number; error?: string };
@@ -96,13 +96,23 @@ function extractSalary(text: string | null | undefined): { min: number | null; m
 // deno-lint-ignore no-explicit-any
 async function upsert(supabase: any, rows: JobRow[]): Promise<number> {
   let n = 0;
+  const seen = new Date().toISOString();
   for (let i = 0; i < rows.length; i += 200) {
-    const chunk = rows.slice(i, i + 200);
+    const chunk = rows.slice(i, i + 200).map((r) => ({ ...r, last_seen_at: seen }));
     const { error } = await supabase.from("jobs").upsert(chunk, { onConflict: "source,external_id" });
     if (error) throw error;
     n += chunk.length;
   }
   return n;
+}
+// Reconcile one company's board: refresh last_seen_at on every job still listed
+// (allIds = the FULL board, before recency filters) and deactivate ours that
+// dropped off (closed at the source). Only for sources where we fetch the whole
+// board (greenhouse/lever/ashby) — Workday is a partial fetch, never reconciled.
+// deno-lint-ignore no-explicit-any
+async function reconcile(supabase: any, source: string, prefix: string, allIds: string[]): Promise<void> {
+  try { await supabase.rpc("touch_and_reconcile", { p_source: source, p_prefix: prefix, p_seen: allIds }); }
+  catch (_e) { /* reconciliation is best-effort */ }
 }
 // Bounded-concurrency runner; per-item errors are swallowed. No accumulation.
 async function runLimit<T>(items: T[], limit: number, fn: (x: T) => Promise<void>): Promise<void> {
@@ -120,6 +130,7 @@ async function fromGreenhouse(supabase: any, list: Src[]): Promise<Report> {
     if (!res.ok) return;
     const json = await res.json();
     const rows: JobRow[] = [];
+    const allIds: string[] = (json?.jobs ?? []).map((j: any) => `gh:${slug}:${j.id}`);
     for (const j of (json?.jobs ?? [])) {
       const desc = htmlToText(j.content);
       const sal = extractSalary(desc);
@@ -136,6 +147,7 @@ async function fromGreenhouse(supabase: any, list: Src[]): Promise<Report> {
       if (row.url && row.external_id && isRecent(row.posted_at)) rows.push(row);
     }
     fetched += rows.length; upserted += await upsert(supabase, rows);
+    await reconcile(supabase, "greenhouse", `gh:${slug}:%`, allIds);
   });
   return { fetched, upserted };
 }
@@ -147,6 +159,7 @@ async function fromLever(supabase: any, list: Src[]): Promise<Report> {
     if (!res.ok) return;
     const arr = await res.json();
     const rows: JobRow[] = [];
+    const allIds: string[] = (Array.isArray(arr) ? arr : []).map((j: any) => `lever:${slug}:${j.id}`);
     for (const j of (Array.isArray(arr) ? arr : [])) {
       const desc = j.descriptionPlain || htmlToText(j.description);
       const sal = extractSalary(desc);
@@ -164,6 +177,7 @@ async function fromLever(supabase: any, list: Src[]): Promise<Report> {
       if (row.url && row.external_id && isRecent(row.posted_at)) rows.push(row);
     }
     fetched += rows.length; upserted += await upsert(supabase, rows);
+    await reconcile(supabase, "lever", `lever:${slug}:%`, allIds);
   });
   return { fetched, upserted };
 }
@@ -175,6 +189,7 @@ async function fromAshby(supabase: any, list: Src[]): Promise<Report> {
     if (!res.ok) return;
     const json = await res.json();
     const rows: JobRow[] = [];
+    const allIds: string[] = (json?.jobs ?? []).map((j: any) => `ashby:${slug}:${j.id}`);
     for (const j of (json?.jobs ?? [])) {
       const desc = j.descriptionPlain || htmlToText(j.descriptionHtml);
       const sal = extractSalary(j.compensation?.compensationTierSummary || desc);
@@ -191,6 +206,7 @@ async function fromAshby(supabase: any, list: Src[]): Promise<Report> {
       if (row.url && row.external_id && isRecent(row.posted_at)) rows.push(row);
     }
     fetched += rows.length; upserted += await upsert(supabase, rows);
+    await reconcile(supabase, "ashby", `ashby:${slug}:%`, allIds);
   });
   return { fetched, upserted };
 }
@@ -261,8 +277,9 @@ async function fromWorkday(supabase: any, list: Src[]): Promise<Report> {
 }
 
 Deno.serve(async (req) => {
+  // Header only — query strings end up in proxy/edge logs (the cron sends the header).
   const secret = Deno.env.get("CRON_SECRET");
-  const given = req.headers.get("x-cron-secret") || new URL(req.url).searchParams.get("secret");
+  const given = req.headers.get("x-cron-secret");
   if (!secret || given !== secret) {
     return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { "content-type": "application/json" } });
   }
