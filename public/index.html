@@ -790,6 +790,9 @@
   .role-card .arrow svg{ width:18px;height:18px; }
 
   .field{ margin-bottom:18px; }
+  .email-typo-hint{ display:none; margin-top:6px; font-size:12.5px; color:#E0B64A; }
+  .email-typo-hint.show{ display:block; }
+  .email-typo-hint button{ background:none; border:none; color:var(--coral); font-weight:700; cursor:pointer; padding:0; font-size:12.5px; font-family:inherit; text-decoration:underline; }
   .field label{
     display:block;
     font-size:12.5px;
@@ -3767,7 +3770,7 @@
       <div class="field" style="flex:1;min-width:0;"><label for="rc-first">First name</label><input type="text" id="rc-first" placeholder="First name" autocomplete="given-name"></div>
       <div class="field" style="flex:1;min-width:0;"><label for="rc-last">Last name</label><input type="text" id="rc-last" placeholder="Last name" autocomplete="family-name"></div>
     </div>
-    <div class="field"><label for="rc-email">Work email</label><input type="email" id="rc-email" placeholder="you@company.com" autocomplete="email"></div>
+    <div class="field"><label for="rc-email">Work email</label><input type="email" id="rc-email" placeholder="you@company.com" autocomplete="email"><div class="email-typo-hint" id="rc-email-hint"></div></div>
     <div class="field password-field">
       <label for="rc-password">Create a password</label>
       <input type="password" id="rc-password" placeholder="At least 8 characters" autocomplete="new-password">
@@ -4174,7 +4177,7 @@
       <div class="field" style="flex:1;min-width:0;"><label for="sk-first">First name</label><input type="text" id="sk-first" placeholder="First name" autocomplete="given-name"></div>
       <div class="field" style="flex:1;min-width:0;"><label for="sk-last">Last name</label><input type="text" id="sk-last" placeholder="Last name" autocomplete="family-name"></div>
     </div>
-    <div class="field"><label for="sk-email">Email</label><input type="email" id="sk-email" placeholder="maya@email.com" autocomplete="email"></div>
+    <div class="field"><label for="sk-email">Email</label><input type="email" id="sk-email" placeholder="maya@email.com" autocomplete="email"><div class="email-typo-hint" id="sk-email-hint"></div></div>
     <div class="field password-field">
       <label for="sk-password">Create a password</label>
       <input type="password" id="sk-password" placeholder="••••••••" autocomplete="new-password">
@@ -5031,6 +5034,36 @@
   document.getElementById('seeker-login-pw').addEventListener('keydown', e => {
     if(e.key === 'Enter') document.getElementById('seekerLoginBtn').click();
   });
+
+  // ---- Email typo guard: a bad address at signup = a dead, unconfirmable account.
+  const GC_COMMON_DOMAINS = ['gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com','aol.com','live.com','msn.com','comcast.net','me.com','proton.me','protonmail.com'];
+  function gcLev(a,b){
+    const m=a.length,n=b.length; if(Math.abs(m-n)>2) return 3;
+    const d=[]; for(let i=0;i<=m;i++){ d[i]=[i]; } for(let j=0;j<=n;j++){ d[0][j]=j; }
+    for(let i=1;i<=m;i++) for(let j=1;j<=n;j++){ const c=a[i-1]===b[j-1]?0:1; d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+c); }
+    return d[m][n];
+  }
+  function gcEmailTypo(email){
+    const at = String(email||'').lastIndexOf('@'); if(at < 1) return null;
+    const local = email.slice(0,at), dom = email.slice(at+1).toLowerCase().trim();
+    if(!dom || dom.indexOf('.') < 0) return null;
+    if(GC_COMMON_DOMAINS.includes(dom)) return null;
+    let best=null, bestD=3;
+    for(const d of GC_COMMON_DOMAINS){ const dist=gcLev(dom,d); if(dist>0 && dist<bestD){ bestD=dist; best=d; } }
+    return (best && bestD<=2) ? (local+'@'+best) : null;
+  }
+  function gcWireEmailTypo(inputId, hintId){
+    const inp=document.getElementById(inputId), hint=document.getElementById(hintId);
+    if(!inp || !hint) return;
+    const check=()=>{ const s=gcEmailTypo((inp.value||'').trim());
+      if(s){ hint.innerHTML='Did you mean <button type="button">'+escapeHtml(s)+'</button>?'; hint.classList.add('show');
+        hint.querySelector('button').onclick=()=>{ inp.value=s; hint.classList.remove('show'); inp.focus(); }; }
+      else hint.classList.remove('show'); };
+    inp.addEventListener('blur', check);
+    inp.addEventListener('input', ()=>{ if(hint.classList.contains('show')) check(); });
+  }
+  gcWireEmailTypo('sk-email','sk-email-hint');
+  gcWireEmailTypo('rc-email','rc-email-hint');
 
   // The shared login screen serves both seekers and recruiters; setLoginMode
   // re-brands it and routes its "Create one" link + post-login flow correctly.
