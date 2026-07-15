@@ -850,6 +850,31 @@ const events = {
     if (error) throw error;
     return data;
   },
+  // Admin: salary TRENDS over time — monthly series (posted_at) + durable daily
+  // snapshot of the live feed. Returns { months, daily, series } or null for non-admins.
+  async jobsTrends(months = 12) {
+    const { data, error } = await requireClient().rpc('jobs_trends', { p_months: months });
+    if (error) throw error;
+    return data;
+  },
+  // Admin: how many users a blast would reach with the given filters (no send).
+  async broadcastPreview({ roles = null, onboarded = false, activeDays = 0 } = {}) {
+    const { data, error } = await requireClient().rpc('admin_broadcast_preview', {
+      p_roles: roles, p_onboarded: !!onboarded, p_active_days: activeDays || 0,
+    });
+    if (error) throw error;
+    return data; // integer count, or null for non-admins
+  },
+  // Admin: send an in-app broadcast to all users matching the filters.
+  // Returns { broadcast_id, recipient_count } or null for non-admins.
+  async broadcastSend({ title = '', body, roles = null, onboarded = false, activeDays = 0 }) {
+    const { data, error } = await requireClient().rpc('admin_broadcast', {
+      p_title: title || null, p_body: body,
+      p_roles: roles, p_onboarded: !!onboarded, p_active_days: activeDays || 0,
+    });
+    if (error) throw error;
+    return data;
+  },
 };
 
 const reports = {
@@ -1083,6 +1108,28 @@ const notifications = {
     if (!u?.user) return;
     const { error } = await c.from('notification_prefs')
       .upsert({ user_id: u.user.id, ...patch, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+    if (error) throw error;
+  },
+  // In-app inbox (admin broadcasts, etc.). Newest first; own rows only (RLS).
+  async inbox({ unreadOnly = false, limit = 20 } = {}) {
+    const c = requireClient(); const { data: u } = await c.auth.getUser();
+    if (!u?.user) return [];
+    let q = c.from('user_notifications')
+      .select('id, kind, title, body, link, created_at, read_at')
+      .order('created_at', { ascending: false }).limit(limit);
+    if (unreadOnly) q = q.is('read_at', null);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+  },
+  // Mark one (or, with no id, all unread) inbox items as read.
+  async markRead(id = null) {
+    const c = requireClient(); const { data: u } = await c.auth.getUser();
+    if (!u?.user) return;
+    let q = c.from('user_notifications').update({ read_at: new Date().toISOString() })
+      .eq('user_id', u.user.id).is('read_at', null);
+    if (id) q = q.eq('id', id);
+    const { error } = await q;
     if (error) throw error;
   },
 };

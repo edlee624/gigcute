@@ -6351,13 +6351,27 @@
     input.addEventListener('input', () => { clearTimeout(__adminUserTimer); __adminUserTimer = setTimeout(() => loadAdminUsers(API, input.value), 280); });
     loadAdminUsers(API, '');
     const jb = document.getElementById('loadJobsAnalytics'); if(jb) jb.onclick = loadJobsAnalytics;
+    const tb = document.getElementById('loadJobsTrends'); if(tb) tb.onclick = loadJobsTrends;
+    wireBroadcast(API);
   }
+  // ---- CSV export helper: rows = array of arrays (first row = header) ----
+  function csvCell(v){ v = (v==null?'':String(v)); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; }
+  function downloadCSV(filename, rows){
+    const csv = rows.map(r => r.map(csvCell).join(',')).join('\r\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  let __jobsTrendsData = null, __jobsAnalyticsData = null;
   async function loadJobsAnalytics(){
     const box = document.getElementById('jobsAnalyticsBox'); if(!box) return;
     box.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:8px 0;">Crunching the full jobs feed…</div>';
     const API = await gcAwaitAPI();
     let a = null; try{ a = await API.events.jobsAnalytics(); }catch(e){}
     if(!a){ box.innerHTML = '<div style="color:var(--coral);">Could not load (admin only).</div>'; return; }
+    __jobsAnalyticsData = a;
     const money = v => (v==null) ? '—' : ('$' + Math.round(v/1000) + 'k');
     const so = a.salary_overall || {};
     const kpi = (l,v) => `<div style="background:var(--ink);border:1px solid var(--line-light);border-radius:12px;padding:13px 15px;"><div style="font-size:21px;font-family:'Fraunces',serif;color:var(--coral);line-height:1;">${v}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(251,247,240,0.5);margin-top:5px;">${l}</div></div>`;
@@ -6378,8 +6392,120 @@
       + breakdown('Remote vs on-site', a.by_remote, 'kind')
       + breakdown('By category (top)', a.by_category, 'category')
       + breakdown('By location (top)', a.by_location, 'location')
-      + `<button class="ds-nav-btn" id="loadJobsAnalytics" type="button" style="margin-top:2px;">↻ Refresh</button>`;
+      + `<div style="display:flex;gap:10px;margin-top:4px;"><button class="ds-nav-btn" id="loadJobsAnalytics" type="button">↻ Refresh</button><button class="ds-nav-btn" id="dlAnalyticsCsv" type="button">⬇ Snapshot CSV</button></div>`;
     const rb = document.getElementById('loadJobsAnalytics'); if(rb) rb.onclick = loadJobsAnalytics;
+    const db = document.getElementById('dlAnalyticsCsv'); if(db) db.onclick = downloadAnalyticsCsv;
+  }
+  function downloadAnalyticsCsv(){
+    const a = __jobsAnalyticsData; if(!a) return;
+    const rows = [['section','bucket','median','count']];
+    const so = a.salary_overall || {};
+    rows.push(['overall','all', so.median==null?'':so.median, a.with_salary||0]);
+    (a.by_seniority||[]).forEach(x => rows.push(['seniority', x.bucket, x.median, x.n]));
+    (a.by_remote||[]).forEach(x => rows.push(['remote', x.kind, x.median, x.n]));
+    (a.by_category||[]).forEach(x => rows.push(['category', x.category, x.median, x.n]));
+    (a.by_location||[]).forEach(x => rows.push(['location', x.location, x.median, x.n]));
+    downloadCSV('gigcute-salary-snapshot.csv', rows);
+  }
+  async function loadJobsTrends(){
+    const box = document.getElementById('jobsTrendsBox'); if(!box) return;
+    const sel = document.getElementById('trendsMonths');
+    const months = sel ? parseInt(sel.value, 10) : 12;
+    box.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:8px 0;">Building the time-series…</div>';
+    const API = await gcAwaitAPI();
+    let t = null; try{ t = await API.events.jobsTrends(months); }catch(e){}
+    if(!t){ box.innerHTML = '<div style="color:var(--coral);">Could not load (admin only).</div>'; return; }
+    __jobsTrendsData = t;
+    const money = v => (v==null) ? '—' : ('$' + Math.round(v/1000) + 'k');
+    const months_arr = t.months || [];
+    const series = t.series || [];
+    // group series by dim
+    const byDim = {};
+    series.forEach(s => { (byDim[s.dim] = byDim[s.dim] || []).push(s); });
+    const dimLabels = { overall:'Overall', seniority:'By seniority', remote:'Remote vs on-site', category:'By category (top)', location:'By location (top)' };
+    const dimOrder = ['overall','seniority','remote','category','location'];
+    // Build a month×bucket median table per dimension.
+    function dimTable(dim){
+      const rows = byDim[dim]; if(!rows || !rows.length) return '';
+      const head = `<th style="text-align:left;padding:5px 9px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(251,247,240,0.4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${escapeHtml(dimLabels[dim]||dim)}</th>`
+        + months_arr.map(m => `<th style="text-align:right;padding:5px 9px;font-size:10px;color:rgba(251,247,240,0.4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${escapeHtml(m)}</th>`).join('');
+      const body = rows.map(r => {
+        const map = {}; (r.points||[]).forEach(p => map[p.ym] = p);
+        const cells = months_arr.map(m => { const p = map[m]; return `<td style="text-align:right;padding:5px 9px;font-size:12px;color:${p?'var(--sage-soft)':'rgba(251,247,240,0.25)'};white-space:nowrap;" ${p?`title="${p.n} job${p.n===1?'':'s'}"`:''}>${p?money(p.median):'·'}</td>`; }).join('');
+        return `<tr><td style="padding:5px 9px;font-size:12.5px;color:rgba(251,247,240,0.82);white-space:nowrap;">${escapeHtml(String(r.bucket))}</td>${cells}</tr>`;
+      }).join('');
+      return `<div style="overflow-x:auto;margin-bottom:18px;"><table style="border-collapse:collapse;min-width:100%;"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+    }
+    // Daily snapshot line (durable feed history).
+    const daily = t.daily || [];
+    let dailyBlock = '';
+    if(daily.length){
+      const maxMed = Math.max(1, ...daily.map(d => d.median||0));
+      const bars = daily.map(d => `<div title="${escapeHtml(d.day)}: median ${money(d.median)} · ${d.with_salary} w/ salary" style="flex:1;min-width:4px;display:flex;flex-direction:column;justify-content:flex-end;"><div style="height:${Math.round((d.median||0)/maxMed*100)}px;background:var(--coral);border-radius:3px 3px 0 0;min-height:2px;"></div></div>`).join('');
+      dailyBlock = `<div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:rgba(251,247,240,0.45);margin:6px 0 9px;">Live feed · daily median salary <span style="color:rgba(251,247,240,0.3);text-transform:none;letter-spacing:0;">— ${daily.length} day${daily.length===1?'':'s'} so far, grows daily</span></div><div style="display:flex;align-items:flex-end;gap:2px;height:100px;margin-bottom:20px;">${bars}</div>`;
+    } else {
+      dailyBlock = `<div style="font-size:12px;color:rgba(251,247,240,0.4);margin-bottom:18px;">Daily feed history starts building today — check back tomorrow for a growing trend line.</div>`;
+    }
+    const note = months_arr.length < 3
+      ? `<div style="font-size:12px;color:rgba(251,247,240,0.5);background:var(--ink);border:1px solid var(--line-light);border-radius:10px;padding:10px 13px;margin-bottom:16px;">Only ${months_arr.length} month${months_arr.length===1?'':'s'} of post-date history in the feed right now (jobs are ingested fresh and old ones are purged). The <b>daily snapshot</b> below is the durable trend that deepens over time.</div>`
+      : '';
+    box.innerHTML = note + dailyBlock + dimOrder.map(dimTable).join('')
+      + `<div style="font-size:11px;color:rgba(251,247,240,0.4);margin-top:2px;">Cells show median salary; hover for job counts. Months bucket on each job's post date.</div>`;
+    const dt = document.getElementById('dlTrendsCsv'); if(dt){ dt.style.display = ''; dt.onclick = downloadTrendsCsv; }
+    const dd = document.getElementById('dlDailyCsv'); if(dd){ dd.style.display = daily.length ? '' : 'none'; dd.onclick = downloadDailyCsv; }
+  }
+  function downloadTrendsCsv(){
+    const t = __jobsTrendsData; if(!t) return;
+    const rows = [['dimension','bucket','month','median_salary','job_count']];
+    (t.series||[]).forEach(s => (s.points||[]).forEach(p => rows.push([s.dim, s.bucket, p.ym, p.median, p.n])));
+    downloadCSV('gigcute-salary-trends.csv', rows);
+  }
+  function downloadDailyCsv(){
+    const t = __jobsTrendsData; if(!t || !(t.daily||[]).length) return;
+    const rows = [['day','total_active','with_salary','median','p25','p75']];
+    t.daily.forEach(d => rows.push([d.day, d.total_active, d.with_salary, d.median, d.p25, d.p75]));
+    downloadCSV('gigcute-daily-feed.csv', rows);
+  }
+  // ---- Admin broadcast composer ----
+  function wireBroadcast(API){
+    const previewBtn = document.getElementById('bcPreview');
+    const sendBtn = document.getElementById('bcSend');
+    const statusEl = document.getElementById('bcStatus');
+    if(!previewBtn || !sendBtn) return;
+    const filters = () => {
+      const role = document.getElementById('bcRole').value;
+      return {
+        roles: role ? [role] : null,
+        onboarded: document.getElementById('bcOnboarded').checked,
+        activeDays: parseInt(document.getElementById('bcActive').value, 10) || 0,
+      };
+    };
+    previewBtn.onclick = async () => {
+      statusEl.style.color = 'rgba(251,247,240,0.7)'; statusEl.textContent = 'Counting…';
+      try{ const n = await API.events.broadcastPreview(filters());
+        statusEl.textContent = (n==null) ? 'Not authorized.' : `Would reach ${n} user${n===1?'':'s'}.`;
+      }catch(e){ statusEl.style.color = 'var(--coral)'; statusEl.textContent = e.message || 'Could not preview.'; }
+    };
+    sendBtn.onclick = async () => {
+      const body = document.getElementById('bcBody').value.trim();
+      const title = document.getElementById('bcTitle').value.trim();
+      if(!body){ statusEl.style.color = 'var(--coral)'; statusEl.textContent = 'Write a message first.'; return; }
+      const f = filters();
+      let n = null; try{ n = await API.events.broadcastPreview(f); }catch(e){}
+      const who = (n==null) ? 'all matching users' : `${n} user${n===1?'':'s'}`;
+      if(!confirm(`Send this in-app broadcast to ${who}?\n\n${title ? title + '\n\n' : ''}${body}`)) return;
+      statusEl.style.color = 'rgba(251,247,240,0.7)'; statusEl.textContent = 'Sending…'; sendBtn.disabled = true;
+      try{
+        const res = await API.events.broadcastSend({ title, body, ...f });
+        if(!res){ statusEl.style.color = 'var(--coral)'; statusEl.textContent = 'Not authorized.'; }
+        else {
+          statusEl.style.color = 'var(--sage-soft)';
+          statusEl.textContent = `Sent to ${res.recipient_count} user${res.recipient_count===1?'':'s'}.`;
+          document.getElementById('bcBody').value = ''; document.getElementById('bcTitle').value = '';
+        }
+      }catch(e){ statusEl.style.color = 'var(--coral)'; statusEl.textContent = e.message || 'Could not send.'; }
+      finally{ sendBtn.disabled = false; }
+    };
   }
   async function loadAdminUsers(API, search){
     const list = document.getElementById('adminUsersList'); if(!list) return;
@@ -6475,10 +6601,58 @@
     const usersPanel = panel('Users <span id="adminUsersCount" style="color:rgba(251,247,240,0.4);text-transform:none;letter-spacing:0;"></span>',
       `<input id="adminUserSearch" placeholder="Search by name, email, or profile code…" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:13.5px;padding:10px 14px;margin-bottom:14px;"><div id="adminUsersList" style="color:rgba(251,247,240,0.5);">Loading…</div>`);
     const jobsPanel = panel('Jobs salary analytics',
-      `<div id="jobsAnalyticsBox"><button class="ds-nav-btn" id="loadJobsAnalytics" type="button">Load salary trends</button><span style="font-size:12px;color:rgba(251,247,240,0.4);margin-left:10px;">Scans the full active feed — a few seconds.</span></div>`);
+      `<div id="jobsAnalyticsBox"><button class="ds-nav-btn" id="loadJobsAnalytics" type="button">Load salary snapshot</button><span style="font-size:12px;color:rgba(251,247,240,0.4);margin-left:10px;">Current medians across the full active feed — a few seconds.</span></div>`);
+    const trendsPanel = panel('Salary trends over time',
+      `<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+         <select id="trendsMonths" class="ds-nav-btn" style="cursor:pointer;">
+           <option value="6">Last 6 months</option>
+           <option value="12" selected>Last 12 months</option>
+           <option value="24">Last 24 months</option>
+         </select>
+         <button class="ds-nav-btn" id="loadJobsTrends" type="button">Load trends</button>
+         <button class="ds-nav-btn" id="dlTrendsCsv" type="button" style="display:none;">⬇ Trends CSV</button>
+         <button class="ds-nav-btn" id="dlDailyCsv" type="button" style="display:none;">⬇ Daily feed CSV</button>
+         <span style="font-size:12px;color:rgba(251,247,240,0.4);">Monthly medians by attribute (from post dates) + a durable daily snapshot that grows each day.</span>
+       </div>
+       <div id="jobsTrendsBox"></div>`);
+    const broadcastPanel = panel('Broadcast a message to users',
+      `<div style="display:grid;gap:12px;max-width:620px;">
+         <input id="bcTitle" placeholder="Title (optional) — e.g. New: salary filters are live" maxlength="120"
+           style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:13.5px;padding:10px 14px;">
+         <textarea id="bcBody" placeholder="Your message to users. Shows as an in-app announcement next time they open GigCute." rows="4" maxlength="1000"
+           style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:13.5px;padding:10px 14px;resize:vertical;"></textarea>
+         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+           <label style="font-size:12px;color:rgba(251,247,240,0.6);">Audience
+             <select id="bcRole" class="ds-nav-btn" style="cursor:pointer;margin-left:6px;">
+               <option value="">All users</option>
+               <option value="seeker">Seekers only</option>
+               <option value="recruiter">Recruiters only</option>
+             </select>
+           </label>
+           <label style="font-size:12px;color:rgba(251,247,240,0.6);display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
+             <input type="checkbox" id="bcOnboarded" style="accent-color:var(--coral);"> Onboarded only
+           </label>
+           <label style="font-size:12px;color:rgba(251,247,240,0.6);">Active in
+             <select id="bcActive" class="ds-nav-btn" style="cursor:pointer;margin-left:6px;">
+               <option value="0">Any time</option>
+               <option value="7">Last 7 days</option>
+               <option value="30">Last 30 days</option>
+               <option value="90">Last 90 days</option>
+             </select>
+           </label>
+         </div>
+         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+           <button class="ds-nav-btn" id="bcPreview" type="button">Preview reach</button>
+           <button class="ob-primary" id="bcSend" type="button" style="padding:9px 18px;font-size:13.5px;">Send broadcast</button>
+           <span id="bcStatus" style="font-size:13px;color:rgba(251,247,240,0.7);"></span>
+         </div>
+         <div style="font-size:11.5px;color:rgba(251,247,240,0.4);">In-app only — no email. Only confirmed accounts receive it. Delivery is a point-in-time send; users who join later won't see past broadcasts.</div>
+       </div>`);
     return cards
       + usersPanel
       + jobsPanel
+      + trendsPanel
+      + broadcastPanel
       + (byDay ? panel('Activity', `<div style="display:flex;align-items:flex-end;gap:3px;height:120px;">${byDay}</div>`) : '')
       + panel('Top referrers', topRefs)
       + panel('Top screens', topScreens)
@@ -8016,8 +8190,36 @@
     const nameEl = document.getElementById('shName'); if(nameEl) nameEl.innerHTML = first ? (', <em style="color:var(--coral);font-style:italic;">'+escapeHtml(first)+'</em>') : '';
     hydrateHomeSidebar(API, me);
     renderHomeInvites(API); renderHomeChats(API); renderHomeMatches(API); renderHomeViews(API);
+    gcShowAnnouncements(API);
   }
   window.showSeekerHome = showSeekerHome;
+  // In-app announcements: surface unread admin broadcasts as a dismissible
+  // banner. "Got it" marks that item read so it won't show again.
+  let __annShown = false;
+  async function gcShowAnnouncements(API){
+    if(__annShown) return; // once per app session is enough
+    let items = []; try{ items = await API.notifications.inbox({ unreadOnly: true, limit: 5 }); }catch(e){ return; }
+    if(!items || !items.length) return;
+    __annShown = true;
+    let host = document.getElementById('gcAnnHost');
+    if(!host){ host = document.createElement('div'); host.id = 'gcAnnHost';
+      host.style.cssText = 'position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:4000;display:flex;flex-direction:column;gap:10px;width:min(92vw,460px);';
+      document.body.appendChild(host); }
+    host.innerHTML = '';
+    items.forEach(it => {
+      const card = document.createElement('div');
+      card.style.cssText = 'background:var(--ink-soft);border:1px solid var(--line-light);border-left:3px solid var(--coral);border-radius:12px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,0.35);';
+      card.innerHTML =
+        (it.title ? `<div style="font-family:'Fraunces',serif;font-size:15px;color:var(--paper);margin-bottom:4px;">${escapeHtml(it.title)}</div>` : '')
+        + `<div style="font-size:13.5px;line-height:1.5;color:rgba(251,247,240,0.85);white-space:pre-wrap;">${escapeHtml(it.body)}</div>`
+        + `<div style="text-align:right;margin-top:10px;"><button type="button" class="ds-nav-btn gcAnnDismiss">Got it</button></div>`;
+      card.querySelector('.gcAnnDismiss').onclick = async () => {
+        card.remove(); if(!host.children.length) host.remove();
+        try{ await API.notifications.markRead(it.id); }catch(e){}
+      };
+      host.appendChild(card);
+    });
+  }
   // Fill the seeker-home left sidebar (mirrors the board sidebar): identity,
   // profile strength, this-week views, and the Job tracker link.
   async function hydrateHomeSidebar(API, me){
