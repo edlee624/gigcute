@@ -201,6 +201,14 @@ const seeker = {
     return uploadPublic(`resumes/${u.user.id}/${Date.now()}_${safeName(file.name)}`, file);
   },
 
+  // Upload a work-artifact file (≤5MB) for the current user; returns the public URL.
+  async uploadArtifact(file) {
+    if (file && file.size > 5 * 1024 * 1024) throw new Error('File is larger than 5MB.');
+    const c = requireClient();
+    const { data: u } = await c.auth.getUser();
+    return uploadPublic(`artifacts/${u.user.id}/${Date.now()}_${safeName(file.name)}`, file);
+  },
+
   // Persist the full seeker profile: the main row plus work history, education,
   // and prompt answers. Child collections are replaced wholesale (fine for the
   // small sizes here). Pass already-uploaded photo_url in `profile`.
@@ -224,6 +232,10 @@ const seeker = {
         seeker_id: uid, title: w.title || null, company: w.company || null,
         start_label: w.start || null, end_label: w.end || null,
         description: w.description || null, sort_order: i,
+        // Clean artifacts: keep only resolved (uploaded/link) items, strip client-only fields.
+        artifacts: (Array.isArray(w.artifacts) ? w.artifacts : [])
+          .filter(a => a && a.url)
+          .map(a => ({ title: a.title || '', kind: a.kind === 'file' ? 'file' : 'link', url: a.url, fileName: a.fileName || null })),
       }))));
       if (error) throw error;
     }

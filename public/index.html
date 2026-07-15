@@ -1284,6 +1284,36 @@
   }
   .work-entry .field textarea{ min-height:64px; }
 
+  /* ---------- work artifacts (per role) ---------- */
+  .wh-artifacts{ border-top:1px dashed var(--line-light); margin-top:6px; padding-top:14px; margin-bottom:12px; }
+  .wh-art-label{ display:block; font-size:13.5px; font-weight:600; color:var(--paper); margin-bottom:6px; }
+  .wh-art-sub{ font-weight:400; color:rgba(251,247,240,0.45); font-size:12px; }
+  .wh-art-warn{ display:flex; align-items:flex-start; gap:7px; font-size:11.5px; line-height:1.45; color:rgba(251,247,240,0.6); background:rgba(255,90,60,0.07); border:1px solid rgba(255,90,60,0.25); border-radius:9px; padding:8px 11px; margin-bottom:11px; }
+  .wh-art-warn svg{ width:14px; height:14px; color:var(--coral); flex-shrink:0; margin-top:1px; }
+  .wh-art-row{ background:var(--ink); border:1px solid var(--line-light); border-radius:10px; padding:9px 10px; margin-bottom:8px; }
+  .wh-art-main{ display:flex; align-items:center; gap:8px; }
+  .wh-art-main .wh-art-url{ flex:1; }
+  .wh-art-row input{ width:100%; box-sizing:border-box; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:8px; color:var(--paper); font-family:'Inter',sans-serif; font-size:13px; padding:8px 11px; }
+  .wh-art-row .wh-art-title{ margin-top:7px; }
+  .wh-art-file-name{ flex:1; display:inline-flex; align-items:center; gap:7px; font-size:13px; color:rgba(251,247,240,0.85); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .wh-art-file-name svg{ width:14px; height:14px; color:var(--coral); flex-shrink:0; }
+  .wh-art-pending{ color:rgba(251,247,240,0.4); font-size:11.5px; }
+  .wh-art-del{ background:none; border:none; color:rgba(251,247,240,0.4); font-size:20px; line-height:1; cursor:pointer; padding:0 4px; flex-shrink:0; }
+  .wh-art-del:hover{ color:var(--danger,#D9382B); }
+  .wh-art-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+  .btn-sm.wh-art-add{ background:var(--ink); }
+
+  /* ---------- work artifacts (profile view — light/print theme) ---------- */
+  .pv-artifacts{ display:flex; flex-direction:column; gap:6px; margin-top:10px; }
+  .pv-artifacts-label{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#888; margin-bottom:2px; }
+  .pv-artifact{ display:inline-flex; align-items:center; gap:9px; background:#faf7f2; border:1px solid #e6e0d6; border-radius:9px; padding:8px 12px; text-decoration:none; color:#1a1a1a; transition:border-color .12s, background .12s; }
+  .pv-artifact:hover{ border-color:var(--coral); background:#fff3ef; }
+  .pv-artifact > svg{ width:15px; height:15px; color:var(--coral); flex-shrink:0; }
+  .pv-artifact .pv-art-text{ display:flex; flex-direction:column; min-width:0; }
+  .pv-artifact .pv-art-title{ font-size:13px; font-weight:600; color:#1a1a1a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pv-artifact .pv-art-meta{ font-size:11px; color:#777; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pv-artifact .pv-art-arrow{ margin-left:auto; color:#aaa; font-size:12px; flex-shrink:0; }
+
   /* ================= SEEKER PROMPTS (answer many, star up to 3) ================= */
   .prompts-banner{
     display:flex; gap:10px; align-items:flex-start;
@@ -5479,6 +5509,35 @@
   };
 
   let nextWorkId = 1;
+  // Per-entry work artifacts, keyed by the entry's data-id. Each item:
+  // { _cid, kind:'link'|'file', url, fileName, title, _file }. File items hold a
+  // pending File (_file) until uploaded at save time; links carry url directly.
+  let workArtifacts = {};
+  let nextArtCid = 1;
+  function seedArtifacts(arr){
+    return (Array.isArray(arr) ? arr : []).map(a => ({
+      _cid: nextArtCid++, kind: a.kind === 'file' ? 'file' : 'link',
+      url: a.url || '', fileName: a.fileName || null, title: a.title || '', _file: null,
+    }));
+  }
+  function artifactRowHTML(a, entryId){
+    const del = `<button type="button" class="wh-art-del" data-del-art="${a._cid}" data-entry="${entryId}" aria-label="Remove artifact">×</button>`;
+    const main = a.kind === 'file'
+      ? `<span class="wh-art-file-name" title="${escapeHtml(a.fileName||'')}">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+           ${escapeHtml(a.fileName || 'file')}${a.url ? '' : ' <span class="wh-art-pending">· uploads on save</span>'}
+         </span>`
+      : `<input type="url" class="wh-art-url" data-aid="${a._cid}" data-entry="${entryId}" value="${escapeHtml(a.url||'')}" placeholder="https://… (site, video, repo, slides)">`;
+    return `<div class="wh-art-row" data-aid="${a._cid}">
+      <div class="wh-art-main">${main}${del}</div>
+      <input type="text" class="wh-art-title" data-aid="${a._cid}" data-entry="${entryId}" value="${escapeHtml(a.title||'')}" placeholder="Headline / short description" maxlength="120">
+    </div>`;
+  }
+  function renderArtifactsList(entryId){
+    const box = document.querySelector(`[data-art-list="${entryId}"]`); if(!box) return;
+    const arr = workArtifacts[entryId] || [];
+    box.innerHTML = arr.map(a => artifactRowHTML(a, entryId)).join('');
+  }
 
   function workEntryHTML(w, id){
     return `
@@ -5490,18 +5549,29 @@
           <div style="flex:1;"><label>End year</label><input type="text" class="wh-end" value="${escapeHtml(w.end||'')}" placeholder="Year or Present"></div>
         </div>
         <div class="field"><label>What did you do here?</label><textarea class="wh-desc" placeholder="One line per highlight…">${escapeHtml(w.description||'')}</textarea></div>
+        <div class="wh-artifacts">
+          <label class="wh-art-label">Work Artifacts <span class="wh-art-sub">— projects / presentations you want to share (optional)</span></label>
+          <div class="wh-art-warn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Please leave out anything confidential or not meant to be shared publicly — these are visible on your profile.
+          </div>
+          <div class="wh-art-list" data-art-list="${id}"></div>
+          <div class="wh-art-actions">
+            <button type="button" class="btn-sm wh-art-add" data-add-art-link="${id}">+ Add link</button>
+            <button type="button" class="btn-sm wh-art-add" data-add-art-file="${id}">+ Add file <span class="wh-art-sub">(≤5MB)</span></button>
+            <input type="file" class="wh-art-file-input" data-art-file="${id}" style="display:none" accept=".pdf,.doc,.docx,.ppt,.pptx,.key,.png,.jpg,.jpeg,.gif,.webp,.txt,.csv,.xls,.xlsx,.zip">
+          </div>
+        </div>
         <button class="btn-sm danger" type="button" data-remove-work="${id}">Remove role</button>
       </div>`;
   }
 
   function renderWorkHistoryEntries(entries){
-    nextWorkId = 1;
+    nextWorkId = 1; workArtifacts = {};
     const list = document.getElementById('workHistoryList');
-    if(!entries || entries.length === 0){
-      list.innerHTML = workEntryHTML({}, nextWorkId++);
-    } else {
-      list.innerHTML = entries.map(w => workEntryHTML(w, nextWorkId++)).join('');
-    }
+    const arr = (!entries || entries.length === 0) ? [{}] : entries;
+    list.innerHTML = arr.map(w => { const id = nextWorkId++; workArtifacts[id] = seedArtifacts(w.artifacts); return workEntryHTML(w, id); }).join('');
+    Object.keys(workArtifacts).forEach(id => renderArtifactsList(id));
   }
 
   function readWorkHistoryForm(){
@@ -5510,23 +5580,62 @@
       company: card.querySelector('.wh-company').value.trim(),
       start: card.querySelector('.wh-start').value.trim(),
       end: card.querySelector('.wh-end').value.trim(),
-      description: card.querySelector('.wh-desc').value.trim()
+      description: card.querySelector('.wh-desc').value.trim(),
+      artifacts: (workArtifacts[card.getAttribute('data-id')] || []).map(a => ({ _cid:a._cid, kind:a.kind, url:a.url, fileName:a.fileName, title:a.title, _file:a._file }))
     })).filter(w => w.title || w.company);
   }
 
   document.getElementById('addWorkEntry').onclick = () => {
-    document.getElementById('workHistoryList').insertAdjacentHTML('beforeend', workEntryHTML({}, nextWorkId++));
+    const id = nextWorkId++; workArtifacts[id] = [];
+    document.getElementById('workHistoryList').insertAdjacentHTML('beforeend', workEntryHTML({}, id));
+    renderArtifactsList(id);
   };
-  document.getElementById('workHistoryList').addEventListener('click', e => {
+  const __whList = document.getElementById('workHistoryList');
+  __whList.addEventListener('click', e => {
+    const addLink = e.target.closest('[data-add-art-link]');
+    if(addLink){ const id = addLink.getAttribute('data-add-art-link'); (workArtifacts[id] = workArtifacts[id]||[]).push({ _cid: nextArtCid++, kind:'link', url:'', fileName:null, title:'', _file:null }); renderArtifactsList(id); return; }
+    const addFile = e.target.closest('[data-add-art-file]');
+    if(addFile){ const id = addFile.getAttribute('data-add-art-file'); const fi = __whList.querySelector(`[data-art-file="${id}"]`); if(fi){ fi.value=''; fi.click(); } return; }
+    const delArt = e.target.closest('[data-del-art]');
+    if(delArt){ const id = delArt.getAttribute('data-entry'), cid = delArt.getAttribute('data-del-art'); workArtifacts[id] = (workArtifacts[id]||[]).filter(a => String(a._cid) !== cid); renderArtifactsList(id); return; }
     const btn = e.target.closest('[data-remove-work]');
-    if(!btn) return;
-    const entries = document.querySelectorAll('#workHistoryList .work-entry');
-    if(entries.length > 1){
-      btn.closest('.work-entry').remove();
-    } else {
-      btn.closest('.work-entry').querySelectorAll('input, textarea').forEach(el => el.value = '');
+    if(btn){
+      const entries = document.querySelectorAll('#workHistoryList .work-entry');
+      const card = btn.closest('.work-entry'); const id = card.getAttribute('data-id');
+      if(entries.length > 1){ delete workArtifacts[id]; card.remove(); }
+      else { card.querySelectorAll('input, textarea').forEach(el => el.value = ''); workArtifacts[id] = []; renderArtifactsList(id); }
     }
   });
+  // keep artifact title/url state synced as the user types
+  __whList.addEventListener('input', e => {
+    const t = e.target;
+    if(t.classList && (t.classList.contains('wh-art-title') || t.classList.contains('wh-art-url'))){
+      const id = t.getAttribute('data-entry'), cid = t.getAttribute('data-aid');
+      const a = (workArtifacts[id]||[]).find(x => String(x._cid) === cid); if(!a) return;
+      if(t.classList.contains('wh-art-title')) a.title = t.value; else a.url = t.value.trim();
+    }
+  });
+  // a chosen file becomes a pending artifact (uploaded at save time)
+  __whList.addEventListener('change', e => {
+    const fi = e.target.closest('[data-art-file]'); if(!fi || !fi.files || !fi.files[0]) return;
+    const id = fi.getAttribute('data-art-file'); const file = fi.files[0];
+    if(file.size > 5 * 1024 * 1024){ showToast('That file is larger than 5MB. Please choose a smaller file.'); fi.value=''; return; }
+    (workArtifacts[id] = workArtifacts[id]||[]).push({ _cid: nextArtCid++, kind:'file', url:null, fileName:file.name, title:'', _file:file });
+    renderArtifactsList(id); fi.value='';
+  });
+  // Upload any pending artifact files (needs a session); resolves each to a public
+  // URL in place. Link artifacts already carry their url. Called before saving.
+  async function gcUploadArtifacts(API, workHistory){
+    for(const w of (workHistory || [])){
+      if(!Array.isArray(w.artifacts)) continue;
+      for(const a of w.artifacts){
+        if(a && a.kind === 'file' && a._file && !a.url){
+          try{ a.url = await API.seeker.uploadArtifact(a._file); a._file = null; }
+          catch(err){ console.warn('artifact upload failed:', err && err.message); }
+        }
+      }
+    }
+  }
 
   // ---- Portfolio & projects editor (link out + describe) ----
   let nextPortfolioId = 1;
@@ -6091,6 +6200,7 @@
             <div class="wh-r-title">${escapeHtml(w.title || 'Untitled role')}${w.company ? ' · ' + escapeHtml(w.company) : ''}</div>
             <div class="wh-r-meta">${escapeHtml(w.start || '—')} – ${escapeHtml(w.end || 'Present')}</div>
             <div class="wh-r-desc">${escapeHtml(w.description || '')}</div>
+            ${(w.artifacts||[]).filter(a => a && (a.url || a._file)).length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${(w.artifacts||[]).filter(a => a && (a.url || a._file)).map(a => `<span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:rgba(251,247,240,0.7);background:var(--ink);border:1px solid var(--line-light);border-radius:7px;padding:4px 9px;">${a.kind === 'file' ? '📎' : '🔗'} ${escapeHtml(a.title || a.fileName || a.url || 'artifact')}</span>`).join('')}</div>` : ''}
           </div>`).join('')
       : '<p style="font-size:13px;color:rgba(251,247,240,0.45);">No work history added yet.</p>';
   }
@@ -6907,7 +7017,7 @@
       prof = {
         name: data.name || '', title: data.headline || '', photo: data.photo_url || null,
         resumeUrl: data.resume_url || '', linkedinUrl: data.linkedin_url || '',
-        workHistory: (data.work || []).map(w => ({ title:w.title||'', company:w.company||'', start:w.start||'', end:w.end||'', description:w.description||'' })),
+        workHistory: (data.work || []).map(w => ({ title:w.title||'', company:w.company||'', start:w.start||'', end:w.end||'', description:w.description||'', artifacts: Array.isArray(w.artifacts) ? w.artifacts : [] })),
         favoritePrompts: (data.prompts || []).map(p => ({ label:p.label, answer:p.answer||'' })),
         portfolio: (data.portfolio || []).map(p => ({ title:p.title||'', url:p.url||'', description:p.description||'' })),
         education: (data.education || []).map(e => ({ school:e.school||'', degree:e.degree||'', year:e.year||'' })),
@@ -7033,6 +7143,27 @@
     else showToast('Copy the URL from your address bar to share.');
   };
 
+  // Render a work entry's artifacts as clickable/downloadable chips (profile view).
+  function artifactsDisplayHTML(artifacts){
+    const arr = (artifacts || []).filter(a => a && a.url);
+    if(!arr.length) return '';
+    const linkIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>';
+    const fileIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+    return `<div class="pv-artifacts"><div class="pv-artifacts-label">Work artifacts</div>` + arr.map(a => {
+      const isFile = a.kind === 'file';
+      let href = /^https?:\/\//i.test(a.url || '') ? a.url : ('https://' + (a.url || ''));
+      if(isFile){ href += (href.indexOf('?') >= 0 ? '&' : '?') + 'download'; }   // force attachment
+      const title = a.title || a.fileName || (isFile ? 'Download file' : 'View link');
+      const meta = isFile ? (a.fileName || 'Download') : (a.url || '').replace(/^https?:\/\//, '').slice(0, 52);
+      const targetRel = isFile ? 'rel="noopener noreferrer nofollow"' : 'target="_blank" rel="noopener noreferrer nofollow"';
+      return `<a class="pv-artifact" href="${escapeHtml(href)}" ${targetRel}>
+        ${isFile ? fileIcon : linkIcon}
+        <span class="pv-art-text"><span class="pv-art-title">${escapeHtml(title)}</span><span class="pv-art-meta">${escapeHtml(meta)}</span></span>
+        <span class="pv-art-arrow">${isFile ? '↓' : '↗'}</span>
+      </a>`;
+    }).join('') + `</div>`;
+  }
+
   function renderProfileView(profileArg){
     const p = profileArg || seekerProfile;
     const name = p.name || 'Your Name';
@@ -7121,6 +7252,7 @@
               ${(w.bullets||[]).length
                 ? `<ul class="pv-work-bullets">${w.bullets.map(b=>`<li>${escapeHtml(b)}</li>`).join('')}</ul>`
                 : (w.description ? `<ul class="pv-work-bullets">${w.description.split('\n').map(s=>s.trim()).filter(Boolean).map(b=>`<li>${escapeHtml(b.replace(/^[•\-\*]\s?/,''))}</li>`).join('')}</ul>` : '')}
+              ${artifactsDisplayHTML(w.artifacts)}
             </div>`).join('')}
         </div>` : ''}
 
@@ -7410,7 +7542,7 @@
         seekerProfile.linkedinUrl = sp.linkedin_url || '';
         seekerProfile.resumeUrl = sp.resume_url || '';
         const wh = (sp.work_history || []).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
-        seekerProfile.workHistory = wh.map(w=>({ title:w.title||'', company:w.company||'', start:w.start_label||'', end:w.end_label||'', description:w.description||'' }));
+        seekerProfile.workHistory = wh.map(w=>({ title:w.title||'', company:w.company||'', start:w.start_label||'', end:w.end_label||'', description:w.description||'', artifacts: Array.isArray(w.artifacts) ? w.artifacts : [] }));
         const allPa = (sp.seeker_prompt_answers || []).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
         const pa = allPa.filter(p=>p.is_favorite);
         seekerProfile.favoritePrompts = pa.map(p=>({ label:p.prompt_label, answer:p.answer||'' }));
@@ -7579,6 +7711,7 @@
         try{
           if(currentPhotoFile){ try{ payload.profile.photo_url = await API.seeker.uploadPhoto(currentPhotoFile); }catch(e){ console.warn('photo upload failed', e.message); } }
           if(currentResumeFile){ try{ payload.profile.resume_url = await API.seeker.uploadResume(currentResumeFile); }catch(e){ console.warn('resume upload failed', e.message); } }
+          await gcUploadArtifacts(API, payload.workHistory);
           if(seekerProfile.name){ try{ await API.profiles.update({ full_name: seekerProfile.name }); }catch(e){} }
           await API.seeker.saveFull(payload);
           showSuccess({ headline:"Profile saved.", sub:"Your profile is up to date.", primaryText:"View my profile", primaryAction:()=>enterApp('candidate') });
@@ -7594,6 +7727,7 @@
           // session available: upload the photo File now, then persist everything.
           if(currentPhotoFile){ try{ payload.profile.photo_url = await API.seeker.uploadPhoto(currentPhotoFile); }catch(e){ console.warn('photo upload failed', e.message); } }
           if(currentResumeFile){ try{ payload.profile.resume_url = await API.seeker.uploadResume(currentResumeFile); }catch(e){ console.warn('resume upload failed', e.message); } }
+          await gcUploadArtifacts(API, payload.workHistory);
           gcPendingSet({ kind:'seeker', payload });
           await gcCompletePending(API);
           showSuccess({ headline:"You're all set.", sub:"Your profile is live.", primaryText:"View my profile", primaryAction:()=>enterApp('candidate') });
