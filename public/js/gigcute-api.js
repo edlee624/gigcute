@@ -213,7 +213,7 @@ const seeker = {
     // Resilience: if an optional column (e.g. resume_url or portfolio, before its
     // migration is applied) isn't in the schema yet, save the rest rather than fail.
     if (error && /schema cache|could not find .* column|column .* does not exist/i.test(error.message || '')) {
-      const { resume_url, portfolio, certifications, ...rest } = profile;
+      const { resume_url, portfolio, certifications, desired_titles, desired_salary_min, desired_salary_max, ...rest } = profile;
       ({ error } = await c.from('seeker_profiles').upsert({ ...rest, profile_id: uid }));
     }
     if (error) throw error;

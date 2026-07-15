@@ -4277,6 +4277,22 @@
     <input type="text" id="sk-skills-input" class="skills-input" placeholder="e.g. Figma, SQL, Project management" autocomplete="off">
     <div style="margin-bottom:26px;"></div>
 
+    <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">What you're <em style="font-style:italic;color:var(--coral);">looking for</em> <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.45);">(recommended)</span></h2>
+    <p class="ob-sub" style="margin-bottom:12px;">The roles and pay you're targeting. This powers your job matches and tells recruiters what you're after.</p>
+    <label style="display:block;font-size:12.5px;color:rgba(251,247,240,0.6);margin-bottom:6px;">Job titles you're open to</label>
+    <div id="desiredTitlesChips" class="skills-chips"></div>
+    <input type="text" id="sk-desired-titles" class="skills-input" placeholder="e.g. Product Manager, Data Analyst, UX Designer" autocomplete="off">
+    <div style="display:flex; gap:12px; margin:16px 0 26px; flex-wrap:wrap;">
+      <div class="field" style="flex:1; min-width:150px; margin-bottom:0;">
+        <label for="sk-salary-min">Desired salary — min (USD / year)</label>
+        <input type="number" id="sk-salary-min" min="0" step="1000" placeholder="e.g. 90000" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:14px;padding:11px 14px;">
+      </div>
+      <div class="field" style="flex:1; min-width:150px; margin-bottom:0;">
+        <label for="sk-salary-max">Desired salary — max</label>
+        <input type="number" id="sk-salary-max" min="0" step="1000" placeholder="e.g. 130000" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:14px;padding:11px 14px;">
+      </div>
+    </div>
+
     <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">Portfolio &amp; <em style="font-style:italic;color:var(--coral);">projects</em> <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.45);">(optional)</span></h2>
     <p class="ob-sub" style="margin-bottom:14px;">Show off your work. Link out to the live site, video, repo, or gallery — then describe it in your own words.</p>
     <div id="portfolioList"></div>
@@ -5161,7 +5177,10 @@
     ],
     portfolio: [],
     education: [],
-    certifications: []
+    certifications: [],
+    desiredTitles: [],
+    desiredSalaryMin: null,
+    desiredSalaryMax: null
   };
 
   // ================= SHARED HELPERS (seeker-only build) =================
@@ -5820,7 +5839,21 @@
         .filter(s => s && s.length <= 40 && /[A-Za-z]/.test(s));
       break;
     }
-    skills = [...new Set(skills)].slice(0, 30);
+    // Also scan the WHOLE résumé for well-known skills/tools, so we still pick some
+    // up when there's no explicit "Skills" section (or it's sparse).
+    const KNOWN_SKILLS = ['JavaScript','TypeScript','Python','Java','C++','C#','Go','Ruby','PHP','Swift','Kotlin','Rust','Scala','SQL','NoSQL','HTML','CSS',
+      'React','React Native','Angular','Vue','Svelte','Next.js','Node.js','Express','Django','Flask','FastAPI','Spring','Rails','Laravel','.NET','GraphQL','Redux',
+      'AWS','Azure','GCP','Docker','Kubernetes','Terraform','Jenkins','CI/CD','Git','Linux','PostgreSQL','MySQL','MongoDB','Redis','Snowflake','BigQuery','Databricks','Spark','Kafka','Airflow','dbt',
+      'Tableau','Power BI','Looker','Excel','SAS','Machine Learning','Deep Learning','TensorFlow','PyTorch','scikit-learn','Pandas','NumPy','Data Analysis','Data Science','Statistics','A/B Testing',
+      'Figma','Sketch','Photoshop','Illustrator','UX Research','Wireframing','Prototyping','Product Management','Agile','Scrum','Kanban','Jira','Confluence','Asana','Notion',
+      'Salesforce','HubSpot','SEO','SEM','Google Ads','Google Analytics','Content Marketing','Email Marketing','CRM','Project Management','Stakeholder Management','Financial Modeling','Accounting','QuickBooks','SAP','NetSuite',
+      'Leadership','Negotiation','Customer Success','Account Management','Change Management','Public Speaking','Business Development'];
+    const lowText = text.toLowerCase();
+    const hasSkill = s => { const q=s.toLowerCase(); const i=lowText.indexOf(q); if(i<0) return false;
+      const b = i>0 ? lowText[i-1] : ' ', a = lowText[i+q.length] || ' ';
+      return !/[a-z0-9]/.test(b) && !/[a-z0-9+#]/.test(a); };
+    KNOWN_SKILLS.forEach(sk => { if(hasSkill(sk)) skills.push(sk); });
+    skills = [...new Map(skills.map(s => [s.toLowerCase(), s])).values()].slice(0, 30);
     return { name, headline: workHistory[0] ? workHistory[0].title : '', workHistory, skills };
   }
   function applyResumeParse(parsed, hadError){
@@ -5923,8 +5956,34 @@
     }
   }
 
+  // ---- Desired job titles chip editor (feeds seeker_profiles.desired_titles + job matching) ----
+  let pendingTitles = [];
+  function renderTitlesChips(){
+    const wrap = document.getElementById('desiredTitlesChips'); if(!wrap) return;
+    wrap.innerHTML = pendingTitles.map((s,i) => `<span class="skill-tag">${escapeHtml(s)}<button type="button" data-title-i="${i}" aria-label="Remove ${escapeHtml(s)}">✕</button></span>`).join('');
+    wrap.querySelectorAll('[data-title-i]').forEach(b => b.onclick = () => { pendingTitles.splice(parseInt(b.getAttribute('data-title-i'),10),1); renderTitlesChips(); });
+  }
+  function addTitlesFromInput(raw){
+    (raw||'').split(/[,\n]/).map(s => s.trim()).filter(Boolean).forEach(s => {
+      if(s.length <= 60 && !pendingTitles.some(x => x.toLowerCase() === s.toLowerCase())) pendingTitles.push(s);
+    });
+    if(pendingTitles.length > 12) pendingTitles = pendingTitles.slice(0,12);
+    renderTitlesChips();
+  }
+  function setPendingTitles(arr){
+    pendingTitles = [...new Set((arr||[]).map(s => String(s||'').trim()).filter(Boolean))].slice(0,12);
+    renderTitlesChips();
+  }
+  { const i = document.getElementById('sk-desired-titles');
+    if(i){
+      i.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ','){ e.preventDefault(); addTitlesFromInput(i.value); i.value = ''; } });
+      i.addEventListener('blur', () => { if(i.value.trim()){ addTitlesFromInput(i.value); i.value = ''; } });
+    }
+  }
+
   document.getElementById('sk3Next').onclick = () => {
     const si = document.getElementById('sk-skills-input'); if(si && si.value.trim()){ addSkillsFromInput(si.value); si.value = ''; }
+    const ti = document.getElementById('sk-desired-titles'); if(ti && ti.value.trim()){ addTitlesFromInput(ti.value); ti.value = ''; }
     pendingWorkHistory = readWorkHistoryForm();
     pendingPortfolio = readPortfolioForm();
     pendingEducation = readEducationForm();
@@ -6032,6 +6091,9 @@
     document.getElementById('importedBanner').style.display = 'none';
     renderWorkHistoryEntries(seekerProfile.workHistory);
     setPendingSkills(seekerProfile.skills);
+    setPendingTitles(seekerProfile.desiredTitles);
+    { const mn = document.getElementById('sk-salary-min'); if(mn) mn.value = (seekerProfile.desiredSalaryMin != null ? seekerProfile.desiredSalaryMin : ''); }
+    { const mx = document.getElementById('sk-salary-max'); if(mx) mx.value = (seekerProfile.desiredSalaryMax != null ? seekerProfile.desiredSalaryMax : ''); }
     renderPortfolioEntries(seekerProfile.portfolio);
     renderEducationEntries(seekerProfile.education);
     renderCertEntries(seekerProfile.certifications);
@@ -6362,7 +6424,7 @@
       let email = document.getElementById('adminEmail').value.trim();
       const pw = document.getElementById('adminPw').value;
       // "admin" is a friendly alias for the admin account's email.
-      if(email.toLowerCase() === 'admin') email = 'admin@gigcute.com';
+      if(email.toLowerCase() === 'admin') email = 'gigcutesite@gmail.com';
       err.style.display = 'none';
       try{ await API.auth.signIn({ email, password: pw }); showAdmin(); }
       catch(e){ err.textContent = e.message || 'Login failed.'; err.style.display = 'block'; }
@@ -7058,6 +7120,9 @@
         seekerProfile.education = ed.map(e=>({ school:e.school||'', degree:e.degree||'', year:e.year||'' }));
         seekerProfile.certifications = Array.isArray(sp.certifications) ? sp.certifications.map(c=>({ name:c.name||'', issuer:c.issuer||'', year:c.year||'', url:c.url||'' })) : [];
         seekerProfile.skills = Array.isArray(sp.skills) ? sp.skills.filter(Boolean) : [];
+        seekerProfile.desiredTitles = Array.isArray(sp.desired_titles) ? sp.desired_titles.filter(Boolean) : [];
+        seekerProfile.desiredSalaryMin = (sp.desired_salary_min != null ? sp.desired_salary_min : null);
+        seekerProfile.desiredSalaryMax = (sp.desired_salary_max != null ? sp.desired_salary_max : null);
         seekerProfile.workSetup = sp.work_setup || '';
       }
     }catch(e){ console.warn('[gigcute] could not load profile:', e.message); }
@@ -7188,12 +7253,15 @@
         portfolio: pendingPortfolio,
         education: pendingEducation,
         certifications: pendingCertifications,
-        skills: pendingSkills
+        skills: pendingSkills,
+        desiredTitles: pendingTitles,
+        desiredSalaryMin: (function(){ const v = parseInt(document.getElementById('sk-salary-min').value, 10); return isNaN(v) ? null : v; })(),
+        desiredSalaryMax: (function(){ const v = parseInt(document.getElementById('sk-salary-max').value, 10); return isNaN(v) ? null : v; })()
       };
       const email = document.getElementById('sk-email').value.trim();
       const pw = document.getElementById('sk-password').value;
       const payload = {
-        profile: { headline: seekerProfile.title, linkedin_url: seekerProfile.linkedinUrl || '', portfolio: seekerProfile.portfolio || [], certifications: seekerProfile.certifications || [], skills: seekerProfile.skills || [] },
+        profile: { headline: seekerProfile.title, linkedin_url: seekerProfile.linkedinUrl || '', portfolio: seekerProfile.portfolio || [], certifications: seekerProfile.certifications || [], skills: seekerProfile.skills || [], desired_titles: seekerProfile.desiredTitles || [], desired_salary_min: seekerProfile.desiredSalaryMin ?? null, desired_salary_max: seekerProfile.desiredSalaryMax ?? null },
         workHistory: seekerProfile.workHistory || [],
         education: seekerProfile.education || [],
         // Store every answered prompt (favorites flagged) so the owner can print a full cheat sheet.
