@@ -7284,6 +7284,21 @@
             </div>`).join('')}
         </div>` : ''}
 
+        ${p.personalityType ? (function(){
+          const nick = mbtiNickname(p.personalityType);
+          const safeUrl = /^https?:\/\//i.test(p.personalityUrl||'') ? p.personalityUrl : '';
+          return `<div class="pv-section">
+            <div class="pv-section-title">Personality</div>
+            <div class="pv-personality">
+              <div class="pv-p-code">${escapeHtml(p.personalityType)}</div>
+              <div class="pv-p-text">
+                <div class="pv-p-nick">${escapeHtml(nick || 'Myers-Briggs type')}</div>
+                <div class="pv-p-meta">Myers-Briggs${safeUrl ? ` · <a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow">view full results ↗</a>` : ''}</div>
+              </div>
+            </div>
+          </div>`;
+        })() : ''}
+
         ${(p.portfolio||[]).length ? `
         <div class="pv-section">
           <div class="pv-section-title">Portfolio &amp; projects</div>
@@ -7343,21 +7358,6 @@
           <div class="pv-section-title">Skills</div>
           <div class="pv-skills">${p.skills.map(s=>`<span class="pv-skill">${escapeHtml(s)}</span>`).join('')}</div>
         </div>` : ''}
-
-        ${p.personalityType ? (function(){
-          const nick = mbtiNickname(p.personalityType);
-          const safeUrl = /^https?:\/\//i.test(p.personalityUrl||'') ? p.personalityUrl : '';
-          return `<div class="pv-section">
-            <div class="pv-section-title">Personality</div>
-            <div class="pv-personality">
-              <div class="pv-p-code">${escapeHtml(p.personalityType)}</div>
-              <div class="pv-p-text">
-                <div class="pv-p-nick">${escapeHtml(nick || 'Myers-Briggs type')}</div>
-                <div class="pv-p-meta">Myers-Briggs${safeUrl ? ` · <a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow">view full results ↗</a>` : ''}</div>
-              </div>
-            </div>
-          </div>`;
-        })() : ''}
 
       </div>
     `;
