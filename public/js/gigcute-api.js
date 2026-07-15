@@ -844,6 +844,12 @@ const events = {
     if (error) throw error;
     return data;
   },
+  // Admin: salary trends over the active jobs feed (by seniority/category/location/remote).
+  async jobsAnalytics() {
+    const { data, error } = await requireClient().rpc('jobs_analytics');
+    if (error) throw error;
+    return data;
+  },
 };
 
 const reports = {

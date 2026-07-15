@@ -6288,12 +6288,42 @@
     if(!input) return;
     input.addEventListener('input', () => { clearTimeout(__adminUserTimer); __adminUserTimer = setTimeout(() => loadAdminUsers(API, input.value), 280); });
     loadAdminUsers(API, '');
+    const jb = document.getElementById('loadJobsAnalytics'); if(jb) jb.onclick = loadJobsAnalytics;
+  }
+  async function loadJobsAnalytics(){
+    const box = document.getElementById('jobsAnalyticsBox'); if(!box) return;
+    box.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:8px 0;">Crunching the full jobs feed…</div>';
+    const API = await gcAwaitAPI();
+    let a = null; try{ a = await API.events.jobsAnalytics(); }catch(e){}
+    if(!a){ box.innerHTML = '<div style="color:var(--coral);">Could not load (admin only).</div>'; return; }
+    const money = v => (v==null) ? '—' : ('$' + Math.round(v/1000) + 'k');
+    const so = a.salary_overall || {};
+    const kpi = (l,v) => `<div style="background:var(--ink);border:1px solid var(--line-light);border-radius:12px;padding:13px 15px;"><div style="font-size:21px;font-family:'Fraunces',serif;color:var(--coral);line-height:1;">${v}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(251,247,240,0.5);margin-top:5px;">${l}</div></div>`;
+    const cards = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:11px;margin-bottom:18px;">${kpi('Active jobs',(a.total_active||0).toLocaleString())}${kpi('With salary',(a.with_salary||0).toLocaleString())}${kpi('Median',money(so.median))}${kpi('25th–75th',money(so.p25)+'–'+money(so.p75))}${kpi('Range',money(so.min)+'–'+money(so.max))}</div>`;
+    const breakdown = (title, arr, keyName) => {
+      if(!arr || !arr.length) return '';
+      const maxMed = Math.max(1, ...arr.map(x=>x.median||0));
+      const rows = arr.map(x=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <div style="flex:0 0 190px;font-size:12.5px;color:rgba(251,247,240,0.82);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(String(x[keyName]))}">${escapeHtml(String(x[keyName]))}</div>
+        <div style="flex:1;background:var(--ink);border-radius:5px;overflow:hidden;min-width:40px;"><div style="height:15px;width:${Math.round((x.median||0)/maxMed*100)}%;background:var(--sage);min-width:2px;"></div></div>
+        <div style="flex:0 0 56px;text-align:right;font-size:12.5px;color:var(--sage-soft);font-weight:700;">${money(x.median)}</div>
+        <div style="flex:0 0 58px;text-align:right;font-size:11.5px;color:rgba(251,247,240,0.5);">${(x.n||0).toLocaleString()}</div>
+      </div>`).join('');
+      return `<div style="margin-bottom:20px;"><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:rgba(251,247,240,0.45);margin-bottom:9px;">${title} <span style="color:rgba(251,247,240,0.3);text-transform:none;letter-spacing:0;">— median · # jobs</span></div>${rows}</div>`;
+    };
+    box.innerHTML = cards
+      + breakdown('By seniority', a.by_seniority, 'bucket')
+      + breakdown('Remote vs on-site', a.by_remote, 'kind')
+      + breakdown('By category (top)', a.by_category, 'category')
+      + breakdown('By location (top)', a.by_location, 'location')
+      + `<button class="ds-nav-btn" id="loadJobsAnalytics" type="button" style="margin-top:2px;">↻ Refresh</button>`;
+    const rb = document.getElementById('loadJobsAnalytics'); if(rb) rb.onclick = loadJobsAnalytics;
   }
   async function loadAdminUsers(API, search){
     const list = document.getElementById('adminUsersList'); if(!list) return;
     list.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:8px 0;">Searching…</div>';
     let res = null;
-    try{ res = await API.profiles.users(search); }catch(e){ list.innerHTML = '<div style="color:var(--coral);">Could not load users.</div>'; return; }
+    try{ res = await API.events.users(search); }catch(e){ list.innerHTML = '<div style="color:var(--coral);">Could not load users.</div>'; return; }
     if(!res){ list.innerHTML = '<div style="color:rgba(251,247,240,0.4);">Not authorized.</div>'; return; }
     const users = res.users || [];
     const cnt = document.getElementById('adminUsersCount'); if(cnt) cnt.textContent = '· ' + (search ? (users.length + ' match' + (users.length===1?'':'es')) : (res.total + ' total'));
@@ -6301,16 +6331,21 @@
     const td = (v, extra) => `<td style="padding:8px 10px;font-size:12.5px;${extra||''}">${escapeHtml(v==null||v===''?'—':String(v))}</td>`;
     const linkCell = (url, label) => { const safe = /^https?:\/\//i.test(url||'') ? url : (url ? 'https://'+url : ''); return safe ? `<td style="padding:8px 10px;font-size:12.5px;"><a href="${escapeHtml(safe)}" target="_blank" rel="noopener noreferrer nofollow" style="color:var(--coral);text-decoration:none;">${label} ↗</a></td>` : td('—'); };
     const roleColor = r => r==='admin' ? 'color:#e8c848;font-weight:700;' : (r==='recruiter' ? 'color:var(--sage-soft);' : 'color:rgba(251,247,240,0.72);');
+    const fdate = v => { if(!v) return '—'; try{ return new Date(v).toLocaleDateString(); }catch(e){ return String(v); } };
+    const ctr = (v, color) => `<td style="padding:8px 10px;font-size:12.5px;text-align:center;${color||''}">${escapeHtml(String(v==null?'—':v))}</td>`;
     const rows = users.map(u => {
-      let joined = u.created_at; try{ joined = new Date(u.created_at).toLocaleDateString(); }catch(e){}
       const codeCell = u.code
         ? `<td style="padding:8px 10px;font-size:12.5px;"><a href="/profile/${encodeURIComponent(u.code)}" target="_blank" rel="noopener" style="color:var(--coral);font-family:'JetBrains Mono',monospace;text-decoration:none;">${escapeHtml(u.code)} ↗</a></td>`
         : td('—');
+      const onboard = u.role === 'recruiter' ? ctr('—') : (u.onboarded ? ctr('✓','color:var(--sage-soft);font-weight:700;') : ctr('✗','color:#e0857a;font-weight:700;'));
+      const skillCell = ctr(u.skills || 0, (u.skills||0) > 0 ? 'color:rgba(251,247,240,0.8);' : 'color:rgba(251,247,240,0.35);');
+      const act = `${u.likes||0}·${u.tracked||0}·${u.chats||0}`;
+      const actCell = `<td style="padding:8px 10px;font-size:12px;font-family:'JetBrains Mono',monospace;text-align:center;color:${(u.likes||u.tracked||u.chats)?'rgba(251,247,240,0.75)':'rgba(251,247,240,0.3)'};">${act}</td>`;
       const status = (u.confirmed ? '' : 'unconfirmed') + (u.visible === false ? (u.confirmed?'hidden':' · hidden') : '');
-      return `<tr>${td(u.name,'color:var(--paper);font-weight:600;')}${td(u.title,'color:rgba(251,247,240,0.7);')}${td(u.email,"color:rgba(251,247,240,0.7);")}${linkCell(u.linkedin,'LinkedIn')}${td(u.role,roleColor(u.role))}${codeCell}${td(joined,'color:rgba(251,247,240,0.7);white-space:nowrap;')}${td(status||'active','color:rgba(251,247,240,0.5);')}</tr>`;
+      return `<tr>${td(u.name,'color:var(--paper);font-weight:600;')}${td(u.email,"color:rgba(251,247,240,0.7);")}${td(u.role,roleColor(u.role))}${onboard}${skillCell}${actCell}${codeCell}${td(fdate(u.created_at),'color:rgba(251,247,240,0.7);white-space:nowrap;')}${td(fdate(u.last_seen),'color:rgba(251,247,240,0.55);white-space:nowrap;')}${td(status||'active','color:rgba(251,247,240,0.5);')}</tr>`;
     }).join('');
-    const head = ['Name','Title','Email','LinkedIn','Role','Profile','Joined','Status'].map(h=>`<th style="text-align:left;padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(251,247,240,0.4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${h}</th>`).join('');
-    list.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    const head = ['Name','Email','Role','Onboard','Skills','L·S·C','Profile','Joined','Last seen','Status'].map(h=>`<th style="text-align:${['Name','Email','Role','Profile','Joined','Last seen','Status'].includes(h)?'left':'center'};padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(251,247,240,0.4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${h}</th>`).join('');
+    list.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div><div style="font-size:11px;color:rgba(251,247,240,0.4);margin-top:8px;">Onboard = created a seeker profile · Skills = # listed · L·S·C = jobs Liked · Saved/applied · Chats</div>`;
   }
   function renderAdminLogin(c, API){
     c.innerHTML = `
@@ -6377,8 +6412,11 @@
     const topRefs = (d.top_referrers||[]).map(r=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;"><div style="flex:0 0 170px;font-size:13px;color:rgba(251,247,240,0.8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(r.ref)}</div><div style="flex:1;background:var(--ink);border-radius:5px;overflow:hidden;"><div style="height:16px;width:${Math.round(r.count/maxRef*100)}%;background:var(--sage);min-width:2px;"></div></div><div style="flex:0 0 46px;text-align:right;font-size:12.5px;color:rgba(251,247,240,0.72);">${r.count}</div></div>`).join('') || '<div style="color:rgba(251,247,240,0.4);">No referrer data yet.</div>';
     const usersPanel = panel('Users <span id="adminUsersCount" style="color:rgba(251,247,240,0.4);text-transform:none;letter-spacing:0;"></span>',
       `<input id="adminUserSearch" placeholder="Search by name, email, or profile code…" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:13.5px;padding:10px 14px;margin-bottom:14px;"><div id="adminUsersList" style="color:rgba(251,247,240,0.5);">Loading…</div>`);
+    const jobsPanel = panel('Jobs salary analytics',
+      `<div id="jobsAnalyticsBox"><button class="ds-nav-btn" id="loadJobsAnalytics" type="button">Load salary trends</button><span style="font-size:12px;color:rgba(251,247,240,0.4);margin-left:10px;">Scans the full active feed — a few seconds.</span></div>`);
     return cards
       + usersPanel
+      + jobsPanel
       + (byDay ? panel('Activity', `<div style="display:flex;align-items:flex-end;gap:3px;height:120px;">${byDay}</div>`) : '')
       + panel('Top referrers', topRefs)
       + panel('Top screens', topScreens)
