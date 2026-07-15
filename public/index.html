@@ -3226,6 +3226,13 @@
     font-size:12.5px; color:#444; font-weight:600;
   }
 
+  /* personality (Myers-Briggs) */
+  .pv-personality{ display:inline-flex; align-items:center; gap:14px; background:#faf7f2; border:1px solid #e6e0d6; border-radius:12px; padding:12px 18px; }
+  .pv-p-code{ font-family:'Fraunces',serif; font-size:26px; font-weight:600; color:var(--coral); line-height:1; letter-spacing:0.02em; }
+  .pv-p-nick{ font-size:15px; font-weight:700; color:#1a1a1a; }
+  .pv-p-meta{ font-size:12px; color:#777; margin-top:2px; }
+  .pv-p-meta a{ color:var(--coral); text-decoration:none; }
+
   /* work history */
   .pv-work-entry{ margin-bottom:22px; padding-bottom:22px; border-bottom:1px solid #f3f3f3; }
   .pv-work-entry:last-child{ margin-bottom:0; padding-bottom:0; border-bottom:none; }
@@ -4323,6 +4330,40 @@
       </div>
     </div>
 
+    <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">Your <em style="font-style:italic;color:var(--coral);">personality</em> <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.45);">(optional)</span></h2>
+    <p class="ob-sub" style="margin-bottom:12px;">Share your Myers-Briggs type so recruiters get a feel for how you think and work. Don't know yours? Take the free 5-minute test, then pick your 4-letter type below.</p>
+    <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
+      <div style="flex:1; min-width:230px;">
+        <a href="https://www.testmypersona.com" target="_blank" rel="noopener noreferrer" class="btn-sm" style="display:inline-flex; align-items:center; gap:8px; text-decoration:none; margin-bottom:14px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Take the free test at testmypersona.com
+        </a>
+        <div class="field" style="margin-bottom:14px;">
+          <label for="sk-personality">Your personality type</label>
+          <select id="sk-personality" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:14px;padding:11px 14px;cursor:pointer;">
+            <option value="">Select your type…</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label for="sk-personality-url">Link to your results <span style="color:rgba(251,247,240,0.4);">(optional)</span></label>
+          <input type="url" id="sk-personality-url" placeholder="https://www.testmypersona.com/…/results?r=…" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:13.5px;padding:11px 14px;">
+          <div style="font-size:11.5px;color:rgba(251,247,240,0.4);margin-top:5px;">On your results page tap “Share Results” and paste the link here — viewers can open your full write-up.</div>
+        </div>
+      </div>
+      <div style="flex:0 0 auto; width:230px;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:rgba(251,247,240,0.4);margin-bottom:7px;">Example result</div>
+        <div style="background:var(--ink);border:1px solid var(--line-light);border-radius:14px;padding:18px 16px;text-align:center;">
+          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(251,247,240,0.5);margin-bottom:7px;">Your Personality Type</div>
+          <div style="font-family:'Fraunces',serif;font-size:34px;font-weight:600;color:var(--coral);line-height:1;">ISFP</div>
+          <div style="font-family:'Fraunces',serif;font-size:16px;color:var(--paper);margin-top:5px;">Adventurer</div>
+          <div style="font-size:12px;color:rgba(251,247,240,0.5);margin-top:2px;">“The Composer”</div>
+          <div style="font-size:11.5px;color:rgba(251,247,240,0.55);line-height:1.45;margin-top:10px;border-top:1px solid var(--line-light);padding-top:10px;">A flexible, charming creative who values authenticity — thrives in roles with independence and room to make things.</div>
+        </div>
+        <div style="font-size:11px;color:rgba(251,247,240,0.4);margin-top:8px;line-height:1.4;">This is what your results page shows — grab the bold 4-letter code.</div>
+      </div>
+    </div>
+    <div style="margin-bottom:26px;"></div>
+
     <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">Portfolio &amp; <em style="font-style:italic;color:var(--coral);">projects</em> <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.45);">(optional)</span></h2>
     <p class="ob-sub" style="margin-bottom:14px;">Show off your work. Link out to the live site, video, repo, or gallery — then describe it in your own words.</p>
     <div id="portfolioList"></div>
@@ -5259,7 +5300,9 @@
     certifications: [],
     desiredTitles: [],
     desiredSalaryMin: null,
-    desiredSalaryMax: null
+    desiredSalaryMax: null,
+    personalityType: '',
+    personalityUrl: ''
   };
 
   // ================= SHARED HELPERS (seeker-only build) =================
@@ -6139,6 +6182,19 @@
     }
   }
 
+  // ---- Myers-Briggs personality (16personalities naming, as testmypersona shows) ----
+  const MBTI_TYPES = [
+    ['INTJ','Architect'], ['INTP','Logician'], ['ENTJ','Commander'], ['ENTP','Debater'],
+    ['INFJ','Advocate'], ['INFP','Mediator'], ['ENFJ','Protagonist'], ['ENFP','Campaigner'],
+    ['ISTJ','Logistician'], ['ISFJ','Defender'], ['ESTJ','Executive'], ['ESFJ','Consul'],
+    ['ISTP','Virtuoso'], ['ISFP','Adventurer'], ['ESTP','Entrepreneur'], ['ESFP','Entertainer'],
+  ];
+  const MBTI_NICK = Object.fromEntries(MBTI_TYPES);
+  function mbtiNickname(code){ return MBTI_NICK[(code||'').toUpperCase().slice(0,4)] || ''; }
+  { const sel = document.getElementById('sk-personality');
+    if(sel){ MBTI_TYPES.forEach(([code, nick]) => { const o = document.createElement('option'); o.value = code; o.textContent = `${code} — ${nick}`; sel.appendChild(o); }); }
+  }
+
   document.getElementById('sk3Next').onclick = () => {
     const si = document.getElementById('sk-skills-input'); if(si && si.value.trim()){ addSkillsFromInput(si.value); si.value = ''; }
     const ti = document.getElementById('sk-desired-titles'); if(ti && ti.value.trim()){ addTitlesFromInput(ti.value); ti.value = ''; }
@@ -6253,6 +6309,8 @@
     setPendingTitles(seekerProfile.desiredTitles);
     { const mn = document.getElementById('sk-salary-min'); if(mn) mn.value = (seekerProfile.desiredSalaryMin != null ? seekerProfile.desiredSalaryMin : ''); }
     { const mx = document.getElementById('sk-salary-max'); if(mx) mx.value = (seekerProfile.desiredSalaryMax != null ? seekerProfile.desiredSalaryMax : ''); }
+    { const ps = document.getElementById('sk-personality'); if(ps) ps.value = (seekerProfile.personalityType || ''); }
+    { const pu = document.getElementById('sk-personality-url'); if(pu) pu.value = (seekerProfile.personalityUrl || ''); }
     renderPortfolioEntries(seekerProfile.portfolio);
     renderEducationEntries(seekerProfile.education);
     renderCertEntries(seekerProfile.certifications);
@@ -7017,6 +7075,7 @@
       prof = {
         name: data.name || '', title: data.headline || '', photo: data.photo_url || null,
         resumeUrl: data.resume_url || '', linkedinUrl: data.linkedin_url || '',
+        personalityType: data.personality_type || '', personalityUrl: data.personality_url || '',
         workHistory: (data.work || []).map(w => ({ title:w.title||'', company:w.company||'', start:w.start||'', end:w.end||'', description:w.description||'', artifacts: Array.isArray(w.artifacts) ? w.artifacts : [] })),
         favoritePrompts: (data.prompts || []).map(p => ({ label:p.label, answer:p.answer||'' })),
         portfolio: (data.portfolio || []).map(p => ({ title:p.title||'', url:p.url||'', description:p.description||'' })),
@@ -7284,6 +7343,21 @@
           <div class="pv-section-title">Skills</div>
           <div class="pv-skills">${p.skills.map(s=>`<span class="pv-skill">${escapeHtml(s)}</span>`).join('')}</div>
         </div>` : ''}
+
+        ${p.personalityType ? (function(){
+          const nick = mbtiNickname(p.personalityType);
+          const safeUrl = /^https?:\/\//i.test(p.personalityUrl||'') ? p.personalityUrl : '';
+          return `<div class="pv-section">
+            <div class="pv-section-title">Personality</div>
+            <div class="pv-personality">
+              <div class="pv-p-code">${escapeHtml(p.personalityType)}</div>
+              <div class="pv-p-text">
+                <div class="pv-p-nick">${escapeHtml(nick || 'Myers-Briggs type')}</div>
+                <div class="pv-p-meta">Myers-Briggs${safeUrl ? ` · <a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow">view full results ↗</a>` : ''}</div>
+              </div>
+            </div>
+          </div>`;
+        })() : ''}
 
       </div>
     `;
@@ -7556,6 +7630,8 @@
         seekerProfile.desiredTitles = Array.isArray(sp.desired_titles) ? sp.desired_titles.filter(Boolean) : [];
         seekerProfile.desiredSalaryMin = (sp.desired_salary_min != null ? sp.desired_salary_min : null);
         seekerProfile.desiredSalaryMax = (sp.desired_salary_max != null ? sp.desired_salary_max : null);
+        seekerProfile.personalityType = sp.personality_type || '';
+        seekerProfile.personalityUrl = sp.personality_url || '';
         seekerProfile.workSetup = sp.work_setup || '';
       }
     }catch(e){ console.warn('[gigcute] could not load profile:', e.message); }
@@ -7689,12 +7765,14 @@
         skills: pendingSkills,
         desiredTitles: pendingTitles,
         desiredSalaryMin: (function(){ const v = parseInt(document.getElementById('sk-salary-min').value, 10); return isNaN(v) ? null : v; })(),
-        desiredSalaryMax: (function(){ const v = parseInt(document.getElementById('sk-salary-max').value, 10); return isNaN(v) ? null : v; })()
+        desiredSalaryMax: (function(){ const v = parseInt(document.getElementById('sk-salary-max').value, 10); return isNaN(v) ? null : v; })(),
+        personalityType: (document.getElementById('sk-personality').value || '').trim(),
+        personalityUrl: (document.getElementById('sk-personality-url').value || '').trim()
       };
       const email = document.getElementById('sk-email').value.trim();
       const pw = document.getElementById('sk-password').value;
       const payload = {
-        profile: { headline: seekerProfile.title, linkedin_url: seekerProfile.linkedinUrl || '', portfolio: seekerProfile.portfolio || [], certifications: seekerProfile.certifications || [], skills: seekerProfile.skills || [], desired_titles: seekerProfile.desiredTitles || [], desired_salary_min: seekerProfile.desiredSalaryMin ?? null, desired_salary_max: seekerProfile.desiredSalaryMax ?? null },
+        profile: { headline: seekerProfile.title, linkedin_url: seekerProfile.linkedinUrl || '', portfolio: seekerProfile.portfolio || [], certifications: seekerProfile.certifications || [], skills: seekerProfile.skills || [], desired_titles: seekerProfile.desiredTitles || [], desired_salary_min: seekerProfile.desiredSalaryMin ?? null, desired_salary_max: seekerProfile.desiredSalaryMax ?? null, personality_type: seekerProfile.personalityType || null, personality_url: seekerProfile.personalityUrl || null },
         workHistory: seekerProfile.workHistory || [],
         education: seekerProfile.education || [],
         // Store every answered prompt (favorites flagged) so the owner can print a full cheat sheet.
