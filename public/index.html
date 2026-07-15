@@ -4750,7 +4750,7 @@
 
 <!-- Feedback: floating launcher + modal (user -> admin) -->
 <button id="fbLauncher" type="button" aria-label="Send feedback"
-  style="position:fixed;left:20px;bottom:20px;z-index:3500;display:inline-flex;align-items:center;gap:8px;background:var(--coral);color:var(--paper);border:none;border-radius:999px;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:700;padding:11px 17px;cursor:pointer;box-shadow:0 10px 28px -8px rgba(255,90,60,0.6);">
+  style="position:fixed;left:20px;bottom:20px;z-index:3500;display:none;align-items:center;gap:8px;background:var(--coral);color:var(--paper);border:none;border-radius:999px;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:700;padding:11px 17px;cursor:pointer;box-shadow:0 10px 28px -8px rgba(255,90,60,0.6);">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
   Feedback
 </button>
@@ -4772,8 +4772,8 @@
         style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:14px;padding:12px 14px;resize:vertical;margin-bottom:12px;"></textarea>
       <div id="fbEmailWrap" style="margin-bottom:6px;">
         <label for="fbEmail" style="display:block;font-size:12.5px;color:rgba(251,247,240,0.6);margin-bottom:5px;">Email <span id="fbEmailHint" style="color:rgba(251,247,240,0.4);">(so we can reply)</span></label>
-        <input type="email" id="fbEmail" placeholder="you@example.com"
-          style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:14px;padding:11px 14px;">
+        <input type="email" id="fbEmail" placeholder="you@example.com" readonly
+          style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:rgba(251,247,240,0.65);font-family:'Inter',sans-serif;font-size:14px;padding:11px 14px;cursor:not-allowed;">
       </div>
       <div id="fbError" style="display:none;color:var(--coral);font-size:13px;margin:6px 0 0;"></div>
       <button id="fbSend" type="button" class="ob-primary" style="width:100%;margin-top:14px;">Send feedback</button>
@@ -8348,7 +8348,7 @@
     });
   }
 
-  // ===== Feedback widget (user -> admin) =====
+  // ===== Feedback widget (user -> admin) — signed-in users only =====
   (function initFeedback(){
     const overlay = document.getElementById('fbOverlay');
     const launcher = document.getElementById('fbLauncher');
@@ -8356,18 +8356,25 @@
     let cat = 'general';
     const $ = id => document.getElementById(id);
     function setCat(c){ cat = c; overlay.querySelectorAll('.fb-cat').forEach(b => b.classList.toggle('active', b.getAttribute('data-cat') === c)); }
-    function open(){
+    // The launcher only appears for signed-in users; re-checked on every auth change.
+    function setLauncher(show){ launcher.style.display = show ? 'inline-flex' : 'none'; }
+    async function refreshAuthState(){
+      try{ const API = window.GigCuteAPI; if(!API || !API.enabled){ setLauncher(false); return; }
+        const u = await API.auth.currentUser(); setLauncher(!!u);
+      }catch(e){ setLauncher(false); }
+    }
+    async function open(){
+      let API = window.GigCuteAPI, user = null;
+      try{ if(API && API.enabled) user = await API.auth.currentUser(); }catch(e){}
+      if(!user){ setLauncher(false); return; }   // signed-in only; ignore if not
       $('fbForm').style.display = ''; $('fbSuccess').style.display = 'none';
-      $('fbError').style.display = 'none'; $('fbMessage').value = ''; $('fbEmail').value = '';
-      $('fbEmailHint').textContent = '(so we can reply)'; setCat('general');
-      overlay.style.display = 'flex';                       // show immediately
+      $('fbError').style.display = 'none'; $('fbMessage').value = ''; setCat('general');
+      // Autofill the account email (read-only — it's who we'll reply to / in-app).
+      $('fbEmail').value = (user && user.email) || '';
+      $('fbEmailHint').textContent = '(your account email — replies also show in-app)';
+      overlay.style.display = 'flex';
       setTimeout(() => $('fbMessage').focus(), 50);
-      // Prefill email + soften copy for signed-in users (replies land in-app), async.
-      (async () => {
-        try{ const API = window.GigCuteAPI; if(API && API.enabled){ const u = await API.auth.currentUser();
-          if(u){ $('fbEmailHint').textContent = '(optional — we can also reply in-app)';
-            try{ const me = await API.profiles.me(); if(me && me.email && !$('fbEmail').value) $('fbEmail').value = me.email; }catch(e){} } } }catch(e){}
-      })();
+      if(!$('fbEmail').value){ try{ const me = await API.profiles.me(); if(me && me.email) $('fbEmail').value = me.email; }catch(e){} }
     }
     function close(){ overlay.style.display = 'none'; }
     window.openFeedback = open;
@@ -8380,25 +8387,29 @@
     overlay.querySelectorAll('.fb-cat').forEach(b => b.onclick = () => setCat(b.getAttribute('data-cat')));
     $('fbSend').onclick = async () => {
       const msg = $('fbMessage').value.trim();
-      const email = $('fbEmail').value.trim();
       const err = $('fbError');
       if(msg.length < 3){ err.textContent = 'Please write a little more.'; err.style.display = 'block'; return; }
-      let signedIn = false;
-      try{ const API = window.GigCuteAPI; if(API && API.enabled){ const u = await API.auth.currentUser(); signedIn = !!u; } }catch(e){}
-      if(!signedIn && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.textContent = 'Add an email so we can get back to you.'; err.style.display = 'block'; return; }
       err.style.display = 'none'; $('fbSend').disabled = true; $('fbSend').textContent = 'Sending…';
       try{
         const API = window.GigCuteAPI;
         if(!API || !API.enabled) throw new Error('Feedback is unavailable right now.');
-        await API.feedback.submit({ category: cat, message: msg, email: email || null });
+        const u = await API.auth.currentUser();
+        if(!u){ throw new Error('Please log in to send feedback.'); }
+        await API.feedback.submit({ category: cat, message: msg, email: (u.email || $('fbEmail').value.trim() || null) });
         try{ track && track('feedback', { category: cat }); }catch(e){}
-        $('fbSuccessSub').textContent = signedIn
-          ? "Your feedback is in. If we reply, you'll see it right here in the app."
-          : "Your feedback is in. We'll reach out by email if it needs a reply.";
+        $('fbSuccessSub').textContent = "Your feedback is in. If we reply, you'll see it right here in the app.";
         $('fbForm').style.display = 'none'; $('fbSuccess').style.display = 'block';
       }catch(e){ err.textContent = e.message || 'Could not send — please try again.'; err.style.display = 'block'; }
       finally{ $('fbSend').disabled = false; $('fbSend').textContent = 'Send feedback'; }
     };
+    // Show/hide the launcher with the session (initial + on every login/logout).
+    function wireAuth(){
+      refreshAuthState();
+      try{ const a = window.GigCuteAPI; if(a && a.supabase && a.supabase.auth && a.supabase.auth.onAuthStateChange){
+        a.supabase.auth.onAuthStateChange(() => refreshAuthState());
+      }}catch(e){}
+    }
+    if(window.GigCuteAPI) wireAuth(); else window.addEventListener('gigcute-api-ready', wireAuth);
   })();
   // Fill the seeker-home left sidebar (mirrors the board sidebar): identity,
   // profile strength, this-week views, and the Job tracker link.
