@@ -769,6 +769,28 @@ const support = {
   },
 };
 
+// ---- Feedback: user -> admin messages (the feedback loop) ------------------
+const feedback = {
+  // Submit feedback. Works logged-in (user_id captured) or anonymous (leave email).
+  async submit({ category = 'general', message, email = null, page = null }) {
+    const c = requireClient();
+    let uid = null; try { const { data: u } = await c.auth.getUser(); uid = u?.user?.id || null; } catch (e) {}
+    const { error } = await c.from('feedback').insert({
+      user_id: uid, email: email || null, category, message,
+      page: page || (typeof location !== 'undefined' ? location.pathname : null),
+    });
+    if (error) throw error;
+  },
+  // The current user's own submissions (+ any admin replies). Own-row RLS.
+  async mine() {
+    const { data, error } = await requireClient().from('feedback')
+      .select('id, category, message, status, admin_reply, replied_at, created_at')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+};
+
 // ---- Analytics events (write-any; admin-read) -----------------------------
 // Per-session visitor meta (browser + referrer + best-effort IP/geo). Captured
 // once per browser session; the geo lookup is a third-party call (ipapi.co) and
@@ -874,6 +896,28 @@ const events = {
     });
     if (error) throw error;
     return data;
+  },
+  // Admin: user feedback inbox. status: 'new'|'read'|'resolved'|null(all). Admin RLS.
+  async feedbackList(status = null) {
+    let q = requireClient().from('feedback')
+      .select('*, profiles!feedback_user_id_fkey(full_name, email)')
+      .order('created_at', { ascending: false });
+    if (status) q = q.eq('status', status);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+  },
+  // Admin: reply to a feedback item — marks it resolved and delivers the reply
+  // to the user's in-app inbox. Returns { delivered_in_app, email } or null.
+  async feedbackReply(id, reply) {
+    const { data, error } = await requireClient().rpc('admin_feedback_reply', { p_id: id, p_reply: reply });
+    if (error) throw error;
+    return data;
+  },
+  // Admin: change a feedback item's status without replying.
+  async feedbackSetStatus(id, status) {
+    const { error } = await requireClient().from('feedback').update({ status }).eq('id', id);
+    if (error) throw error;
   },
 };
 
@@ -1172,7 +1216,7 @@ window.GigCuteAPI = {
   enabled,
   supabase,
   prefs,
-  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat, support, events, jobs, tracker, notifications, limits, billing, safety,
+  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat, support, feedback, events, jobs, tracker, notifications, limits, billing, safety,
   isFreeEmailDomain,
 };
 

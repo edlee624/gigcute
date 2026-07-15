@@ -4748,6 +4748,55 @@
 
 <!-- ============ OVERLAYS (placed before script so DOM is ready) ============ -->
 
+<!-- Feedback: floating launcher + modal (user -> admin) -->
+<button id="fbLauncher" type="button" aria-label="Send feedback"
+  style="position:fixed;left:20px;bottom:20px;z-index:3500;display:inline-flex;align-items:center;gap:8px;background:var(--coral);color:var(--paper);border:none;border-radius:999px;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:700;padding:11px 17px;cursor:pointer;box-shadow:0 10px 28px -8px rgba(255,90,60,0.6);">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+  Feedback
+</button>
+
+<div id="fbOverlay" style="display:none;position:fixed;inset:0;z-index:3600;background:rgba(10,8,6,0.6);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:18px;">
+  <div style="width:min(94vw,460px);max-height:90vh;overflow-y:auto;background:var(--ink-soft);border:1px solid var(--line-light);border-radius:18px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,0.5);">
+    <div id="fbForm">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px;">
+        <h2 style="font-family:'Fraunces',serif;font-size:22px;font-weight:600;margin:0;">Send us <em style="font-style:italic;color:var(--coral);">feedback</em></h2>
+        <button id="fbClose" type="button" aria-label="Close" style="background:none;border:none;color:rgba(251,247,240,0.5);font-size:22px;line-height:1;cursor:pointer;padding:0 2px;">×</button>
+      </div>
+      <p style="color:rgba(251,247,240,0.7);font-size:13.5px;margin:0 0 16px;">Found a bug, have an idea, or just want to reach the team? We read every message.</p>
+      <div style="display:flex;gap:8px;margin-bottom:14px;" id="fbCats">
+        <button type="button" class="fb-cat" data-cat="general">💬 General</button>
+        <button type="button" class="fb-cat" data-cat="bug">🐞 Bug</button>
+        <button type="button" class="fb-cat" data-cat="idea">💡 Idea</button>
+      </div>
+      <textarea id="fbMessage" rows="5" maxlength="4000" placeholder="What's on your mind?"
+        style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:14px;padding:12px 14px;resize:vertical;margin-bottom:12px;"></textarea>
+      <div id="fbEmailWrap" style="margin-bottom:6px;">
+        <label for="fbEmail" style="display:block;font-size:12.5px;color:rgba(251,247,240,0.6);margin-bottom:5px;">Email <span id="fbEmailHint" style="color:rgba(251,247,240,0.4);">(so we can reply)</span></label>
+        <input type="email" id="fbEmail" placeholder="you@example.com"
+          style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:14px;padding:11px 14px;">
+      </div>
+      <div id="fbError" style="display:none;color:var(--coral);font-size:13px;margin:6px 0 0;"></div>
+      <button id="fbSend" type="button" class="ob-primary" style="width:100%;margin-top:14px;">Send feedback</button>
+    </div>
+    <div id="fbSuccess" style="display:none;text-align:center;padding:12px 4px;">
+      <div style="width:52px;height:52px;border-radius:50%;background:rgba(255,90,60,0.12);border:1px solid rgba(255,90,60,0.35);display:flex;align-items:center;justify-content:center;margin:6px auto 14px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--coral)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px;"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h2 style="font-family:'Fraunces',serif;font-size:21px;margin:0 0 6px;">Thank you</h2>
+      <p id="fbSuccessSub" style="color:rgba(251,247,240,0.72);font-size:13.5px;margin:0 0 18px;">Your feedback is in. We read every message.</p>
+      <button id="fbDone" type="button" class="ds-nav-btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .fb-cat{ flex:1; background:var(--ink); border:1px solid var(--line-light); border-radius:10px; color:rgba(251,247,240,0.72); font-family:'Inter',sans-serif; font-size:12.5px; font-weight:600; padding:9px 6px; cursor:pointer; transition:border-color .12s, color .12s, background .12s; }
+  .fb-cat:hover{ color:var(--paper); }
+  .fb-cat.active{ border-color:var(--coral); color:var(--paper); background:rgba(255,90,60,0.12); }
+  @media (max-width:640px){ #fbLauncher{ padding:10px 14px; font-size:12.5px; } }
+  @media print{ #fbLauncher{ display:none !important; } }
+</style>
+
 <!-- Profile View Overlay -->
 <div class="profile-view-overlay" id="profileViewOverlay">
   <div class="profile-view-page">
@@ -6353,6 +6402,72 @@
     const jb = document.getElementById('loadJobsAnalytics'); if(jb) jb.onclick = loadJobsAnalytics;
     const tb = document.getElementById('loadJobsTrends'); if(tb) tb.onclick = loadJobsTrends;
     wireBroadcast(API);
+    const ff = document.getElementById('fbAdminFilter'); if(ff) ff.onchange = () => loadFeedback(API);
+    const fr = document.getElementById('fbAdminRefresh'); if(fr) fr.onclick = () => loadFeedback(API);
+    loadFeedback(API);
+  }
+  async function loadFeedback(API){
+    const list = document.getElementById('fbAdminList'); if(!list) return;
+    const filter = document.getElementById('fbAdminFilter');
+    const status = filter ? filter.value : 'new';
+    list.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:8px 0;">Loading…</div>';
+    let rows = null;
+    try{ rows = await API.events.feedbackList(status || null); }catch(e){ list.innerHTML = '<div style="color:var(--coral);">Could not load feedback.</div>'; return; }
+    if(!rows){ list.innerHTML = '<div style="color:rgba(251,247,240,0.4);">Not authorized.</div>'; return; }
+    const cnt = document.getElementById('fbAdminCount'); if(cnt) cnt.textContent = '· ' + rows.length + (status ? ' ' + status : '');
+    if(!rows.length){ list.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:8px 0;">No feedback here.</div>'; return; }
+    const catBadge = { bug:'🐞 Bug', idea:'💡 Idea', general:'💬 General' };
+    const statusColor = { new:'color:#e8c848;', read:'color:rgba(251,247,240,0.6);', resolved:'color:var(--sage-soft);' };
+    const fdate = v => { if(!v) return ''; try{ return new Date(v).toLocaleString(); }catch(e){ return String(v); } };
+    list.innerHTML = rows.map(r => {
+      const who = (r.profiles && r.profiles.full_name) || 'Anonymous';
+      const contact = (r.profiles && r.profiles.email) || r.email || '';
+      const replied = r.admin_reply ? `<div style="margin-top:8px;padding:8px 11px;background:var(--ink);border-left:2px solid var(--sage);border-radius:0 8px 8px 0;font-size:12.5px;color:rgba(251,247,240,0.75);"><span style="color:var(--sage-soft);font-weight:700;">Your reply:</span> ${escapeHtml(r.admin_reply)}</div>` : '';
+      return `<div class="fb-item" data-id="${r.id}" style="border:1px solid var(--line-light);border-radius:12px;padding:13px 15px;margin-bottom:10px;background:var(--ink-soft);">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:7px;">
+          <span style="font-size:12px;">${catBadge[r.category] || '💬'}</span>
+          <span style="font-size:13px;color:var(--paper);font-weight:600;">${escapeHtml(who)}</span>
+          ${contact ? `<a href="mailto:${escapeHtml(contact)}" style="font-size:12px;color:var(--coral);text-decoration:none;">${escapeHtml(contact)}</a>` : ''}
+          <span style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;${statusColor[r.status]||''}">${escapeHtml(r.status)}</span>
+          <span style="font-size:11.5px;color:rgba(251,247,240,0.4);margin-left:auto;">${escapeHtml(fdate(r.created_at))}</span>
+        </div>
+        <div style="font-size:13.5px;line-height:1.5;color:rgba(251,247,240,0.88);white-space:pre-wrap;">${escapeHtml(r.message)}</div>
+        ${replied}
+        <div style="display:flex;gap:8px;margin-top:11px;flex-wrap:wrap;align-items:center;">
+          <button class="ds-nav-btn fb-reply-btn" type="button" data-id="${r.id}" data-uid="${r.user_id ? '1':''}">Reply</button>
+          ${r.status !== 'read' ? `<button class="ds-nav-btn fb-status-btn" type="button" data-id="${r.id}" data-status="read">Mark read</button>` : ''}
+          ${r.status !== 'resolved' ? `<button class="ds-nav-btn fb-status-btn" type="button" data-id="${r.id}" data-status="resolved">Resolve</button>` : ''}
+        </div>
+        <div class="fb-reply-box" data-id="${r.id}" style="display:none;margin-top:10px;">
+          <textarea rows="3" placeholder="Type your reply…" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:13px;padding:9px 12px;resize:vertical;"></textarea>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:7px;">
+            <button class="ob-primary fb-reply-send" type="button" data-id="${r.id}" style="padding:8px 15px;font-size:12.5px;">Send reply</button>
+            <span style="font-size:11.5px;color:rgba(251,247,240,0.45);">${r.user_id ? 'Delivered in-app to the user.' : 'No account on file — reply via email above.'}</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    // wire per-item actions
+    list.querySelectorAll('.fb-status-btn').forEach(b => b.onclick = async () => {
+      try{ await API.events.feedbackSetStatus(b.getAttribute('data-id'), b.getAttribute('data-status')); loadFeedback(API); }
+      catch(e){ showToast(e.message || 'Could not update.'); }
+    });
+    list.querySelectorAll('.fb-reply-btn').forEach(b => b.onclick = () => {
+      const box = list.querySelector(`.fb-reply-box[data-id="${b.getAttribute('data-id')}"]`);
+      if(box){ box.style.display = box.style.display === 'none' ? 'block' : 'none'; const ta = box.querySelector('textarea'); if(ta && box.style.display==='block') ta.focus(); }
+    });
+    list.querySelectorAll('.fb-reply-send').forEach(b => b.onclick = async () => {
+      const id = b.getAttribute('data-id');
+      const box = list.querySelector(`.fb-reply-box[data-id="${id}"]`);
+      const ta = box && box.querySelector('textarea');
+      const text = ta ? ta.value.trim() : '';
+      if(text.length < 2){ if(ta) ta.style.borderColor = 'var(--coral)'; return; }
+      b.disabled = true; b.textContent = 'Sending…';
+      try{ const res = await API.events.feedbackReply(id, text);
+        showToast(res && res.delivered_in_app ? 'Reply sent — delivered in-app.' : 'Reply saved.');
+        loadFeedback(API);
+      }catch(e){ showToast(e.message || 'Could not send reply.'); b.disabled = false; b.textContent = 'Send reply'; }
+    });
   }
   // ---- CSV export helper: rows = array of arrays (first row = header) ----
   function csvCell(v){ v = (v==null?'':String(v)); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; }
@@ -6648,8 +6763,20 @@
          </div>
          <div style="font-size:11.5px;color:rgba(251,247,240,0.4);">In-app only — no email. Only confirmed accounts receive it. Delivery is a point-in-time send; users who join later won't see past broadcasts.</div>
        </div>`);
+    const feedbackPanel = panel('Feedback <span id="fbAdminCount" style="color:rgba(251,247,240,0.4);text-transform:none;letter-spacing:0;"></span>',
+      `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+         <select id="fbAdminFilter" class="ds-nav-btn" style="cursor:pointer;">
+           <option value="">All</option>
+           <option value="new" selected>New</option>
+           <option value="read">Read</option>
+           <option value="resolved">Resolved</option>
+         </select>
+         <button class="ds-nav-btn" id="fbAdminRefresh" type="button">↻ Refresh</button>
+       </div>
+       <div id="fbAdminList" style="color:rgba(251,247,240,0.5);">Loading…</div>`);
     return cards
       + usersPanel
+      + feedbackPanel
       + jobsPanel
       + trendsPanel
       + broadcastPanel
@@ -8220,6 +8347,59 @@
       host.appendChild(card);
     });
   }
+
+  // ===== Feedback widget (user -> admin) =====
+  (function initFeedback(){
+    const overlay = document.getElementById('fbOverlay');
+    const launcher = document.getElementById('fbLauncher');
+    if(!overlay || !launcher) return;
+    let cat = 'general';
+    const $ = id => document.getElementById(id);
+    function setCat(c){ cat = c; overlay.querySelectorAll('.fb-cat').forEach(b => b.classList.toggle('active', b.getAttribute('data-cat') === c)); }
+    function open(){
+      $('fbForm').style.display = ''; $('fbSuccess').style.display = 'none';
+      $('fbError').style.display = 'none'; $('fbMessage').value = ''; $('fbEmail').value = '';
+      $('fbEmailHint').textContent = '(so we can reply)'; setCat('general');
+      overlay.style.display = 'flex';                       // show immediately
+      setTimeout(() => $('fbMessage').focus(), 50);
+      // Prefill email + soften copy for signed-in users (replies land in-app), async.
+      (async () => {
+        try{ const API = window.GigCuteAPI; if(API && API.enabled){ const u = await API.auth.currentUser();
+          if(u){ $('fbEmailHint').textContent = '(optional — we can also reply in-app)';
+            try{ const me = await API.profiles.me(); if(me && me.email && !$('fbEmail').value) $('fbEmail').value = me.email; }catch(e){} } } }catch(e){}
+      })();
+    }
+    function close(){ overlay.style.display = 'none'; }
+    window.openFeedback = open;
+    window.openSupport = open;   // the account-menu "Help" item calls this
+    launcher.onclick = open;
+    $('fbClose').onclick = close;
+    $('fbDone').onclick = close;
+    overlay.addEventListener('click', e => { if(e.target === overlay) close(); });
+    document.addEventListener('keydown', e => { if(e.key === 'Escape' && overlay.style.display === 'flex') close(); });
+    overlay.querySelectorAll('.fb-cat').forEach(b => b.onclick = () => setCat(b.getAttribute('data-cat')));
+    $('fbSend').onclick = async () => {
+      const msg = $('fbMessage').value.trim();
+      const email = $('fbEmail').value.trim();
+      const err = $('fbError');
+      if(msg.length < 3){ err.textContent = 'Please write a little more.'; err.style.display = 'block'; return; }
+      let signedIn = false;
+      try{ const API = window.GigCuteAPI; if(API && API.enabled){ const u = await API.auth.currentUser(); signedIn = !!u; } }catch(e){}
+      if(!signedIn && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ err.textContent = 'Add an email so we can get back to you.'; err.style.display = 'block'; return; }
+      err.style.display = 'none'; $('fbSend').disabled = true; $('fbSend').textContent = 'Sending…';
+      try{
+        const API = window.GigCuteAPI;
+        if(!API || !API.enabled) throw new Error('Feedback is unavailable right now.');
+        await API.feedback.submit({ category: cat, message: msg, email: email || null });
+        try{ track && track('feedback', { category: cat }); }catch(e){}
+        $('fbSuccessSub').textContent = signedIn
+          ? "Your feedback is in. If we reply, you'll see it right here in the app."
+          : "Your feedback is in. We'll reach out by email if it needs a reply.";
+        $('fbForm').style.display = 'none'; $('fbSuccess').style.display = 'block';
+      }catch(e){ err.textContent = e.message || 'Could not send — please try again.'; err.style.display = 'block'; }
+      finally{ $('fbSend').disabled = false; $('fbSend').textContent = 'Send feedback'; }
+    };
+  })();
   // Fill the seeker-home left sidebar (mirrors the board sidebar): identity,
   // profile strength, this-week views, and the Job tracker link.
   async function hydrateHomeSidebar(API, me){
