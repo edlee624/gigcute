@@ -6086,6 +6086,17 @@
       title = (title || '').slice(0, 80); company = (company || '').slice(0, 80);
       if(title || company) entries.push({ title, company, start, end, description: desc.join('\n') });
     }
+    // Sanity pass. When neither half of a header looks like a role, the logic above
+    // falls back to a positional guess — and résumés disagree about whether the role
+    // or the employer comes first. Real fallout from that: title="iB Business
+    // Services LLP – Bangalore" with company="Senior Project Manager". If exactly one
+    // of the pair reads like a role, make sure THAT one is the title. Runs before the
+    // de-dupe below, which keys on company.
+    const looksLikeRole = s => !!s && String(s).length <= 64 && !bulletRe.test(s) && titleWords.test(s);
+    entries.forEach(e => {
+      const roleInTitle = looksLikeRole(e.title), roleInCompany = looksLikeRole(e.company);
+      if(!roleInTitle && roleInCompany){ const t = e.title; e.title = e.company; e.company = t; }
+    });
     const seen = new Set(); const workHistory = [];
     for(const e of entries){
       const k = (e.company + '|' + e.start).toLowerCase();
