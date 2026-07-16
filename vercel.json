@@ -1,15 +1,8 @@
 {
-  "version": 2,
-  "name": "gigcute",
-  "builds": [
-    {
-      "src": "public/**",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    { "src": "/(.+\\.[a-zA-Z0-9]+)", "dest": "/public/$1" },
-    { "src": "/(.*)", "dest": "/public/index.html" }
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
     {

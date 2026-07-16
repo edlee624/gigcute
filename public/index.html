@@ -3678,8 +3678,21 @@
       <h2 class="lm-h2">Showcase <em>more of who you are</em> with a GigCute Profile.</h2>
       <p class="lm-sub">There are a lot of talented people with similar skills applying to the same job. Unfortunately, a résumé flattens you into bullet points and keywords, and it's hard to stand above the crowd.<br><br>A GigCute profile shows how you actually think: answer prompts in your own words, and highlight your projects, ambitions, and personality — letting you show how special and different you are from the rest!</p>
       <div class="lm-video" style="max-width:760px; margin:30px auto 4px;">
-        <div style="position:relative; padding-bottom:56.25%; height:0; border-radius:16px; overflow:hidden; border:1px solid var(--line-light); box-shadow:0 16px 50px rgba(0,0,0,0.4);">
-          <iframe src="https://www.youtube-nocookie.com/embed/Op3y84UfXzI" title="GigCute — see how it works" loading="lazy" frameborder="0" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position:absolute; top:0; left:0; width:100%; height:100%;"></iframe>
+        <!-- Click-to-play facade: the YouTube player only loads on click, so the
+             landing stays fast and no third-party player script runs uninvited. -->
+        <div id="gcVideoWrap" style="position:relative; padding-bottom:56.25%; height:0; border-radius:16px; overflow:hidden; border:1px solid var(--line-light); box-shadow:0 16px 50px rgba(0,0,0,0.4);">
+          <button type="button" id="gcVideoPlay" aria-label="Play video: GigCute — see how it works"
+            style="position:absolute; top:0; left:0; width:100%; height:100%; padding:0; border:none; cursor:pointer; background:#0d0b09; display:flex; align-items:center; justify-content:center;">
+            <!-- sddefault is the largest thumbnail this video has (maxresdefault 404s). It's
+                 4:3 with black bars baked in, so overscale to 133.3% and pull up to crop them
+                 and leave just the 16:9 frame. -->
+            <img src="https://i.ytimg.com/vi/Op3y84UfXzI/sddefault.jpg" alt="" loading="lazy"
+              onerror="this.onerror=null;this.src='https://i.ytimg.com/vi/Op3y84UfXzI/hqdefault.jpg';"
+              style="position:absolute; left:0; top:-16.665%; width:100%; height:133.33%; object-fit:cover;">
+            <span style="position:relative; display:flex; align-items:center; justify-content:center; width:74px; height:74px; border-radius:50%; background:var(--coral); box-shadow:0 12px 34px rgba(0,0,0,0.5);">
+              <svg viewBox="0 0 24 24" fill="var(--paper)" style="width:30px; height:30px; margin-left:4px;"><path d="M8 5v14l11-7z"/></svg>
+            </span>
+          </button>
         </div>
       </div>
       <div class="lm-shots">
@@ -7730,7 +7743,8 @@
       let role = 'seeker';
       try{ const me = await API.profiles.me(); if(me){ if(me.role) role = me.role; if(me.intro_seen) gcHideIntroLocal(); } }catch(e){}
       if(sessionStorage.getItem('gc_oauth_role') === 'recruiter') role = 'recruiter';
-      enterApp(role === 'recruiter' ? 'recruiter' : 'candidate');
+      if(role === 'admin') navigate('/admin');
+      else enterApp(role === 'recruiter' ? 'recruiter' : 'candidate');
     }).catch(()=>{});
 
     // ---- Set new password (recovery landing) ----
@@ -7753,7 +7767,8 @@
       __inRecovery = false;
       let role = 'seeker';
       try{ const me = await API.profiles.me(); if(me && me.role) role = me.role; }catch(e){}
-      enterApp(role === 'recruiter' ? 'recruiter' : 'candidate');
+      if(role === 'admin') navigate('/admin');
+      else enterApp(role === 'recruiter' ? 'recruiter' : 'candidate');
     };
 
     // ---- Logins ----
@@ -7765,6 +7780,8 @@
         await API.auth.signIn({ email, password: pw }); await gcCompletePending(API);
         let role = 'seeker'; try{ const me = await API.profiles.me(); if(me && me.role) role = me.role; }catch(e){}
         if(role === 'recruiter'){ __postLoginRecruiter = false; goRecruiterAfterAuth(); }
+        // Admins have no seeker profile — the candidate app renders empty for them.
+        else if(role === 'admin'){ navigate('/admin'); }
         else { enterApp('candidate'); gcSyncIntro(); }
       }
       catch(e){ gcAuthError('seekerLoginError', e.message || 'Login failed.'); }
@@ -8681,6 +8698,22 @@
     }
     if(window.GigCuteAPI) wireAuth(); else window.addEventListener('gigcute-api-ready', wireAuth);
   })();
+
+  // ===== Landing video: swap the facade for the real player on click =====
+  { const playBtn = document.getElementById('gcVideoPlay');
+    if(playBtn) playBtn.onclick = () => {
+      const wrap = document.getElementById('gcVideoWrap'); if(!wrap) return;
+      const f = document.createElement('iframe');
+      f.src = 'https://www.youtube-nocookie.com/embed/Op3y84UfXzI?autoplay=1&rel=0';
+      f.title = 'GigCute — see how it works';
+      f.setAttribute('frameborder', '0');
+      f.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+      f.setAttribute('allowfullscreen', '');
+      f.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;';
+      wrap.innerHTML = ''; wrap.appendChild(f);
+      try{ track && track('video_play', { id: 'Op3y84UfXzI' }); }catch(e){}
+    };
+  }
   // Fill the seeker-home left sidebar (mirrors the board sidebar): identity,
   // profile strength, this-week views, and the Job tracker link.
   async function hydrateHomeSidebar(API, me){
