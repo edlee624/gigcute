@@ -8074,28 +8074,51 @@
   // Build an OR-search query from the logged-in seeker's profile (title + recent
   // job titles). Returns { terms:[...], query:'a or b or c' } — used by "Best match".
   const KW_STOP = new Set(['the','and','of','a','an','to','in','for','at','on','with','senior','junior','lead','staff','principal','sr','jr','associate','i','ii','iii','iv']);
+  // Words that make a string look like a JOB TITLE rather than a company/bullet.
+  // Résumé parsing frequently swaps title/company (stored title = "Skadden, Arps,
+  // Slate…", company = "Senior Technology Support") or grabs a bullet fragment, so
+  // we can't trust `title` — we pick whichever field actually reads like a role.
+  const TITLEISH = /\b(engineer|developer|designer|manager|mgr|analyst|scientist|architect|consultant|specialist|coordinator|director|lead|head|chief|officer|administrator|technician|associate|assistant|intern|recruiter|accountant|attorney|paralegal|nurse|teacher|professor|marketer|strategist|producer|writer|editor|researcher|planner|buyer|controller|auditor|advisor|adviser|agent|representative|supervisor|operator|programmer|devops|sre|technologist|support|success|operations|partner|principal|founder|president|vp)\b/i;
+  function looksLikeTitle(s){
+    s = String(s || '').trim();
+    if(!s || s.length > 64) return false;
+    if(/^[•\-\*]/.test(s)) return false;              // a bullet, not a title
+    return TITLEISH.test(s);
+  }
+  // The roles this seeker is actually targeting, best signal first.
+  function seekerTargetTitles(){
+    const p = (typeof seekerProfile !== 'undefined' && seekerProfile) ? seekerProfile : {};
+    const out = [];
+    // 1) What they explicitly said they want — always wins when present.
+    (p.desiredTitles || []).forEach(t => { if(t) out.push(String(t)); });
+    if(!out.length){
+      // 2) Recover a real title from work history, healing parser title/company swaps.
+      (p.workHistory || []).slice(0, 3).forEach(w => {
+        if(!w) return;
+        if(looksLikeTitle(w.title)) out.push(w.title);
+        else if(looksLikeTitle(w.company)) out.push(w.company);
+      });
+      // 3) Fall back to the headline only if it reads like a role.
+      if(!out.length && looksLikeTitle(p.title)) out.push(p.title);
+    }
+    return [...new Set(out.map(s => String(s).toLowerCase().trim()).filter(Boolean))].slice(0, 5);
+  }
   function seekerJobKeywords(){
-    const src = [];
-    let skills = [], prefersRemote = false, desiredTitles = [], salMin = null, salMax = null;
+    let skills = [], prefersRemote = false, salMin = null, salMax = null;
+    const targetTitles = seekerTargetTitles();
     if(typeof seekerProfile !== 'undefined' && seekerProfile){
-      // Explicit intent leads: the titles the seeker said they're targeting drive
-      // both the candidate query and the strongest scoring signal.
-      (seekerProfile.desiredTitles || []).forEach(t => { if(t) src.push(t); });
-      if(seekerProfile.title) src.push(seekerProfile.title);
-      (seekerProfile.workHistory || []).slice(0,3).forEach(w => { if(w && w.title) src.push(w.title); });
       skills = (seekerProfile.skills || []).map(s => String(s || '').toLowerCase().trim()).filter(Boolean).slice(0,12);
       prefersRemote = /remote/i.test(seekerProfile.workSetup || '');
-      desiredTitles = (seekerProfile.desiredTitles || []).map(t => String(t||'').toLowerCase().trim()).filter(Boolean).slice(0,6);
       const dmin = parseInt(seekerProfile.desiredSalaryMin, 10); salMin = isNaN(dmin) ? null : dmin;
       const dmax = parseInt(seekerProfile.desiredSalaryMax, 10); salMax = isNaN(dmax) ? null : dmax;
     }
-    const words = src.join(' ').toLowerCase().replace(/[^a-z0-9+#. ]/g,' ').split(/\s+/)
+    // Candidate query is built from the TARGET TITLES only — never the raw headline,
+    // which is often a company name and drags in irrelevant rows. Broad OR queries
+    // over common words also make jobs_search's ts_rank sort time out.
+    const words = targetTitles.join(' ').toLowerCase().replace(/[^a-z0-9+#. ]/g,' ').split(/\s+/)
       .map(w => w.trim()).filter(w => w.length > 2 && !KW_STOP.has(w));
     const terms = [...new Set(words)].slice(0,8);
-    // FTS candidate query stays on the (few) role/title words only. Broad OR queries
-    // over common words match thousands of rows and make jobs_search's ts_rank sort
-    // time out — skills instead sharpen the client-side SCORE below, not this query.
-    return { terms, skills, prefersRemote, desiredTitles, salMin, salMax, query: terms.join(' or ') };
+    return { terms, skills, prefersRemote, targetTitles, salMin, salMax, query: terms.join(' or ') };
   }
   // Word-ish match: short tokens (≤4 chars, e.g. "go","aws","sql") need word
   // boundaries so they don't match inside unrelated words; longer terms substring.
@@ -8104,39 +8127,78 @@
     if(term.length <= 4){ try{ return new RegExp('\\b' + term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '\\b','i').test(text); }catch(e){ return text.indexOf(term) >= 0; } }
     return text.indexOf(term) >= 0;
   }
-  // Multi-factor relevance (0–99): how much of the seeker's signal — role/title
-  // words and skills — a job covers (title matches weighted higher than body),
-  // plus small nudges for recency and a remote-preference fit.
+  // Seniority ladder — keeps a VP role from being pitched at an intern, and vice versa.
+  const SENIORITY_RE = [
+    [/\b(chief|cxo|c-level|founder|president)\b/i, 6],
+    [/\b(vp|vice president|svp|evp|head of)\b/i, 5],
+    [/\b(director)\b/i, 4],
+    [/\b(principal|staff|lead|manager|mgr)\b/i, 3],
+    [/\b(senior|sr\.?)\b/i, 2],
+    [/\b(junior|jr\.?|entry|intern|graduate|trainee)\b/i, 0],
+  ];
+  function seniorityOf(s){ for(let i=0;i<SENIORITY_RE.length;i++){ if(SENIORITY_RE[i][0].test(s||'')) return SENIORITY_RE[i][1]; } return 1; }
+  const TITLE_STOP = new Set(['senior','junior','sr','jr','staff','principal','lead','entry','associate','the','and','of','a','an','to','in','for','at','on','with','i','ii','iii','iv']);
+  function titleWordsOf(s){
+    return String(s||'').toLowerCase().replace(/[^a-z0-9+#/ ]/g,' ').split(/\s+/)
+      .filter(w => w.length > 2 && !TITLE_STOP.has(w));
+  }
+  // How well one job title matches one target title (0..60).
+  function titleFit(jobTitle, target){
+    const jt = String(jobTitle || '').toLowerCase();
+    if(!jt || !target) return 0;
+    if(jt.indexOf(target) >= 0) return 60;              // whole phrase, e.g. "product manager"
+    const tw = titleWordsOf(target);
+    if(!tw.length) return 0;
+    const hit = tw.filter(w => jt.indexOf(w) >= 0).length;
+    if(!hit) return 0;
+    const ratio = hit / tw.length;
+    if(ratio === 1) return 50;                          // every meaningful word present
+    return Math.round(52 * Math.pow(ratio, 1.7));       // partial — superlinear so 1-of-3 stays low
+  }
+  // Relevance 0–99 from INDEPENDENT components, not a ratio over the seeker's whole
+  // signal. The old model divided by the SUM of every term+skill, so someone with 15
+  // skills could never top ~25% however perfect the role — which is exactly why
+  // "Jobs picked for you" looked uniformly weak.
+  //   title fit  0..60   (dominant — it has to be the right ROLE)
+  //   skills     0..25   (saturating: ~3 strong hits is already full marks)
+  //   salary   -12..10
+  //   freshness  0..5
   function scoreJobForSeeker(j, sig){
+    const targets = sig.targetTitles || [];
+    const skills = sig.skills || [];
+    if(!targets.length && !skills.length) return null;   // no usable signal — leave unscored
     const title = (j.title || '').toLowerCase();
     const desc = (j.description || '').toLowerCase();
-    let score = 0, max = 0;
-    // Desired titles are the strongest signal: a full-phrase hit in the job title
-    // scores highest, then all-words, then any-word, then a description mention.
-    (sig.desiredTitles || []).forEach(dt => {
-      max += 4;
-      if(title.indexOf(dt) >= 0) score += 4;
-      else { const w = dt.split(/\s+/).filter(x => x.length > 2);
-        if(w.length && w.every(x => title.indexOf(x) >= 0)) score += 3;
-        else if(w.some(x => title.indexOf(x) >= 0)) score += 1.3;
-        else if(desc.indexOf(dt) >= 0) score += 1; }
-    });
-    (sig.terms || []).forEach(t => { max += 3; if(termInText(title,t)) score += 3; else if(termInText(desc,t)) score += 1.2; });
-    (sig.skills || []).forEach(s => { max += 2.5; if(termInText(title,s)) score += 2.5; else if(termInText(desc,s)) score += 1.5; });
-    if(!max) return null;                       // no profile signal — leave unscored
-    let bonus = 0;
-    if(j.posted_at){ const days = (Date.now() - new Date(j.posted_at).getTime()) / 86400000; if(days <= 7) bonus += 0.06; else if(days <= 30) bonus += 0.03; }
-    if(sig.prefersRemote && j.remote) bonus += 0.05;
-    // Salary fit: reward roles that clear the seeker's floor; nudge clearly-below ones down.
-    if(sig.salMin){ const jtop = j.salary_max || j.salary_min || null;
-      if(jtop){ if(jtop >= sig.salMin) bonus += 0.08; else if(jtop < sig.salMin * 0.85) bonus -= 0.12; } }
-    return Math.max(1, Math.min(99, Math.round((score / max * 0.85 + bonus) * 100)));
+
+    let fit = 0;
+    targets.forEach(t => { fit = Math.max(fit, titleFit(title, t)); });
+    if(targets.length && fit > 0){
+      const want = Math.max.apply(null, targets.map(seniorityOf));
+      const gap = Math.abs(want - seniorityOf(title));
+      if(gap >= 3) fit = Math.round(fit * 0.4);
+      else if(gap === 2) fit = Math.round(fit * 0.7);
+    }
+    // Skills: a hit in the title means far more than a passing mention in the body.
+    let inTitle = 0, inDesc = 0;
+    skills.forEach(s => { if(termInText(title, s)) inTitle++; else if(termInText(desc, s)) inDesc++; });
+    const skillScore = Math.min(25, inTitle * 9 + inDesc * 4);
+
+    let sal = 0;
+    if(sig.salMin){ const top = j.salary_max || j.salary_min || null;
+      if(top){ sal = top >= sig.salMin ? 10 : (top < sig.salMin * 0.85 ? -12 : 3); } }
+
+    let extra = 0;
+    if(j.posted_at){ const d = (Date.now() - new Date(j.posted_at).getTime()) / 86400000;
+      if(d <= 7) extra += 3; else if(d <= 30) extra += 1; }
+    if(sig.prefersRemote && j.remote) extra += 2;
+
+    return Math.max(1, Math.min(99, Math.round(fit + skillScore + sal + extra)));
   }
   // The seeker's relevance signal (title terms + skills + remote pref), lower-cased.
   function seekerRelevanceSig(){
     const kw = (typeof seekerJobKeywords === 'function') ? seekerJobKeywords() : null;
-    if(!kw) return { terms:[], skills:[], prefersRemote:false, desiredTitles:[], salMin:null, salMax:null };
-    return { terms:(kw.terms||[]).map(t=>String(t).toLowerCase()), skills:(kw.skills||[]).map(s=>String(s).toLowerCase()), prefersRemote:!!kw.prefersRemote, desiredTitles:(kw.desiredTitles||[]), salMin:kw.salMin||null, salMax:kw.salMax||null };
+    if(!kw) return { terms:[], skills:[], prefersRemote:false, targetTitles:[], salMin:null, salMax:null };
+    return { terms:(kw.terms||[]).map(t=>String(t).toLowerCase()), skills:(kw.skills||[]).map(s=>String(s).toLowerCase()), prefersRemote:!!kw.prefersRemote, targetTitles:(kw.targetTitles||[]), salMin:kw.salMin||null, salMax:kw.salMax||null };
   }
   // Map a GigCute direct posting to the job shape scoreJobForSeeker expects.
   function postingToJobShape(p){
@@ -8577,7 +8639,7 @@
     // recency + remote fit), then RE-SORT by that score so the best fits lead —
     // previously the list stayed in raw ts_rank order while showing a different
     // score, so a strong match could sit below a weak one.
-    const sig = { terms: (kw.terms || []).map(t => t.toLowerCase()), skills: (kw.skills || []).map(s => s.toLowerCase()), prefersRemote: !!kw.prefersRemote, desiredTitles: (kw.desiredTitles || []), salMin: kw.salMin || null, salMax: kw.salMax || null };
+    const sig = { terms: (kw.terms || []).map(t => t.toLowerCase()), skills: (kw.skills || []).map(s => s.toLowerCase()), prefersRemote: !!kw.prefersRemote, targetTitles: (kw.targetTitles || []), salMin: kw.salMin || null, salMax: kw.salMax || null };
     ranked.forEach(j => { j.__relevance = scoreJobForSeeker(j, sig); });
     ranked.sort((a,b) => (b.__relevance || 0) - (a.__relevance || 0)
       || (new Date(b.posted_at || 0).getTime() - new Date(a.posted_at || 0).getTime()));
@@ -8955,7 +9017,7 @@
     const browse = `<button class="sh-more" type="button" onclick="GigCuteNavigate('/search')">Browse all open roles →</button>`;
     if(!items.length){
       const kw = (typeof seekerJobKeywords === 'function') ? seekerJobKeywords() : null;
-      const noSignal = !kw || (!(kw.desiredTitles||[]).length && !(kw.terms||[]).length && !(kw.skills||[]).length);
+      const noSignal = !kw || (!(kw.targetTitles||[]).length && !(kw.skills||[]).length);
       el.innerHTML = (noSignal
         ? `<div class="sh-empty">Tell us the roles you're targeting and we'll match jobs to you. <button class="cd-section-link" type="button" onclick="if(window.openProfileEdit)openProfileEdit()" style="font-size:13px;">Add desired titles →</button></div>`
         : `<div class="sh-empty">You're all caught up on today's matches — new ones arrive tomorrow. Meanwhile, browse the full board.</div>`) + browse;
