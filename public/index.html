@@ -8616,14 +8616,17 @@
       return API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, country:__dash.country, postedWithin:__dash.postedWithin, sort:'newest' });
     }
     if(!reset) return { jobs: [], total: __dash.total };   // match view is a single ranked page
-    const kw = (typeof seekerJobKeywords === 'function') ? seekerJobKeywords() : { query:'' };
-    const q = [kw.query, __dash.q].filter(Boolean).join(' or ');
-    if(!q) return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, country:__dash.country, postedWithin:__dash.postedWithin, sort:'newest' });
+    const kw = (typeof seekerJobKeywords === 'function') ? seekerJobKeywords() : { targetTitles:[] };
+    // A typed query means "search for THIS", not "match my profile" — the ranker
+    // takes titles, not free text, so hand those to the normal filtered search.
+    if(__dash.q || !(kw.targetTitles || []).length){
+      return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, country:__dash.country, postedWithin:__dash.postedWithin, sort:'newest' });
+    }
     let ranked = [];
-    try{ ranked = await API.jobs.search({ q, remote:__dash.remote || null, limit:50 }); }catch(e){ ranked = []; }
-    // Resilience: if the ranked search returns nothing (e.g. it timed out on a
-    // broad query), fall back to the newest-jobs list so Best match still shows
-    // roles instead of an empty board.
+    try{ ranked = await API.jobs.matchForSeeker({ titles: kw.targetTitles, skills: kw.skills, salMin: kw.salMin, remote: __dash.remote || null, limit: 50 }); }
+    catch(e){ console.warn('[gigcute] match:', e && e.message); ranked = []; }
+    // Resilience: if the ranker returns nothing, fall back to newest so Best match
+    // still shows roles instead of an empty board.
     if(!ranked.length){ return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, postedWithin:__dash.postedWithin, sort:'newest' }); }
     const ms = __dash.minSalary || 0, empTypes = __dash.employmentType || [], groups = __dash.keywordGroups || [];
     const locToks = (__dash.locationTokens || []).map(t => t.toLowerCase());
@@ -8991,12 +8994,17 @@
     try{ direct = (await API.postings.listActive()) || []; }catch(e){}
     direct = direct.filter(p => !__dismissedPostingIds.has(p.id))
                    .map(p => ({ type:'direct', data:p, rel: scoreJobForSeeker(postingToJobShape(p), sig) }));
+    // Ranked server-side over the whole feed. No target titles = no honest match to
+    // make, so show nothing rather than padding the list with unrelated roles (the
+    // empty state nudges them to add desired titles).
     let ats = [];
-    try{ const kw = (typeof seekerJobKeywords==='function') ? seekerJobKeywords() : null;
-      if(kw && kw.query){ ats = await API.jobs.search({ q: kw.query, limit: 25 }); } }catch(e){}
-    if(!ats || !ats.length){ try{ const r = await API.jobs.list({ limit:25 }); ats = r.jobs || []; }catch(e){} }
+    try{
+      if((sig.targetTitles || []).length){
+        ats = await API.jobs.matchForSeeker({ titles: sig.targetTitles, skills: sig.skills, salMin: sig.salMin, limit: 12 });
+      }
+    }catch(e){ console.warn('[gigcute] match:', e && e.message); }
     ats = (ats||[]).filter(j => !isDismissed(j))
-                   .map(j => ({ type:'ats', data:j, rel: scoreJobForSeeker(j, sig) }));
+                   .map(j => ({ type:'ats', data:j, rel: (j.score != null ? j.score : scoreJobForSeeker(j, sig)) }));
     const pool = direct.concat(ats);
     pool.sort((a,b) => (b.rel||0) - (a.rel||0));   // best matches first; direct + ATS mixed
     return pool.slice(0, 5);

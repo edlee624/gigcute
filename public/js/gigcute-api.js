@@ -1119,6 +1119,24 @@ const jobs = {
     if (error) throw error;
     return { jobs: data || [], total: count ?? 0 };
   },
+  // Seeker↔job matching, ranked server-side across the WHOLE feed (match_jobs_for_seeker,
+  // migration 0083). Retrieval is TITLE-first with English stemming, so it can't drag in
+  // a Veterinary Technician just because its description says "support" — which is what
+  // the old OR-over-everything jobs_search did. Each row comes back with a `score` (0-99):
+  //   title fit 0-60 · skills 0-25 (saturating) · salary -12..10 · freshness 0-5
+  async matchForSeeker({ titles = [], skills = [], salMin = null, remote = null, limit = 20 } = {}) {
+    const t = (titles || []).filter(Boolean);
+    if (!t.length) return [];                 // no target titles → no honest match to make
+    const { data, error } = await requireClient().rpc('match_jobs_for_seeker', {
+      p_titles: t,
+      p_skills: (skills || []).filter(Boolean),
+      p_sal_min: salMin || null,
+      p_remote: remote === true ? true : null,
+      p_limit: limit,
+    });
+    if (error) throw error;
+    return data || [];
+  },
   // Relevance-ranked search (jobs_search RPC). Pass the seeker's keywords joined
   // with " or " for "Recommended for you". Returns an array of jobs, best first.
   async search({ q = '', remote = null, limit = 12, offset = 0 } = {}) {
