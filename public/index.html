@@ -7922,11 +7922,16 @@
 
     // ---- Seeker registration → create account on publish ----
     document.getElementById('finishSeeker').onclick = async () => {
+     // Everything below runs inside one guard: reading the form is ~10 DOM
+     // lookups, and a single null used to throw BEFORE the inner try — killing
+     // the click with no toast and no clue ("Publish does nothing").
+     try{
+      const val = id => { const el = document.getElementById(id); if(!el){ throw new Error('Form field "' + id + '" is missing — please refresh and try again.'); } return el.value; };
       seekerProfile = {
         name: gcSeekerName() || seekerProfile.name,
-        title: (pendingWorkHistory[0] && pendingWorkHistory[0].title) || document.getElementById('sk-role').value.trim() || seekerProfile.title,
+        title: (pendingWorkHistory[0] && pendingWorkHistory[0].title) || val('sk-role').trim() || seekerProfile.title,
         photo: currentPhotoUrl,
-        linkedinUrl: document.getElementById('seekerLinkedInUrl').value.trim() || seekerProfile.linkedinUrl,
+        linkedinUrl: val('seekerLinkedInUrl').trim() || seekerProfile.linkedinUrl,
         workHistory: pendingWorkHistory,
         favoritePrompts: pendingFavoritePrompts,
         allPrompts: pendingAllPrompts,
@@ -7935,15 +7940,15 @@
         certifications: pendingCertifications,
         skills: pendingSkills,
         desiredTitles: pendingTitles,
-        desiredSalaryMin: (function(){ const v = parseInt(document.getElementById('sk-salary-min').value, 10); return isNaN(v) ? null : v; })(),
-        desiredSalaryMax: (function(){ const v = parseInt(document.getElementById('sk-salary-max').value, 10); return isNaN(v) ? null : v; })(),
-        personalityType: (document.getElementById('sk-personality').value || '').trim(),
-        personalityUrl: (document.getElementById('sk-personality-url').value || '').trim(),
+        desiredSalaryMin: (function(){ const v = parseInt(val('sk-salary-min'), 10); return isNaN(v) ? null : v; })(),
+        desiredSalaryMax: (function(){ const v = parseInt(val('sk-salary-max'), 10); return isNaN(v) ? null : v; })(),
+        personalityType: (val('sk-personality') || '').trim(),
+        personalityUrl: (val('sk-personality-url') || '').trim(),
         strengths: readStrengths(),
-        strengthsUrl: (document.getElementById('sk-strengths-url').value || '').trim()
+        strengthsUrl: (val('sk-strengths-url') || '').trim()
       };
-      const email = document.getElementById('sk-email').value.trim();
-      const pw = document.getElementById('sk-password').value;
+      const email = val('sk-email').trim();
+      const pw = val('sk-password');
       const payload = {
         profile: { headline: seekerProfile.title, linkedin_url: seekerProfile.linkedinUrl || '', portfolio: seekerProfile.portfolio || [], certifications: seekerProfile.certifications || [], skills: seekerProfile.skills || [], desired_titles: seekerProfile.desiredTitles || [], desired_salary_min: seekerProfile.desiredSalaryMin ?? null, desired_salary_max: seekerProfile.desiredSalaryMax ?? null, personality_type: seekerProfile.personalityType || null, personality_url: seekerProfile.personalityUrl || null, strengths: seekerProfile.strengths || [], strengths_url: seekerProfile.strengthsUrl || null },
         workHistory: seekerProfile.workHistory || [],
@@ -7969,7 +7974,7 @@
           // so "Jobs picked for you" recomputes on the seeker's next home visit.
           try{ if(typeof gcHomeMatchesSet === 'function') gcHomeMatchesSet({ date:'', items:[] }); }catch(e){}
           showSuccess({ headline:"Profile saved.", sub:"Your profile is up to date.", primaryText:"View my profile", primaryAction:()=>enterApp('candidate') });
-        }catch(e){ showToast(e.message || 'Could not save your profile.'); }
+        }catch(e){ console.error('[gigcute] profile save failed:', e); showToast('Could not save: ' + (e && e.message ? e.message : 'unknown error')); }
         return;
       }
 
@@ -7990,7 +7995,12 @@
           gcPendingSet({ kind:'seeker', payload });
           showSuccess({ headline:"Check your email.", sub:`We sent a verification link to ${email}. Confirm it, then log in to finish setting up your profile.`, primaryText:"Back to login", primaryAction:()=>{ setLoginMode(false); showScreen('screen-login-seeker'); } });
         }
-      }catch(e){ showToast(e.message || 'Could not create your account.'); }
+      }catch(e){ console.error('[gigcute] signup failed:', e); showToast(e.message || 'Could not create your account.'); }
+     }catch(outer){
+       // Last line of defence: whatever went wrong, say so instead of dying silently.
+       console.error('[gigcute] publish failed:', outer);
+       showToast('Could not publish: ' + (outer && outer.message ? outer.message : 'unexpected error'));
+     }
     };
 
     // (Recruiter registration removed — seeker-only build.)
