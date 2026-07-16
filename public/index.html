@@ -3233,6 +3233,15 @@
   .pv-p-meta{ font-size:12px; color:#777; margin-top:2px; }
   .pv-p-meta a{ color:var(--coral); text-decoration:none; }
 
+  /* CliftonStrengths (top 5, ranked) */
+  .pv-strengths{ display:flex; flex-direction:column; gap:6px; }
+  .pv-strength{ display:flex; align-items:center; gap:12px; background:#faf7f2; border:1px solid #e6e0d6; border-radius:9px; padding:9px 14px; }
+  .pv-st-rank{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--coral); width:14px; flex-shrink:0; }
+  .pv-st-name{ font-size:13.5px; font-weight:700; color:#1a1a1a; }
+  .pv-st-domain{ margin-left:auto; font-size:11px; color:#777; white-space:nowrap; }
+  .pv-st-link{ margin-top:8px; font-size:12px; }
+  .pv-st-link a{ color:var(--coral); text-decoration:none; }
+
   /* work history */
   .pv-work-entry{ margin-bottom:22px; padding-bottom:22px; border-bottom:1px solid #f3f3f3; }
   .pv-work-entry:last-child{ margin-bottom:0; padding-bottom:0; border-bottom:none; }
@@ -4375,6 +4384,39 @@
         <div style="font-size:11px;color:rgba(251,247,240,0.4);margin-top:8px;line-height:1.4;">This is what your results page shows — grab the bold 4-letter code.</div>
       </div>
     </div>
+
+    <!-- ---- CliftonStrengths: ranked Top 5 talent themes ---- -->
+    <div style="border-top:1px dashed var(--line-light); margin-top:24px; padding-top:20px;">
+      <h3 style="font-family:'Fraunces',serif;font-size:18px;font-weight:600;margin:0 0 4px;">CliftonStrengths <span style="font-size:12.5px;font-weight:400;color:rgba(251,247,240,0.45);">(optional)</span></h3>
+      <p class="ob-sub" style="margin-bottom:12px;">Your Top 5 talent themes — what you naturally do best. Pick them in the same order your results page ranks them.</p>
+      <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
+        <div style="flex:1; min-width:250px;">
+          <a href="https://www.testmypersona.com/tests/clifton-strengths" target="_blank" rel="noopener noreferrer" class="btn-sm" style="display:inline-flex; align-items:center; gap:8px; text-decoration:none; margin-bottom:14px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Take the free CliftonStrengths test
+          </a>
+          <div id="cliftonSelects" style="display:grid; gap:9px; margin-bottom:14px;"></div>
+          <div class="field" style="margin-bottom:0;">
+            <label for="sk-strengths-url">Link to your results <span style="color:rgba(251,247,240,0.4);">(optional)</span></label>
+            <input type="url" id="sk-strengths-url" placeholder="https://www.testmypersona.com/…/clifton-strengths/results?r=…" style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:13.5px;padding:11px 14px;">
+          </div>
+        </div>
+        <div style="flex:0 0 auto; width:230px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:rgba(251,247,240,0.4);margin-bottom:7px;">Example result</div>
+          <div style="background:var(--ink);border:1px solid var(--line-light);border-radius:14px;padding:16px 15px;">
+            <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(251,247,240,0.5);margin-bottom:9px;">Your Top 5 CliftonStrengths</div>
+            <div style="display:flex;flex-direction:column;gap:7px;">
+              <div style="display:flex;align-items:center;gap:9px;"><span style="font-family:'Fraunces',serif;font-size:15px;color:var(--coral);width:12px;">1</span><span style="font-size:13px;color:var(--paper);font-weight:600;">Consistency</span><span style="font-size:10.5px;color:rgba(251,247,240,0.45);margin-left:auto;">Executing</span></div>
+              <div style="display:flex;align-items:center;gap:9px;"><span style="font-family:'Fraunces',serif;font-size:15px;color:var(--coral);width:12px;">2</span><span style="font-size:13px;color:var(--paper);font-weight:600;">Analytical</span><span style="font-size:10.5px;color:rgba(251,247,240,0.45);margin-left:auto;">Strategic</span></div>
+              <div style="display:flex;align-items:center;gap:9px;"><span style="font-family:'Fraunces',serif;font-size:15px;color:var(--coral);width:12px;">3</span><span style="font-size:13px;color:var(--paper);font-weight:600;">Context</span><span style="font-size:10.5px;color:rgba(251,247,240,0.45);margin-left:auto;">Strategic</span></div>
+              <div style="display:flex;align-items:center;gap:9px;"><span style="font-family:'Fraunces',serif;font-size:15px;color:var(--coral);width:12px;">4</span><span style="font-size:13px;color:var(--paper);font-weight:600;">Ideation</span><span style="font-size:10.5px;color:rgba(251,247,240,0.45);margin-left:auto;">Strategic</span></div>
+              <div style="display:flex;align-items:center;gap:9px;"><span style="font-family:'Fraunces',serif;font-size:15px;color:var(--coral);width:12px;">5</span><span style="font-size:13px;color:var(--paper);font-weight:600;">Strategic</span><span style="font-size:10.5px;color:rgba(251,247,240,0.45);margin-left:auto;">Strategic</span></div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:rgba(251,247,240,0.4);margin-top:8px;line-height:1.4;">Copy your Top 5 in the order shown on your results page.</div>
+        </div>
+      </div>
+    </div>
     <div style="margin-bottom:26px;"></div>
 
     <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">Portfolio &amp; <em style="font-style:italic;color:var(--coral);">projects</em> <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.45);">(optional)</span></h2>
@@ -5324,7 +5366,9 @@
     desiredSalaryMin: null,
     desiredSalaryMax: null,
     personalityType: '',
-    personalityUrl: ''
+    personalityUrl: '',
+    strengths: [],
+    strengthsUrl: ''
   };
 
   // ================= SHARED HELPERS (seeker-only build) =================
@@ -6217,6 +6261,48 @@
     if(sel){ MBTI_TYPES.forEach(([code, nick]) => { const o = document.createElement('option'); o.value = code; o.textContent = `${code} — ${nick}`; sel.appendChild(o); }); }
   }
 
+  // ---- CliftonStrengths: the 34 themes, grouped by their four domains ----
+  const CLIFTON_DOMAINS = {
+    'Executing':             ['Achiever','Arranger','Belief','Consistency','Deliberative','Discipline','Focus','Responsibility','Restorative'],
+    'Influencing':           ['Activator','Command','Communication','Competition','Maximizer','Self-Assurance','Significance','Woo'],
+    'Relationship Building': ['Adaptability','Connectedness','Developer','Empathy','Harmony','Includer','Individualization','Positivity','Relator'],
+    'Strategic Thinking':    ['Analytical','Context','Futuristic','Ideation','Input','Intellection','Learner','Strategic'],
+  };
+  const CLIFTON_DOMAIN_OF = {};
+  Object.keys(CLIFTON_DOMAINS).forEach(d => CLIFTON_DOMAINS[d].forEach(t => { CLIFTON_DOMAIN_OF[t] = d; }));
+  function cliftonDomain(theme){ return CLIFTON_DOMAIN_OF[theme] || ''; }
+  // Five ranked pickers (#1 = strongest), themes grouped by domain via <optgroup>.
+  { const host = document.getElementById('cliftonSelects');
+    if(host){
+      const groups = Object.keys(CLIFTON_DOMAINS).map(d =>
+        `<optgroup label="${escapeHtml(d)}">${CLIFTON_DOMAINS[d].map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('')}</optgroup>`).join('');
+      let html = '';
+      for(let i = 1; i <= 5; i++){
+        html += `<div style="display:flex;align-items:center;gap:9px;">
+          <span style="font-family:'Fraunces',serif;font-size:15px;color:var(--coral);width:14px;flex-shrink:0;">${i}</span>
+          <select id="sk-strength-${i}" style="flex:1;min-width:0;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:13.5px;padding:9px 12px;cursor:pointer;">
+            <option value="">Select #${i}…</option>${groups}
+          </select>
+        </div>`;
+      }
+      host.innerHTML = html;
+    }
+  }
+  // Read the pickers into an ordered, de-duplicated Top-5 list.
+  function readStrengths(){
+    const out = [];
+    for(let i = 1; i <= 5; i++){
+      const el = document.getElementById('sk-strength-' + i);
+      const v = el ? String(el.value || '').trim() : '';
+      if(v && out.indexOf(v) < 0) out.push(v);
+    }
+    return out;
+  }
+  function setStrengths(arr){
+    const list = Array.isArray(arr) ? arr : [];
+    for(let i = 1; i <= 5; i++){ const el = document.getElementById('sk-strength-' + i); if(el) el.value = list[i-1] || ''; }
+  }
+
   document.getElementById('sk3Next').onclick = () => {
     const si = document.getElementById('sk-skills-input'); if(si && si.value.trim()){ addSkillsFromInput(si.value); si.value = ''; }
     const ti = document.getElementById('sk-desired-titles'); if(ti && ti.value.trim()){ addTitlesFromInput(ti.value); ti.value = ''; }
@@ -6333,6 +6419,8 @@
     { const mx = document.getElementById('sk-salary-max'); if(mx) mx.value = (seekerProfile.desiredSalaryMax != null ? seekerProfile.desiredSalaryMax : ''); }
     { const ps = document.getElementById('sk-personality'); if(ps) ps.value = (seekerProfile.personalityType || ''); }
     { const pu = document.getElementById('sk-personality-url'); if(pu) pu.value = (seekerProfile.personalityUrl || ''); }
+    setStrengths(seekerProfile.strengths);
+    { const su = document.getElementById('sk-strengths-url'); if(su) su.value = (seekerProfile.strengthsUrl || ''); }
     renderPortfolioEntries(seekerProfile.portfolio);
     renderEducationEntries(seekerProfile.education);
     renderCertEntries(seekerProfile.certifications);
@@ -7098,6 +7186,7 @@
         name: data.name || '', title: data.headline || '', photo: data.photo_url || null,
         resumeUrl: data.resume_url || '', linkedinUrl: data.linkedin_url || '',
         personalityType: data.personality_type || '', personalityUrl: data.personality_url || '',
+        strengths: Array.isArray(data.strengths) ? data.strengths.filter(Boolean) : [], strengthsUrl: data.strengths_url || '',
         workHistory: (data.work || []).map(w => ({ title:w.title||'', company:w.company||'', start:w.start||'', end:w.end||'', description:w.description||'', artifacts: Array.isArray(w.artifacts) ? w.artifacts : [] })),
         favoritePrompts: (data.prompts || []).map(p => ({ label:p.label, answer:p.answer||'' })),
         portfolio: (data.portfolio || []).map(p => ({ title:p.title||'', url:p.url||'', description:p.description||'' })),
@@ -7345,6 +7434,21 @@
                 <div class="pv-p-meta">Myers-Briggs${safeUrl ? ` · <a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow">view full results ↗</a>` : ''}</div>
               </div>
             </div>
+          </div>`;
+        })() : ''}
+
+        ${(p.strengths||[]).length ? (function(){
+          const safeUrl = /^https?:\/\//i.test(p.strengthsUrl||'') ? p.strengthsUrl : '';
+          const rows = p.strengths.slice(0,5).map((t,i) => `
+            <div class="pv-strength">
+              <span class="pv-st-rank">${i+1}</span>
+              <span class="pv-st-name">${escapeHtml(t)}</span>
+              ${cliftonDomain(t) ? `<span class="pv-st-domain">${escapeHtml(cliftonDomain(t))}</span>` : ''}
+            </div>`).join('');
+          return `<div class="pv-section">
+            <div class="pv-section-title">Top CliftonStrengths</div>
+            <div class="pv-strengths">${rows}</div>
+            ${safeUrl ? `<div class="pv-st-link"><a href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow">view full results ↗</a></div>` : ''}
           </div>`;
         })() : ''}
 
@@ -7681,6 +7785,8 @@
         seekerProfile.desiredSalaryMax = (sp.desired_salary_max != null ? sp.desired_salary_max : null);
         seekerProfile.personalityType = sp.personality_type || '';
         seekerProfile.personalityUrl = sp.personality_url || '';
+        seekerProfile.strengths = Array.isArray(sp.strengths) ? sp.strengths.filter(Boolean) : [];
+        seekerProfile.strengthsUrl = sp.strengths_url || '';
         seekerProfile.workSetup = sp.work_setup || '';
       }
     }catch(e){ console.warn('[gigcute] could not load profile:', e.message); }
@@ -7832,12 +7938,14 @@
         desiredSalaryMin: (function(){ const v = parseInt(document.getElementById('sk-salary-min').value, 10); return isNaN(v) ? null : v; })(),
         desiredSalaryMax: (function(){ const v = parseInt(document.getElementById('sk-salary-max').value, 10); return isNaN(v) ? null : v; })(),
         personalityType: (document.getElementById('sk-personality').value || '').trim(),
-        personalityUrl: (document.getElementById('sk-personality-url').value || '').trim()
+        personalityUrl: (document.getElementById('sk-personality-url').value || '').trim(),
+        strengths: readStrengths(),
+        strengthsUrl: (document.getElementById('sk-strengths-url').value || '').trim()
       };
       const email = document.getElementById('sk-email').value.trim();
       const pw = document.getElementById('sk-password').value;
       const payload = {
-        profile: { headline: seekerProfile.title, linkedin_url: seekerProfile.linkedinUrl || '', portfolio: seekerProfile.portfolio || [], certifications: seekerProfile.certifications || [], skills: seekerProfile.skills || [], desired_titles: seekerProfile.desiredTitles || [], desired_salary_min: seekerProfile.desiredSalaryMin ?? null, desired_salary_max: seekerProfile.desiredSalaryMax ?? null, personality_type: seekerProfile.personalityType || null, personality_url: seekerProfile.personalityUrl || null },
+        profile: { headline: seekerProfile.title, linkedin_url: seekerProfile.linkedinUrl || '', portfolio: seekerProfile.portfolio || [], certifications: seekerProfile.certifications || [], skills: seekerProfile.skills || [], desired_titles: seekerProfile.desiredTitles || [], desired_salary_min: seekerProfile.desiredSalaryMin ?? null, desired_salary_max: seekerProfile.desiredSalaryMax ?? null, personality_type: seekerProfile.personalityType || null, personality_url: seekerProfile.personalityUrl || null, strengths: seekerProfile.strengths || [], strengths_url: seekerProfile.strengthsUrl || null },
         workHistory: seekerProfile.workHistory || [],
         education: seekerProfile.education || [],
         // Store every answered prompt (favorites flagged) so the owner can print a full cheat sheet.
