@@ -154,20 +154,154 @@ def workday(tenant, name, dc, site):
         if len(posts) < 20 or details >= WD_DETAIL_CAP: break
     return out
 
+def _loc(d):
+    """Flatten a location dict/string into a display string."""
+    if not d: return None
+    if isinstance(d, str): return d
+    if isinstance(d, dict):
+        for k in ("fullLocation", "name", "label"):
+            if d.get(k): return d[k]
+        parts = [d.get("city"), d.get("region") or d.get("state"), d.get("country") or d.get("countryCode")]
+        return ", ".join(x for x in parts if x) or None
+    return None
+
+def workable(slug, name):
+    # 1-hop: description is in the list widget.
+    r = requests.get(f"https://apply.workable.com/api/v1/widget/accounts/{slug}?details=true", headers=UA, timeout=15)
+    if not r.ok: return []
+    acct = r.json() or {}
+    cname = acct.get("name") or name or slug
+    out = []
+    for j in (acct.get("jobs") or []):
+        d = htmltext(j.get("description")); a, b = salary(d)
+        posted = j.get("published_on") or j.get("created_at")
+        code = j.get("shortcode") or j.get("id")
+        url = j.get("url") or j.get("application_url") or (f"https://apply.workable.com/{slug}/j/{code}/" if code else None)
+        loc = _loc({"city": j.get("city"), "state": j.get("state"), "country": j.get("country")}) or (
+            (j.get("locations") or [{}])[0].get("city") if j.get("locations") else None)
+        if url and recent(posted):
+            dep = j.get("department") or j.get("function")
+            out.append(row(source="workable", external_id=f"workable:{slug}:{code}", title=j.get("title") or "Untitled",
+                company=cname, location=loc, remote=bool(j.get("telecommuting") or j.get("remote")),
+                employment_type=j.get("employment_type"), category=dep, salary_min=a, salary_max=b,
+                salary_currency="USD", url=url, description=cap(d),
+                tags=[x for x in [dep, j.get("industry")] if x][:4], posted_at=posted))
+    return out
+
+def recruitee(slug, name):
+    # 1-hop: description (+ requirements) in the offers list.
+    r = requests.get(f"https://{slug}.recruitee.com/api/offers/", headers=UA, timeout=15)
+    if not r.ok: return []
+    out = []
+    for j in (r.json().get("offers") or []):
+        d = htmltext(j.get("description")) + ("\n\n" + htmltext(j.get("requirements")) if j.get("requirements") else "")
+        a, b = salary(d)
+        posted = j.get("published_at") or j.get("created_at")
+        url = j.get("careers_url") or j.get("careers_apply_url")
+        loc = _loc({"city": j.get("city"), "state": j.get("state_name") or j.get("state_code"),
+                    "country": j.get("country") or j.get("country_code")}) or j.get("location")
+        if url and recent(posted):
+            dep = j.get("department")
+            out.append(row(source="recruitee", external_id=f"recruitee:{slug}:{j.get('id')}", title=j.get("title") or "Untitled",
+                company=name or slug, location=loc,
+                remote=bool(j.get("remote")) or (str(j.get("employment_type_code") or "").lower() == "remote"),
+                employment_type=j.get("employment_type_code"), category=dep, salary_min=a, salary_max=b,
+                salary_currency="USD", url=url, description=cap(d.strip()),
+                tags=[x for x in [dep] if x][:4], posted_at=posted))
+    return out
+
+def smartrecruiters(slug, name):
+    # 2-hop: list has releasedDate (pre-filter recent), detail has the description.
+    out, offset = [], 0
+    for _page in range(3):  # up to 300 postings
+        try:
+            r = requests.get(f"https://api.smartrecruiters.com/v1/companies/{slug}/postings",
+                             headers=UA, params={"limit": 100, "offset": offset}, timeout=15)
+        except Exception:
+            break
+        if not r.ok: break
+        content = (r.json() or {}).get("content") or []
+        if not content: break
+        for p in content:
+            posted = p.get("releasedDate")
+            if not recent(posted): continue
+            pid = p.get("id")
+            try:
+                dj = requests.get(f"https://api.smartrecruiters.com/v1/companies/{slug}/postings/{pid}", headers=UA, timeout=15).json()
+            except Exception:
+                continue
+            secs = ((dj.get("jobAd") or {}).get("sections") or {})
+            d = htmltext("\n\n".join(
+                (secs.get(k) or {}).get("text") or "" for k in ("jobDescription", "qualifications", "additionalInformation")))
+            a, b = salary(d)
+            loc = p.get("location") or {}
+            url = dj.get("applyUrl") or dj.get("postingUrl") or p.get("postingUrl") or f"https://jobs.smartrecruiters.com/{slug}/{pid}"
+            dep = (p.get("department") or {}).get("label")
+            out.append(row(source="smartrecruiters", external_id=f"sr:{slug}:{pid}", title=p.get("name") or "Untitled",
+                company=(p.get("company") or {}).get("name") or name or slug, location=_loc(loc),
+                remote=bool(loc.get("remote")), employment_type=(p.get("typeOfEmployment") or {}).get("label"),
+                category=dep, salary_min=a, salary_max=b, salary_currency="USD", url=url, description=cap(d),
+                tags=[x for x in [dep, (p.get("function") or {}).get("label")] if x][:4], posted_at=posted))
+        if len(content) < 100: break
+        offset += 100
+    return out
+
+def bamboohr(slug, name):
+    # 2-hop: list has no date, so detail-fetch (capped) to get datePosted + description.
+    try:
+        r = requests.get(f"https://{slug}.bamboohr.com/careers/list", headers=UA, timeout=15)
+    except Exception:
+        return []
+    if not r.ok: return []
+    out, details = [], 0
+    for j in (r.json().get("result") or []):
+        if details >= WD_DETAIL_CAP: break
+        jid = j.get("id")
+        if not jid: continue
+        details += 1
+        try:
+            dj = requests.get(f"https://{slug}.bamboohr.com/careers/{jid}/detail", headers=UA, timeout=15).json()
+        except Exception:
+            continue
+        jo = (dj.get("result") or {}).get("jobOpening") or {}
+        posted = jo.get("datePosted")
+        if not recent(posted): continue
+        d = htmltext(jo.get("description")); a, b = salary(d)
+        url = jo.get("jobOpeningShareUrl") or f"https://{slug}.bamboohr.com/careers/{jid}"
+        loc = j.get("atsLocation") or _loc(jo.get("location") or j.get("location"))
+        dep = j.get("departmentLabel") or jo.get("departmentLabel")
+        out.append(row(source="bamboohr", external_id=f"bamboo:{slug}:{jid}", title=jo.get("jobOpeningName") or j.get("jobOpeningName") or "Untitled",
+            company=name or slug, location=loc,
+            remote=bool(j.get("isRemote") or str(j.get("locationType") or "").lower() == "remote"),
+            employment_type=j.get("employmentStatusLabel"), category=dep, salary_min=a, salary_max=b,
+            salary_currency="USD", url=url, description=cap(d), tags=[x for x in [dep] if x][:4], posted_at=posted))
+    return out
+
 def fetch(rec):
     p = rec["platform"]
     try:
-        if p == "greenhouse": return rec, gh(rec["slug"], rec["company_name"])
-        if p == "lever":      return rec, lever(rec["slug"], rec["company_name"])
-        if p == "ashby":      return rec, ashby(rec["slug"], rec["company_name"])
-        if p == "workday":    return rec, workday(rec["slug"], rec["company_name"], rec["datacenter"], rec["site"])
+        if p == "greenhouse":      return rec, gh(rec["slug"], rec["company_name"])
+        if p == "lever":           return rec, lever(rec["slug"], rec["company_name"])
+        if p == "ashby":           return rec, ashby(rec["slug"], rec["company_name"])
+        if p == "workday":         return rec, workday(rec["slug"], rec["company_name"], rec["datacenter"], rec["site"])
+        if p == "workable":        return rec, workable(rec["slug"], rec["company_name"])
+        if p == "recruitee":       return rec, recruitee(rec["slug"], rec["company_name"])
+        if p == "smartrecruiters": return rec, smartrecruiters(rec["slug"], rec["company_name"])
+        if p == "bamboohr":        return rec, bamboohr(rec["slug"], rec["company_name"])
     except Exception:
         return rec, []
     return rec, []
 
 # ---- Supabase writes via Management API (postgres role) ---------------------
 def q(sql):
-    return requests.post(MGMT, headers={"Authorization": f"Bearer {TOK}"}, json={"query": sql}, timeout=120)
+    for attempt in range(5):
+        try:
+            return requests.post(MGMT, headers={"Authorization": f"Bearer {TOK}"}, json={"query": sql}, timeout=120)
+        except Exception:
+            if attempt == 4:
+                return None
+            time.sleep(2 * (attempt + 1))
+    return None
 def sql_str(v):
     if v is None: return "null"
     return "'" + str(v).replace("'", "''") + "'"
@@ -181,6 +315,13 @@ def sql_bool(v): return "true" if v else "false"
 COLS = "source,external_id,title,company,location,remote,employment_type,category,salary_min,salary_max,salary_currency,url,description,tags,posted_at,is_active"
 def upsert(rows):
     if not rows: return 0
+    # Dedupe by external_id: a single INSERT..ON CONFLICT can't update the same
+    # conflict key twice (Postgres 21000), and some boards list a posting twice
+    # (or reuse an id). Keep the last occurrence.
+    dedup = {}
+    for r in rows:
+        dedup[r["external_id"]] = r
+    rows = list(dedup.values())
     n = 0
     for i in range(0, len(rows), 25):
         chunk = rows[i:i+25]
@@ -196,8 +337,8 @@ def upsert(rows):
                "salary_min=excluded.salary_min, salary_max=excluded.salary_max, location=excluded.location, "
                "posted_at=excluded.posted_at, is_active=true;")
         r = q(sql)
-        if r.ok: n += len(chunk)
-        else: print(f"    upsert err {r.status_code}: {r.text[:100]}")
+        if r is not None and r.ok: n += len(chunk)
+        elif r is not None: print(f"    upsert err {r.status_code}: {r.text[:100]}")
     return n
 def mark(ids):
     if not ids: return
@@ -225,9 +366,12 @@ def main():
     with ThreadPoolExecutor(max_workers=WORKERS) as ex:
         futs = [ex.submit(fetch, r) for r in pend]
         for f in as_completed(futs):
-            rec, rows = f.result()
-            jobs += upsert(rows)
-            mark([rec["id"]])
+            try:
+                rec, rows = f.result()
+                jobs += upsert(rows)
+                mark([rec["id"]])
+            except Exception as e:
+                print(f"    skip company: {type(e).__name__}", flush=True)
             done += 1
             if done % 100 == 0:
                 print(f"  {done}/{len(pend)} companies, {jobs} jobs upserted", flush=True)

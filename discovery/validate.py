@@ -66,6 +66,12 @@ def check(platform, ident):
         if platform == "workable":
             r = requests.get(f"https://apply.workable.com/api/v1/widget/accounts/{ident}?details=true", headers=UA, timeout=8)
             return len((r.json() or {}).get("jobs") or []) if r.ok else 0
+        if platform == "bamboohr":
+            r = requests.get(f"https://{ident}.bamboohr.com/careers/list", headers=UA, timeout=8)
+            return len((r.json() or {}).get("result") or []) if r.ok else 0
+        if platform == "recruitee":
+            r = requests.get(f"https://{ident}.recruitee.com/api/offers/", headers=UA, timeout=8)
+            return len((r.json() or {}).get("offers") or []) if r.ok else 0
     except Exception:
         return 0
     return 0

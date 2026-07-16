@@ -40,13 +40,18 @@ WD_RE = re.compile(r'https?://([a-z0-9_-]+)\.(wd\d+)\.myworkdayjobs\.com/(?:[a-z
 GH_RE = re.compile(r'greenhouse\.io/(?:embed/job_app\?for=)?([a-z0-9_-]+)', re.I)
 # (platform, regex, cc-query-pattern) — two Greenhouse domains, Lever, Ashby, Workday
 SOURCES = [
-    ("greenhouse", GH_RE, "boards.greenhouse.io/*"),
-    ("greenhouse", GH_RE, "job-boards.greenhouse.io/*"),
-    ("lever",      re.compile(r'jobs\.lever\.co/([a-z0-9][a-z0-9_.-]+)', re.I), "jobs.lever.co/*"),
-    ("ashby",      re.compile(r'jobs\.ashbyhq\.com/([a-z0-9][a-z0-9_-]+)', re.I), "jobs.ashbyhq.com/*"),
-    ("workday",    None, "*.myworkdayjobs.com/*"),
+    ("greenhouse",     GH_RE, "boards.greenhouse.io/*"),
+    ("greenhouse",     GH_RE, "job-boards.greenhouse.io/*"),
+    ("lever",          re.compile(r'jobs\.lever\.co/([a-z0-9][a-z0-9_.-]+)', re.I), "jobs.lever.co/*"),
+    ("ashby",          re.compile(r'jobs\.ashbyhq\.com/([a-z0-9][a-z0-9_-]+)', re.I), "jobs.ashbyhq.com/*"),
+    ("workday",        None, "*.myworkdayjobs.com/*"),
+    ("smartrecruiters", re.compile(r'jobs\.smartrecruiters\.com/([A-Za-z0-9][A-Za-z0-9._-]+)', re.I), "jobs.smartrecruiters.com/*"),
+    ("workable",       re.compile(r'apply\.workable\.com/([a-z0-9][a-z0-9._-]+)', re.I), "apply.workable.com/*"),
+    ("bamboohr",       re.compile(r'https?://([a-z0-9][a-z0-9-]+)\.bamboohr\.com', re.I), "*.bamboohr.com/*"),
+    ("recruitee",      re.compile(r'https?://([a-z0-9][a-z0-9-]+)\.recruitee\.com', re.I), "*.recruitee.com/*"),
 ]
-SKIP = {"embed", "robots", "sitemap", "sitemaps", "www", "assets", "static", "favicon", "apply", "job-boards", "boards"}
+SKIP = {"embed", "robots", "sitemap", "sitemaps", "www", "assets", "static", "favicon", "apply", "job-boards",
+        "boards", "api", "help", "blog", "jobs", "careers", "account", "support", "status"}
 
 found = {}  # (platform, slugkey) -> identifier
 for platform, rx, pat in SOURCES:
@@ -72,8 +77,9 @@ for platform, rx, pat in SOURCES:
             else:
                 m = rx.search(u)
                 if m:
-                    s = m.group(1).lower()
-                    if s in SKIP or len(s) < 2:
+                    # SmartRecruiters company slugs are case-sensitive; others are lowercase subdomains.
+                    s = m.group(1) if platform == "smartrecruiters" else m.group(1).lower()
+                    if s.lower() in SKIP or len(s) < 2:
                         continue
                     found[(platform, s)] = s
         if (p + 1) % 5 == 0 or p == pages - 1:

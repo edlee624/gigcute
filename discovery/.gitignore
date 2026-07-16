@@ -2,6 +2,7 @@
 urls*.txt
 candidates.csv
 candidates_cc.csv
+candidates_new.csv
 tested.txt
 confirmed.csv
 job_sources_insert.sql

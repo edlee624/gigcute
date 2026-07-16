@@ -97,6 +97,13 @@ function extractSalary(text: string | null | undefined): { min: number | null; m
 async function upsert(supabase: any, rows: JobRow[]): Promise<number> {
   let n = 0;
   const seen = new Date().toISOString();
+  // Dedupe by external_id — a single upsert payload can't carry the same conflict
+  // key twice (Postgres 21000), and some boards list a posting twice / reuse an id.
+  if (rows.length > 1) {
+    const byId = new Map<string, JobRow>();
+    for (const r of rows) byId.set(r.external_id, r);
+    rows = [...byId.values()];
+  }
   for (let i = 0; i < rows.length; i += 200) {
     const chunk = rows.slice(i, i + 200).map((r) => ({ ...r, last_seen_at: seen }));
     const { error } = await supabase.from("jobs").upsert(chunk, { onConflict: "source,external_id" });
@@ -276,6 +283,166 @@ async function fromWorkday(supabase: any, list: Src[]): Promise<Report> {
   return { fetched, upserted };
 }
 
+// ---- Clean-JSON ATS tier (Workable / Recruitee / SmartRecruiters / BambooHR) --
+// Same public-JSON pattern as above. Workable + Recruitee are 1-hop (description
+// in the list, reconcilable). SmartRecruiters + BambooHR are 2-hop (a detail call
+// per posting): SR pre-filters by releasedDate before the detail call; BambooHR's
+// list has no date, so it detail-fetches up to a cap (like Workday) — never reconciled.
+const UA_H = { "user-agent": "Mozilla/5.0 (gigcute)" };
+function locStr(d: any): string | null {
+  if (!d) return null;
+  if (typeof d === "string") return d;
+  for (const k of ["fullLocation", "name", "label"]) if (d[k]) return d[k];
+  const parts = [d.city, d.region ?? d.state, d.country ?? d.countryCode].filter(Boolean);
+  return parts.length ? parts.join(", ") : null;
+}
+// deno-lint-ignore no-explicit-any
+async function fromWorkable(supabase: any, list: Src[]): Promise<Report> {
+  let fetched = 0, upserted = 0;
+  await runLimit(list, 4, async ({ slug, company_name }) => {
+    const res = await fetch(`https://apply.workable.com/api/v1/widget/accounts/${slug}?details=true`, { headers: UA_H });
+    if (!res.ok) return;
+    const acct = await res.json();
+    const cname = acct?.name ?? company_name ?? slug;
+    const jobs = acct?.jobs ?? [];
+    const rows: JobRow[] = [];
+    const allIds: string[] = jobs.map((j: any) => `workable:${slug}:${j.shortcode ?? j.id}`);
+    for (const j of jobs) {
+      const desc = htmlToText(j.description);
+      const sal = extractSalary(desc);
+      const code = j.shortcode ?? j.id;
+      const loc = locStr({ city: j.city, state: j.state, country: j.country }) ?? (j.locations?.[0]?.city ?? null);
+      const dep = j.department ?? j.function ?? null;
+      const row: JobRow = {
+        source: "workable", external_id: `workable:${slug}:${code}`, title: j.title ?? "Untitled",
+        company: cname, location: loc, remote: !!(j.telecommuting || j.remote),
+        employment_type: j.employment_type ?? null, category: dep,
+        salary_min: sal.min, salary_max: sal.max, salary_currency: "USD",
+        url: j.url || j.application_url || (code ? `https://apply.workable.com/${slug}/j/${code}/` : ""),
+        description: cap(desc), tags: [dep, j.industry].filter(Boolean).slice(0, 4),
+        posted_at: j.published_on ?? j.created_at ?? null, is_active: true,
+      };
+      if (row.url && isRecent(row.posted_at)) rows.push(row);
+    }
+    fetched += rows.length; upserted += await upsert(supabase, rows);
+    await reconcile(supabase, "workable", `workable:${slug}:%`, allIds);
+  });
+  return { fetched, upserted };
+}
+// deno-lint-ignore no-explicit-any
+async function fromRecruitee(supabase: any, list: Src[]): Promise<Report> {
+  let fetched = 0, upserted = 0;
+  await runLimit(list, 4, async ({ slug, company_name }) => {
+    const res = await fetch(`https://${slug}.recruitee.com/api/offers/`, { headers: UA_H });
+    if (!res.ok) return;
+    const offers = (await res.json())?.offers ?? [];
+    const rows: JobRow[] = [];
+    const allIds: string[] = offers.map((j: any) => `recruitee:${slug}:${j.id}`);
+    for (const j of offers) {
+      const desc = (htmlToText(j.description) ?? "") + (j.requirements ? "\n\n" + (htmlToText(j.requirements) ?? "") : "");
+      const sal = extractSalary(desc);
+      const loc = locStr({ city: j.city, state: j.state_name ?? j.state_code, country: j.country ?? j.country_code }) ?? j.location ?? null;
+      const row: JobRow = {
+        source: "recruitee", external_id: `recruitee:${slug}:${j.id}`, title: j.title ?? "Untitled",
+        company: company_name ?? slug, location: loc,
+        remote: !!j.remote || String(j.employment_type_code ?? "").toLowerCase() === "remote",
+        employment_type: j.employment_type_code ?? null, category: j.department ?? null,
+        salary_min: sal.min, salary_max: sal.max, salary_currency: "USD",
+        url: j.careers_url || j.careers_apply_url || "", description: cap(desc.trim()),
+        tags: [j.department].filter(Boolean).slice(0, 4),
+        posted_at: j.published_at ?? j.created_at ?? null, is_active: true,
+      };
+      if (row.url && isRecent(row.posted_at)) rows.push(row);
+    }
+    fetched += rows.length; upserted += await upsert(supabase, rows);
+    await reconcile(supabase, "recruitee", `recruitee:${slug}:%`, allIds);
+  });
+  return { fetched, upserted };
+}
+// deno-lint-ignore no-explicit-any
+async function fromSmartRecruiters(supabase: any, list: Src[]): Promise<Report> {
+  let fetched = 0, upserted = 0;
+  await runLimit(list, 3, async ({ slug, company_name }) => {
+    let details = 0;                        // per-company detail-fetch cap (bounds cost)
+    for (let offset = 0; offset < 300; offset += 100) {
+      let res: Response;
+      try { res = await fetch(`https://api.smartrecruiters.com/v1/companies/${slug}/postings?limit=100&offset=${offset}`, { headers: UA_H }); }
+      catch { break; }
+      if (!res.ok) break;
+      const content = (await res.json())?.content ?? [];
+      if (!content.length) break;
+      const rows: JobRow[] = [];
+      for (const p of content) {
+        if (details >= 40) break;
+        if (!isRecent(p.releasedDate ?? null)) continue;   // list has the date — pre-filter
+        details++;
+        let dj: any = {};
+        try { const d = await fetch(`https://api.smartrecruiters.com/v1/companies/${slug}/postings/${p.id}`, { headers: UA_H }); if (!d.ok) continue; dj = await d.json(); }
+        catch { continue; }
+        const secs = dj?.jobAd?.sections ?? {};
+        const desc = htmlToText(["jobDescription", "qualifications", "additionalInformation"]
+          .map((k) => secs[k]?.text ?? "").join("\n\n"));
+        const sal = extractSalary(desc);
+        const loc = p.location ?? {};
+        const dep = p.department?.label ?? null;
+        const row: JobRow = {
+          source: "smartrecruiters", external_id: `sr:${slug}:${p.id}`, title: p.name ?? "Untitled",
+          company: p.company?.name ?? company_name ?? slug, location: locStr(loc),
+          remote: !!loc.remote, employment_type: p.typeOfEmployment?.label ?? null, category: dep,
+          salary_min: sal.min, salary_max: sal.max, salary_currency: "USD",
+          url: dj.applyUrl || dj.postingUrl || p.postingUrl || `https://jobs.smartrecruiters.com/${slug}/${p.id}`,
+          description: cap(desc), tags: [dep, p.function?.label].filter(Boolean).slice(0, 4),
+          posted_at: p.releasedDate ?? null, is_active: true,
+        };
+        if (row.url) rows.push(row);
+      }
+      if (rows.length) { fetched += rows.length; upserted += await upsert(supabase, rows); }
+      if (content.length < 100 || details >= 40) break;
+    }
+  });
+  return { fetched, upserted };
+}
+// deno-lint-ignore no-explicit-any
+async function fromBambooHR(supabase: any, list: Src[]): Promise<Report> {
+  let fetched = 0, upserted = 0;
+  await runLimit(list, 3, async ({ slug, company_name }) => {
+    let res: Response;
+    try { res = await fetch(`https://${slug}.bamboohr.com/careers/list`, { headers: UA_H }); }
+    catch { return; }
+    if (!res.ok) return;
+    const result = (await res.json())?.result ?? [];
+    let details = 0;
+    const rows: JobRow[] = [];
+    for (const j of result) {
+      if (details >= 40) break;
+      if (!j.id) continue;
+      details++;
+      let dj: any = {};
+      try { const d = await fetch(`https://${slug}.bamboohr.com/careers/${j.id}/detail`, { headers: UA_H }); if (!d.ok) continue; dj = await d.json(); }
+      catch { continue; }
+      const jo = dj?.result?.jobOpening ?? {};
+      if (!isRecent(jo.datePosted ?? null)) continue;
+      const desc = htmlToText(jo.description);
+      const sal = extractSalary(desc);
+      const dep = j.departmentLabel ?? jo.departmentLabel ?? null;
+      const row: JobRow = {
+        source: "bamboohr", external_id: `bamboo:${slug}:${j.id}`,
+        title: jo.jobOpeningName ?? j.jobOpeningName ?? "Untitled", company: company_name ?? slug,
+        location: (typeof j.atsLocation === "string" ? j.atsLocation : null) ?? locStr(jo.location ?? j.location),
+        remote: !!(j.isRemote) || String(j.locationType ?? "").toLowerCase() === "remote",
+        employment_type: j.employmentStatusLabel ?? null, category: dep,
+        salary_min: sal.min, salary_max: sal.max, salary_currency: "USD",
+        url: jo.jobOpeningShareUrl || `https://${slug}.bamboohr.com/careers/${j.id}`,
+        description: cap(desc), tags: [dep].filter(Boolean).slice(0, 4),
+        posted_at: jo.datePosted ?? null, is_active: true,
+      };
+      if (row.url) rows.push(row);
+    }
+    if (rows.length) { fetched += rows.length; upserted += await upsert(supabase, rows); }
+  });
+  return { fetched, upserted };
+}
+
 Deno.serve(async (req) => {
   // Header only — query strings end up in proxy/edge logs (the cron sends the header).
   const secret = Deno.env.get("CRON_SECRET");
@@ -289,23 +456,30 @@ Deno.serve(async (req) => {
   // invocation stays under the worker limit; the hourly cron cycles through them
   // all. Scales to thousands of slugs. Tune with the ATS_BATCH secret.
   const BATCH = Math.max(1, parseInt(Deno.env.get("ATS_BATCH") || "40", 10));
-  const WD_PER_RUN = Math.max(1, parseInt(Deno.env.get("WORKDAY_PER_RUN") || "6", 10));
+  const HEAVY_PER_RUN = Math.max(1, parseInt(Deno.env.get("WORKDAY_PER_RUN") || "6", 10));
+  // "Heavy" = one detail HTTP call per posting (Workday, SmartRecruiters, BambooHR).
+  // They're numerous, so in a shared oldest-first rotation they'd bury the light
+  // platforms (or an unlucky batch of 40 would blow the worker memory/time limit).
+  // Give each a small per-run quota, then fill the rest from the light rotation.
+  const HEAVY = ["workday", "smartrecruiters", "bamboohr"];
   const SEL = "id, platform, slug, company_name, datacenter, site";
   const slugsBy: Record<string, Src[]> = {};
   let batchIds: string[] = [];
   try {
-    // Guarantee Workday gets slots every run: they're heavy AND numerous, so in a
-    // shared oldest-first rotation they'd sit buried behind hundreds of other
-    // never-ingested rows for many runs. Pull WD_PER_RUN Workday boards directly,
-    // then fill the rest of the batch from the general (non-Workday) rotation.
-    const wd = (await supabase.from("job_sources").select(SEL).eq("active", true).eq("platform", "workday")
-      .order("last_ingested_at", { ascending: true, nullsFirst: true }).limit(WD_PER_RUN)).data ?? [];
-    const restN = Math.max(0, BATCH - wd.length);
-    const rest = restN > 0 ? ((await supabase.from("job_sources").select(SEL).eq("active", true).neq("platform", "workday")
+    let picked: any[] = [];
+    for (const plat of HEAVY) {
+      const rows = (await supabase.from("job_sources").select(SEL).eq("active", true).eq("platform", plat)
+        .order("last_ingested_at", { ascending: true, nullsFirst: true }).limit(HEAVY_PER_RUN)).data ?? [];
+      picked = picked.concat(rows);
+    }
+    const restN = Math.max(0, BATCH - picked.length);
+    const heavyList = `(${HEAVY.join(",")})`;
+    const rest = restN > 0 ? ((await supabase.from("job_sources").select(SEL).eq("active", true).not("platform", "in", heavyList)
       .order("last_ingested_at", { ascending: true, nullsFirst: true }).limit(restN)).data ?? []) : [];
-    for (const r of [...wd, ...rest]) { (slugsBy[r.platform] ??= []).push({ id: r.id, slug: r.slug, company_name: r.company_name, datacenter: r.datacenter, site: r.site }); }
+    picked = picked.concat(rest);
+    for (const r of picked) { (slugsBy[r.platform] ??= []).push({ id: r.id, slug: r.slug, company_name: r.company_name, datacenter: r.datacenter, site: r.site }); }
     // Only mark the companies we actually process this run as ingested.
-    batchIds = [...wd, ...rest].map((r: { id: string }) => r.id).filter((x): x is string => !!x);
+    batchIds = picked.map((r: { id: string }) => r.id).filter((x): x is string => !!x);
   } catch (_e) { /* table/column may not exist yet */ }
 
   const runners: [string, () => Promise<Report>][] = [
@@ -313,6 +487,10 @@ Deno.serve(async (req) => {
     ["lever", () => fromLever(supabase, slugsBy.lever ?? [])],
     ["ashby", () => fromAshby(supabase, slugsBy.ashby ?? [])],
     ["workday", () => fromWorkday(supabase, slugsBy.workday ?? [])],
+    ["workable", () => fromWorkable(supabase, slugsBy.workable ?? [])],
+    ["recruitee", () => fromRecruitee(supabase, slugsBy.recruitee ?? [])],
+    ["smartrecruiters", () => fromSmartRecruiters(supabase, slugsBy.smartrecruiters ?? [])],
+    ["bamboohr", () => fromBambooHR(supabase, slugsBy.bamboohr ?? [])],
   ];
   const report: Record<string, Report> = {};
   for (const [name, fn] of runners) {

@@ -8,7 +8,7 @@ REF = "ztvirfxxyvvcrxcjstzi"
 URI = f"https://api.supabase.com/v1/projects/{REF}/database/query"
 TOK = open(os.path.join(os.environ.get("TEMP", "/tmp"), "sbtok.txt"), encoding="utf-8").read().strip()
 HDR = {"Authorization": f"Bearer {TOK}"}
-SUPPORTED = {"greenhouse", "lever", "ashby", "workday"}
+SUPPORTED = {"greenhouse", "lever", "ashby", "workday", "smartrecruiters", "workable", "bamboohr", "recruitee"}
 CHUNK = 500
 
 def q(sql):
