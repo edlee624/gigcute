@@ -7703,6 +7703,16 @@
     }catch(e){ console.warn('[gigcute] pending setup deferred:', e.message); }
   }
   function gcAuthError(id, msg){ const el = document.getElementById(id); if(el){ el.textContent = msg; el.classList.add('show'); } }
+  // Does the signed-in user have a seeker profile? Admins who also keep a real
+  // seeker profile (the common case for the team) belong in the seeker app —
+  // only a profile-less admin should be dropped straight into /admin.
+  async function gcHasSeekerProfile(API){
+    try{
+      const u = await API.auth.currentUser(); if(!u) return false;
+      const sp = await API.seeker.get(u.id);      // .single() throws when there's no row
+      return !!sp;
+    }catch(e){ return false; }
+  }
 
   function wireBackendAuth(){
     const API = window.GigCuteAPI;
@@ -7743,7 +7753,7 @@
       let role = 'seeker';
       try{ const me = await API.profiles.me(); if(me){ if(me.role) role = me.role; if(me.intro_seen) gcHideIntroLocal(); } }catch(e){}
       if(sessionStorage.getItem('gc_oauth_role') === 'recruiter') role = 'recruiter';
-      if(role === 'admin') navigate('/admin');
+      if(role === 'admin' && !(await gcHasSeekerProfile(API))) navigate('/admin');
       else enterApp(role === 'recruiter' ? 'recruiter' : 'candidate');
     }).catch(()=>{});
 
@@ -7767,7 +7777,7 @@
       __inRecovery = false;
       let role = 'seeker';
       try{ const me = await API.profiles.me(); if(me && me.role) role = me.role; }catch(e){}
-      if(role === 'admin') navigate('/admin');
+      if(role === 'admin' && !(await gcHasSeekerProfile(API))) navigate('/admin');
       else enterApp(role === 'recruiter' ? 'recruiter' : 'candidate');
     };
 
@@ -7780,8 +7790,10 @@
         await API.auth.signIn({ email, password: pw }); await gcCompletePending(API);
         let role = 'seeker'; try{ const me = await API.profiles.me(); if(me && me.role) role = me.role; }catch(e){}
         if(role === 'recruiter'){ __postLoginRecruiter = false; goRecruiterAfterAuth(); }
-        // Admins have no seeker profile — the candidate app renders empty for them.
-        else if(role === 'admin'){ navigate('/admin'); }
+        // Admins who also keep a seeker profile use the app like anyone else;
+        // only a profile-less admin goes straight to the panel (/admin is always
+        // reachable by URL either way).
+        else if(role === 'admin' && !(await gcHasSeekerProfile(API))){ navigate('/admin'); }
         else { enterApp('candidate'); gcSyncIntro(); }
       }
       catch(e){ gcAuthError('seekerLoginError', e.message || 'Login failed.'); }
