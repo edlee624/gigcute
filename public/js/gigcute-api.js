@@ -638,6 +638,53 @@ const invites = {
   },
 };
 
+// ---- Connections (seeker ↔ seeker professional network) -------------------
+const connections = {
+  // Send a connection request to another seeker.
+  async request(otherId) {
+    const c = requireClient(); const { data: u } = await c.auth.getUser();
+    const { data, error } = await c.from('connections')
+      .insert({ requester_id: u.user.id, addressee_id: otherId, status: 'pending' }).select().single();
+    if (error) throw error;
+    return data;
+  },
+  // Accept (true) or ignore/decline (false) an incoming request by connection id.
+  async respond(id, accept) {
+    const c = requireClient();
+    if (accept) {
+      const { error } = await c.from('connections')
+        .update({ status: 'accepted', responded_at: new Date().toISOString() }).eq('id', id);
+      if (error) throw error;
+    } else {
+      const { error } = await c.from('connections').delete().eq('id', id);
+      if (error) throw error;
+    }
+  },
+  // Remove an existing connection (or cancel an outgoing request).
+  async remove(id) {
+    const { error } = await requireClient().from('connections').delete().eq('id', id);
+    if (error) throw error;
+  },
+  // State between me and another user: {state:'none'|'outgoing'|'incoming'|'connected', id} or null (ineligible).
+  async status(otherId) {
+    const { data, error } = await requireClient().rpc('connection_status', { p_other: otherId });
+    if (error) throw error;
+    return data;
+  },
+  // My accepted connections (with the other person's safe profile fields).
+  async list() {
+    const { data, error } = await requireClient().rpc('my_connections');
+    if (error) throw error;
+    return data || [];
+  },
+  // Incoming pending requests (with the requester's safe profile fields).
+  async requests() {
+    const { data, error } = await requireClient().rpc('connection_requests');
+    if (error) throw error;
+    return data || [];
+  },
+};
+
 // ---- Voluntary EEO/DE&I responses (write-only from the candidate side) -----
 const eeo = {
   async submit(postingId, responses /* [{category, value}] */) {
@@ -1228,7 +1275,7 @@ window.GigCuteAPI = {
   enabled,
   supabase,
   prefs,
-  auth, profiles, seeker, companies, postings, interest, invites, eeo, reference, reports, admin, verification, chat, support, feedback, events, jobs, tracker, notifications, limits, billing, safety,
+  auth, profiles, seeker, companies, postings, interest, invites, connections, eeo, reference, reports, admin, verification, chat, support, feedback, events, jobs, tracker, notifications, limits, billing, safety,
   isFreeEmailDomain,
 };
 

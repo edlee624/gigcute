@@ -4484,6 +4484,11 @@
           <div id="shInvites"></div>
         </section>
 
+        <section id="shNetworkWrap" style="margin-bottom:30px; display:none;">
+          <h2 class="sh-h2">Your network <span class="sh-count" id="shNetworkCount"></span></h2>
+          <div id="shNetwork"></div>
+        </section>
+
         <section style="margin-bottom:30px;">
           <h2 class="sh-h2">Active chats <span class="sh-count" id="shChatsCount"></span></h2>
           <div id="shChats"></div>
@@ -4882,6 +4887,10 @@
       <button id="pvInviteBtn" type="button" style="display:none;align-items:center;gap:7px;background:var(--coral);color:var(--paper);border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:700;padding:9px 16px;cursor:pointer;margin-right:auto;margin-left:8px;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
         Invite to chat
+      </button>
+      <button id="pvConnectBtn" type="button" style="display:none;align-items:center;gap:7px;background:var(--coral);color:var(--paper);border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:700;padding:9px 16px;cursor:pointer;margin-right:auto;margin-left:8px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+        <span id="pvConnectLabel">Connect</span>
       </button>
       <button class="pv-share-btn" id="pvShareBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
@@ -7125,6 +7134,33 @@
         invb.onclick = () => recruiterInviteFor(pid, sid);
       } else invb.style.display = 'none';
     }
+    // Connect button (seeker ↔ seeker). Ineligible viewers (not signed in / no
+    // seeker profile) get null from the RPC and see nothing. Never on own profile.
+    (function(){
+      const btn = document.getElementById('pvConnectBtn'); if(!btn) return;
+      btn.style.display = 'none';
+      const API = window.GigCuteAPI;
+      if(own || !profSeekerId || !API || !API.enabled || !API.connections) return;
+      const lbl = document.getElementById('pvConnectLabel');
+      function setState(st){
+        if(!st || !st.state){ btn.style.display = 'none'; return; }
+        btn.style.display = 'inline-flex'; btn.disabled = false;
+        if(st.state === 'connected'){
+          lbl.textContent = '✓ Connected';
+          btn.onclick = async () => { if(!confirm('Remove this connection?')) return; try{ await API.connections.remove(st.id); setState({state:'none'}); }catch(e){ showToast(e.message || 'Could not update.'); } };
+        } else if(st.state === 'incoming'){
+          lbl.textContent = 'Accept connection';
+          btn.onclick = async () => { btn.disabled = true; try{ await API.connections.respond(st.id, true); setState({state:'connected', id:st.id}); showToast('Connected.'); }catch(e){ btn.disabled = false; showToast(e.message || 'Could not accept.'); } };
+        } else if(st.state === 'outgoing'){
+          lbl.textContent = 'Requested';
+          btn.onclick = async () => { if(!confirm('Withdraw your connection request?')) return; try{ await API.connections.remove(st.id); setState({state:'none'}); }catch(e){ showToast(e.message || 'Could not update.'); } };
+        } else {
+          lbl.textContent = 'Connect';
+          btn.onclick = async () => { btn.disabled = true; try{ const row = await API.connections.request(profSeekerId); setState({state:'outgoing', id: row && row.id}); showToast('Connection request sent.'); }catch(e){ btn.disabled = false; showToast(e.message || 'Could not send request.'); } };
+        }
+      }
+      (async () => { let st = null; try{ st = await API.connections.status(profSeekerId); }catch(e){} setState(st); })();
+    })();
     const eb = document.getElementById('pvEditBtn'); if(eb) eb.style.display = own ? '' : 'none';
     const cb = document.getElementById('pvCloseBtn'); if(cb) cb.style.display = own ? 'none' : '';  // own profile is home — no "back"
     const lo = document.getElementById('pvLogoutBtn'); if(lo) lo.style.display = own ? '' : 'none';  // logout only on your own profile
@@ -8550,7 +8586,7 @@
     const first = me && me.full_name ? String(me.full_name).trim().split(/\s+/)[0] : '';
     const nameEl = document.getElementById('shName'); if(nameEl) nameEl.innerHTML = first ? (', <em style="color:var(--coral);font-style:italic;">'+escapeHtml(first)+'</em>') : '';
     hydrateHomeSidebar(API, me);
-    renderHomeInvites(API); renderHomeChats(API); renderHomeMatches(API); renderHomeViews(API);
+    renderHomeInvites(API); renderHomeNetwork(API); renderHomeChats(API); renderHomeMatches(API); renderHomeViews(API);
     gcShowAnnouncements(API);
   }
   window.showSeekerHome = showSeekerHome;
@@ -8779,6 +8815,41 @@
           <div class="sh-card-sub">${escapeHtml(j.company||'')}${meta?` · ${escapeHtml(meta)}`:''}</div>
         </div><div class="sh-go">View →</div></div>`;
     }).join('') + browse;
+  }
+  async function renderHomeNetwork(API){
+    const wrap = document.getElementById('shNetworkWrap'), el = document.getElementById('shNetwork');
+    if(!el) return;
+    let reqs = [], conns = [];
+    try{ reqs = await API.connections.requests(); }catch(e){}
+    try{ conns = await API.connections.list(); }catch(e){}
+    if((!reqs || !reqs.length) && (!conns || !conns.length)){ if(wrap) wrap.style.display = 'none'; el.innerHTML = ''; return; }
+    if(wrap) wrap.style.display = '';
+    const cnt = document.getElementById('shNetworkCount'); if(cnt) cnt.textContent = conns.length ? ('· ' + conns.length + ' connection' + (conns.length===1?'':'s')) : '';
+    const av = name => `<div style="width:38px;height:38px;border-radius:50%;background:var(--coral);color:var(--paper);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-weight:600;flex-shrink:0;">${escapeHtml((String(name||'?').trim().charAt(0)||'?').toUpperCase())}</div>`;
+    const reqHTML = (reqs||[]).map(r => `
+      <div class="sh-card" style="align-items:center;">
+        ${av(r.name)}
+        <div style="flex:1;min-width:0;margin-left:2px;">
+          <div class="sh-card-title">${escapeHtml(r.name||'Someone')} <span style="font-size:11px;color:var(--coral);font-weight:600;">wants to connect</span></div>
+          <div class="sh-card-sub">${escapeHtml(r.headline||'')}</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+          <button class="jli-btn primary" type="button" data-conn-accept="${r.connection_id}">Accept</button>
+          <button class="jli-btn" type="button" data-conn-ignore="${r.connection_id}">Ignore</button>
+        </div>
+      </div>`).join('');
+    const connHTML = (conns||[]).map(cn => {
+      const code = cn.code || cn.user_id;
+      return `<div class="sh-card" onclick="GigCuteNavigate('/profile/${encodeURIComponent(code)}')" style="align-items:center;cursor:pointer;">
+        ${av(cn.name)}
+        <div style="flex:1;min-width:0;margin-left:2px;">
+          <div class="sh-card-title">${escapeHtml(cn.name||'Connection')}</div>
+          <div class="sh-card-sub">${escapeHtml(cn.headline||'')}</div>
+        </div><div class="sh-go">View →</div></div>`;
+    }).join('');
+    el.innerHTML = reqHTML + connHTML;
+    el.querySelectorAll('[data-conn-accept]').forEach(b => b.onclick = async (e) => { e.stopPropagation(); b.disabled = true; try{ await API.connections.respond(b.getAttribute('data-conn-accept'), true); showToast('Connected.'); renderHomeNetwork(API); }catch(err){ b.disabled = false; showToast(err.message || 'Could not accept.'); } });
+    el.querySelectorAll('[data-conn-ignore]').forEach(b => b.onclick = async (e) => { e.stopPropagation(); b.disabled = true; try{ await API.connections.respond(b.getAttribute('data-conn-ignore'), false); renderHomeNetwork(API); }catch(err){ b.disabled = false; showToast(err.message || 'Could not update.'); } });
   }
   async function renderHomeViews(API){
     const el = document.getElementById('shViews'); if(!el) return;
