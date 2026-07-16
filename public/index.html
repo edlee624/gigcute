@@ -793,7 +793,9 @@
   .email-typo-hint{ display:none; margin-top:6px; font-size:12.5px; color:#E0B64A; }
   .email-typo-hint.show{ display:block; }
   .email-typo-hint button{ background:none; border:none; color:var(--coral); font-weight:700; cursor:pointer; padding:0; font-size:12.5px; font-family:inherit; text-decoration:underline; }
-  .field label{
+  /* .fld-title = a heading above a GROUP of controls (chips, pickers). It looks
+     like a field label but isn't one, so it must not be a bare label element. */
+  .field label, .field .fld-title{
     display:block;
     font-size:12.5px;
     font-weight:700;
@@ -1678,7 +1680,9 @@
     grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
     gap:18px 24px;
   }
-  .adv-filter-group label{
+  /* Group headings sit above a set of chips — they title a GROUP, not one field,
+     so they're .afg-title divs (a bare label with no field is an a11y error). */
+  .adv-filter-group label, .adv-filter-group .afg-title{
     display:block;
     font-family:'JetBrains Mono',monospace;
     font-size:10px; font-weight:700;
@@ -3937,11 +3941,11 @@
       <label class="accept-row" style="margin:-2px 0 12px;"><input type="checkbox" id="pf-equity"><span>This role offers equity</span></label>
       <div class="field"><label for="pf-resp">Key responsibilities <span style="color:rgba(251,247,240,0.4);font-weight:400;">(one per line)</span></label><textarea id="pf-resp" rows="3" placeholder="Own the product roadmap…"></textarea></div>
       <div class="field"><label for="pf-qual">Qualifications <span style="color:rgba(251,247,240,0.4);font-weight:400;">(one per line)</span></label><textarea id="pf-qual" rows="3" placeholder="5+ years in product…"></textarea></div>
-      <div class="field"><label>Prompts you'd love candidates to answer <span style="color:rgba(251,247,240,0.4);font-weight:400;">(pick up to 3 from the bank)</span></label>
+      <div class="field"><div class="fld-title">Prompts you'd love candidates to answer <span style="color:rgba(251,247,240,0.4);font-weight:400;">(pick up to 3 from the bank)</span></div>
         <div style="display:flex; flex-direction:column; gap:8px;">
-          <select id="pf-prompt1" class="pf-prompt"></select>
-          <select id="pf-prompt2" class="pf-prompt"></select>
-          <select id="pf-prompt3" class="pf-prompt"></select>
+          <select id="pf-prompt1" aria-label="Prompt 1 to ask candidates" class="pf-prompt"></select>
+          <select id="pf-prompt2" aria-label="Prompt 2 to ask candidates" class="pf-prompt"></select>
+          <select id="pf-prompt3" aria-label="Prompt 3 to ask candidates" class="pf-prompt"></select>
         </div>
       </div>
       <div class="auth-error" id="pfError" style="display:none;color:var(--coral);font-size:13px;margin:-4px 0 12px;"></div>
@@ -3964,7 +3968,7 @@
       <aside class="inbox-list">
         <div class="inbox-list-head">
           <div class="inbox-list-title">Messaging</div>
-          <input id="convSearch" class="inbox-search" type="text" placeholder="Search messages" autocomplete="off">
+          <input id="convSearch" aria-label="Search your messages" class="inbox-search" type="text" placeholder="Search messages" autocomplete="off">
           <div class="conv-filters" id="convFilters">
             <button class="conv-filter active" data-filter="all" type="button">All</button>
             <button class="conv-filter" data-filter="unread" type="button">Unread</button>
@@ -3995,7 +3999,7 @@
           </div>
           <div id="chatMessages" class="thread-body"></div>
           <div class="thread-composer">
-            <input id="chatInput" type="text" placeholder="Write a message…" style="flex:1; min-width:0; box-sizing:border-box; background:var(--ink); border:1px solid var(--line-light); border-radius:10px; color:var(--paper); font-family:'Inter',sans-serif; font-size:14px; padding:11px 14px;">
+            <input id="chatInput" aria-label="Write a message" type="text" placeholder="Write a message…" style="flex:1; min-width:0; box-sizing:border-box; background:var(--ink); border:1px solid var(--line-light); border-radius:10px; color:var(--paper); font-family:'Inter',sans-serif; font-size:14px; padding:11px 14px;">
             <button class="lm-cta-btn" id="chatSend" type="button" style="font-size:14px; padding:11px 18px;">Send</button>
           </div>
         </div>
@@ -4081,7 +4085,7 @@
       <button class="ds-nav-btn" id="settingsDeleteBtn" type="button" style="width:100%; border-color:var(--danger); color:#E06055;">Delete my account</button>
       <div id="settingsDeleteConfirm" style="display:none; margin-top:12px;">
         <div style="font-size:12.5px; color:rgba(251,247,240,0.7); margin-bottom:8px;">Type <b>DELETE</b> to confirm.</div>
-        <input id="settingsDeleteInput" type="text" autocomplete="off" placeholder="DELETE" style="width:100%; box-sizing:border-box; background:var(--ink); border:1px solid var(--line-light); border-radius:8px; color:var(--paper); font-family:'Inter',sans-serif; font-size:14px; padding:9px 12px; margin-bottom:10px;">
+        <input id="settingsDeleteInput" aria-label="Type DELETE to confirm account deletion" type="text" autocomplete="off" placeholder="DELETE" style="width:100%; box-sizing:border-box; background:var(--ink); border:1px solid var(--line-light); border-radius:8px; color:var(--paper); font-family:'Inter',sans-serif; font-size:14px; padding:9px 12px; margin-bottom:10px;">
         <div style="display:flex; gap:8px;">
           <button class="ds-nav-btn" id="settingsDeleteCancel" type="button" style="flex:1;">Cancel</button>
           <button class="lm-cta-btn" id="settingsDeleteGo" type="button" disabled style="flex:1; background:var(--danger); opacity:0.5;">Delete forever</button>
@@ -4266,7 +4270,7 @@
         <div class="meta"><strong>Upload your resume</strong><span id="upStatus">PDF or Word — we'll parse it automatically</span></div>
         <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
       </div>
-      <input class="file-input" type="file" id="resumeFile" accept=".pdf,.doc,.docx">
+      <input class="file-input" type="file" id="resumeFile" aria-label="Upload your resume file" accept=".pdf,.doc,.docx">
     </div>
     <div class="file-chosen" id="fileChosen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
@@ -4286,7 +4290,7 @@
       </div>
       <div class="photo-actions">
         <button class="btn-sm" id="uploadPhotoBtn" type="button">Upload a photo</button>
-        <input class="file-input" type="file" id="profilePhotoFile" accept="image/*">
+        <input class="file-input" type="file" id="profilePhotoFile" aria-label="Upload a profile photo" accept="image/*">
       </div>
     </div>
 
@@ -4333,14 +4337,14 @@
     <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">Your <em style="font-style:italic;color:var(--coral);">skills</em> <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.45);">(recommended)</span></h2>
     <p class="ob-sub" style="margin-bottom:12px;">The skills, tools, and technologies you want recruiters — and our job matching — to consider. Type one and press Enter or comma.</p>
     <div id="skillsChips" class="skills-chips"></div>
-    <input type="text" id="sk-skills-input" class="skills-input" placeholder="e.g. Figma, SQL, Project management" autocomplete="off">
+    <input type="text" id="sk-skills-input" name="sk-skills-input" aria-label="Add a skill, then press Enter or comma" class="skills-input" placeholder="e.g. Figma, SQL, Project management" autocomplete="off">
     <div style="margin-bottom:26px;"></div>
 
     <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">What you're <em style="font-style:italic;color:var(--coral);">looking for</em> <span style="font-size:13px;font-weight:400;color:rgba(251,247,240,0.45);">(recommended)</span></h2>
     <p class="ob-sub" style="margin-bottom:12px;">The roles and pay you're targeting. This powers your job matches and tells recruiters what you're after.</p>
-    <label style="display:block;font-size:12.5px;color:rgba(251,247,240,0.6);margin-bottom:6px;">Job titles you're open to</label>
+    <div style="display:block;font-size:12.5px;color:rgba(251,247,240,0.6);margin-bottom:6px;">Job titles you're open to</div>
     <div id="desiredTitlesChips" class="skills-chips"></div>
-    <input type="text" id="sk-desired-titles" class="skills-input" placeholder="e.g. Product Manager, Data Analyst, UX Designer" autocomplete="off">
+    <input type="text" id="sk-desired-titles" name="sk-desired-titles" aria-label="Add a job title you're open to, then press Enter or comma" class="skills-input" placeholder="e.g. Product Manager, Data Analyst, UX Designer" autocomplete="off">
     <div style="display:flex; gap:12px; margin:16px 0 26px; flex-wrap:wrap;">
       <div class="field" style="flex:1; min-width:150px; margin-bottom:0;">
         <label for="sk-salary-min">Desired salary — min (USD / year)</label>
@@ -4620,7 +4624,7 @@
         <div style="margin-bottom:24px;">
           <div class="cd-search-wrap">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
-            <input type="text" id="jobSearch" placeholder="Search job titles, companies, skills, departments…">
+            <input type="text" id="jobSearch" aria-label="Search job titles, companies, or locations" placeholder="Search job titles, companies, skills, departments…">
             <button class="cd-search-btn" id="jobSearchBtn">Search</button>
           </div>
 
@@ -4642,9 +4646,9 @@
             <div class="adv-filter-grid">
 
               <div class="adv-filter-group" style="grid-column:1 / -1;">
-                <label>Location</label>
+                <div class="afg-title">Location</div>
                 <div class="loc-add-row">
-                  <select id="jobMetro" class="loc-dist" style="width:auto;min-width:210px;">
+                  <select id="jobMetro" aria-label="Filter by metro area" class="loc-dist" style="width:auto;min-width:210px;">
                     <option value="">Any location</option>
                     <option value="__remote">Remote only</option>
                     <optgroup label="Metro areas (within ~75 mi)">
@@ -4660,8 +4664,8 @@
                       <option value="atlanta">Atlanta Metro</option>
                     </optgroup>
                   </select>
-                  <input type="text" id="jobLocationInput" placeholder="Or a city / state — e.g. Austin, TX">
-                  <select id="jobCountry" class="loc-dist" style="width:auto;min-width:160px;">
+                  <input type="text" id="jobLocationInput" aria-label="Filter by city or state" placeholder="Or a city / state — e.g. Austin, TX">
+                  <select id="jobCountry" aria-label="Filter by country" class="loc-dist" style="width:auto;min-width:160px;">
                     <option value="">Any country</option>
                     <option value="us">United States</option>
                     <option value="ca">Canada</option>
@@ -4687,7 +4691,7 @@
               </div>
 
               <div class="adv-filter-group">
-                <label>Work setup</label>
+                <div class="afg-title">Work setup</div>
                 <div class="adv-filter-chips">
                   <button class="adv-chip" data-filter="setup" data-value="Remote">Remote</button>
                   <button class="adv-chip" data-filter="setup" data-value="Hybrid">Hybrid</button>
@@ -4696,7 +4700,7 @@
               </div>
 
               <div class="adv-filter-group">
-                <label>Job type</label>
+                <div class="afg-title">Job type</div>
                 <div class="adv-filter-chips">
                   <button class="adv-chip" data-filter="empType" data-value="Full-time">Full-time</button>
                   <button class="adv-chip" data-filter="empType" data-value="Contract">Contract</button>
@@ -4705,7 +4709,7 @@
               </div>
 
               <div class="adv-filter-group">
-                <label>Date posted</label>
+                <div class="afg-title">Date posted</div>
                 <div class="adv-filter-chips">
                   <button class="adv-chip" data-filter="posted" data-value="1">Past 24 hours</button>
                   <button class="adv-chip" data-filter="posted" data-value="7">Past week</button>
@@ -4714,7 +4718,7 @@
               </div>
 
               <div class="adv-filter-group">
-                <label>Experience level</label>
+                <div class="afg-title">Experience level</div>
                 <div class="adv-filter-chips">
                   <button class="adv-chip" data-filter="seniority" data-value="Entry-level">Entry-level</button>
                   <button class="adv-chip" data-filter="seniority" data-value="Mid-level">Mid-level</button>
@@ -4726,7 +4730,7 @@
               </div>
 
               <div class="adv-filter-group">
-                <label>Department</label>
+                <div class="afg-title">Department</div>
                 <div class="adv-filter-chips">
                   <button class="adv-chip" data-filter="dept" data-value="Engineering">Engineering</button>
                   <button class="adv-chip" data-filter="dept" data-value="Product">Product</button>
@@ -4740,15 +4744,15 @@
               </div>
 
               <div class="adv-filter-group">
-                <label>Min salary</label>
+                <div class="afg-title">Min salary</div>
                 <div class="salary-range-row">
-                  <input type="range" id="salarySlider" min="0" max="250" step="10" value="0">
+                  <input type="range" id="salarySlider" aria-label="Minimum salary filter" min="0" max="250" step="10" value="0">
                   <span class="sal-val" id="salaryDisplay">Any</span>
                 </div>
               </div>
 
               <div class="adv-filter-group">
-                <label>Perks</label>
+                <div class="afg-title">Perks</div>
                 <div class="adv-filter-chips">
                   <button class="adv-chip" data-filter="equity" data-value="true">Equity offered</button>
                 </div>
@@ -4788,7 +4792,7 @@
           <h2 id="allRolesHeading">All open <em>roles</em></h2>
           <div style="display:flex;align-items:center;gap:12px;">
             <span class="results-meta" id="roleCount"></span>
-            <select class="sort-select" id="jobSortSelect">
+            <select class="sort-select" id="jobSortSelect" aria-label="Sort jobs by">
               <option value="match">Best match</option>
               <option value="salary">Highest salary</option>
               <option value="newest">Newest</option>
@@ -4841,7 +4845,7 @@
       <div class="am-prompt" id="amPrompt">My superpower at work</div>
       <div class="am-company" id="amCompany">from Render Studio</div>
       <div class="am-note">Recruiters see every answer you give. Your answer will also be saved to your profile so other companies can see it.</div>
-      <textarea class="am-ta" id="amTextarea" placeholder="Write your answer…"></textarea>
+      <textarea class="am-ta" id="amTextarea" aria-label="Write your answer" placeholder="Write your answer…"></textarea>
       <div class="am-actions">
         <button class="am-cancel" id="amCancel">Cancel</button>
         <button class="am-save" id="amSave">Save answer</button>
@@ -4857,15 +4861,15 @@
     <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px;">
       <div class="wordmark"><img src="/logo.png" class="brand-img" alt="GigCute" style="height:26px;"></div>
       <div id="adminControls" style="display:flex; align-items:center; gap:8px;">
-        <select id="adminRange" class="ds-nav-btn" style="cursor:pointer;">
+        <select id="adminRange" aria-label="Analytics date range preset" class="ds-nav-btn" style="cursor:pointer;">
           <option value="">All time</option>
           <option value="7">Last 7 days</option>
           <option value="30" selected>Last 30 days</option>
           <option value="90">Last 90 days</option>
         </select>
-        <input type="date" id="adminFrom" title="From date" class="ds-nav-btn" style="cursor:pointer; color-scheme:dark;">
+        <input type="date" id="adminFrom" aria-label="Analytics start date" title="From date" class="ds-nav-btn" style="cursor:pointer; color-scheme:dark;">
         <span style="color:rgba(251,247,240,0.4); font-size:13px;">→</span>
-        <input type="date" id="adminTo" title="To date" class="ds-nav-btn" style="cursor:pointer; color-scheme:dark;">
+        <input type="date" id="adminTo" aria-label="Analytics end date" title="To date" class="ds-nav-btn" style="cursor:pointer; color-scheme:dark;">
         <button class="ds-nav-btn" id="adminRefresh" type="button">Refresh</button>
         <button class="ds-nav-btn" id="adminReset" type="button" style="border-color:rgba(217,56,43,0.5); color:#E06055;">Reset</button>
       </div>
@@ -4899,7 +4903,7 @@
         <button type="button" class="fb-cat" data-cat="bug">🐞 Bug</button>
         <button type="button" class="fb-cat" data-cat="idea">💡 Idea</button>
       </div>
-      <textarea id="fbMessage" rows="5" maxlength="4000" placeholder="What's on your mind?"
+      <textarea id="fbMessage" aria-label="Your feedback message" rows="5" maxlength="4000" placeholder="What's on your mind?"
         style="width:100%;box-sizing:border-box;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:14px;padding:12px 14px;resize:vertical;margin-bottom:12px;"></textarea>
       <div id="fbEmailWrap" style="margin-bottom:6px;">
         <label for="fbEmail" style="display:block;font-size:12.5px;color:rgba(251,247,240,0.6);margin-bottom:5px;">Email <span id="fbEmailHint" style="color:rgba(251,247,240,0.4);">(so we can reply)</span></label>
@@ -5636,10 +5640,10 @@
            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
            ${escapeHtml(a.fileName || 'file')}${a.url ? '' : ' <span class="wh-art-pending">· uploads on save</span>'}
          </span>`
-      : `<input type="url" class="wh-art-url" data-aid="${a._cid}" data-entry="${entryId}" value="${escapeHtml(a.url||'')}" placeholder="https://… (site, video, repo, slides)">`;
+      : `<input type="url" id="wh-art-url-${a._cid}" name="wh-art-url-${a._cid}" aria-label="Artifact link (URL)" class="wh-art-url" data-aid="${a._cid}" data-entry="${entryId}" value="${escapeHtml(a.url||'')}" placeholder="https://… (site, video, repo, slides)">`;
     return `<div class="wh-art-row" data-aid="${a._cid}">
       <div class="wh-art-main">${main}${del}</div>
-      <input type="text" class="wh-art-title" data-aid="${a._cid}" data-entry="${entryId}" value="${escapeHtml(a.title||'')}" placeholder="Headline / short description" maxlength="120">
+      <input type="text" id="wh-art-title-${a._cid}" name="wh-art-title-${a._cid}" aria-label="Artifact headline or short description" class="wh-art-title" data-aid="${a._cid}" data-entry="${entryId}" value="${escapeHtml(a.title||'')}" placeholder="Headline / short description" maxlength="120">
     </div>`;
   }
   function renderArtifactsList(entryId){
@@ -5651,15 +5655,15 @@
   function workEntryHTML(w, id){
     return `
       <div class="work-entry" data-id="${id}">
-        <div class="field"><label>Job title</label><input type="text" class="wh-title" value="${escapeHtml(w.title||'')}" placeholder="Job title"></div>
-        <div class="field"><label>Company</label><input type="text" class="wh-company" value="${escapeHtml(w.company||'')}" placeholder="Company name"></div>
+        <div class="field"><label for="wh-title-${id}">Job title</label><input type="text" id="wh-title-${id}" name="wh-title-${id}" autocomplete="organization-title" class="wh-title" value="${escapeHtml(w.title||'')}" placeholder="Job title"></div>
+        <div class="field"><label for="wh-company-${id}">Company</label><input type="text" id="wh-company-${id}" name="wh-company-${id}" autocomplete="organization" class="wh-company" value="${escapeHtml(w.company||'')}" placeholder="Company name"></div>
         <div class="field" style="display:flex; gap:12px;">
-          <div style="flex:1;"><label>Start year</label><input type="text" class="wh-start" value="${escapeHtml(w.start||'')}" placeholder="Year"></div>
-          <div style="flex:1;"><label>End year</label><input type="text" class="wh-end" value="${escapeHtml(w.end||'')}" placeholder="Year or Present"></div>
+          <div style="flex:1;"><label for="wh-start-${id}">Start year</label><input type="text" id="wh-start-${id}" name="wh-start-${id}" class="wh-start" value="${escapeHtml(w.start||'')}" placeholder="Year"></div>
+          <div style="flex:1;"><label for="wh-end-${id}">End year</label><input type="text" id="wh-end-${id}" name="wh-end-${id}" class="wh-end" value="${escapeHtml(w.end||'')}" placeholder="Year or Present"></div>
         </div>
-        <div class="field"><label>What did you do here?</label><textarea class="wh-desc" placeholder="One line per highlight…">${escapeHtml(w.description||'')}</textarea></div>
+        <div class="field"><label for="wh-desc-${id}">What did you do here?</label><textarea id="wh-desc-${id}" name="wh-desc-${id}" class="wh-desc" placeholder="One line per highlight…">${escapeHtml(w.description||'')}</textarea></div>
         <div class="wh-artifacts">
-          <label class="wh-art-label">Work Artifacts <span class="wh-art-sub">— projects / presentations you want to share (optional)</span></label>
+          <div class="wh-art-label">Work Artifacts <span class="wh-art-sub">— projects / presentations you want to share (optional)</span></div>
           <div class="wh-art-warn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             Please leave out anything confidential or not meant to be shared publicly — these are visible on your profile.
@@ -5668,7 +5672,7 @@
           <div class="wh-art-actions">
             <button type="button" class="btn-sm wh-art-add" data-add-art-link="${id}">+ Add link</button>
             <button type="button" class="btn-sm wh-art-add" data-add-art-file="${id}">+ Add file <span class="wh-art-sub">(≤5MB)</span></button>
-            <input type="file" class="wh-art-file-input" data-art-file="${id}" style="display:none" accept=".pdf,.doc,.docx,.ppt,.pptx,.key,.png,.jpg,.jpeg,.gif,.webp,.txt,.csv,.xls,.xlsx,.zip">
+            <input type="file" id="wh-art-file-${id}" name="wh-art-file-${id}" aria-label="Choose a work artifact file to upload" class="wh-art-file-input" data-art-file="${id}" style="display:none" accept=".pdf,.doc,.docx,.ppt,.pptx,.key,.png,.jpg,.jpeg,.gif,.webp,.txt,.csv,.xls,.xlsx,.zip">
           </div>
         </div>
         <button class="btn-sm danger" type="button" data-remove-work="${id}">Remove role</button>
@@ -5751,9 +5755,9 @@
   function portfolioEntryHTML(p, id){
     return `
       <div class="work-entry" data-id="${id}">
-        <div class="field"><label>Project title</label><input type="text" class="pf-title" value="${escapeHtml(p.title||'')}" placeholder="e.g. Checkout redesign, Demo reel, Case study"></div>
-        <div class="field"><label>Link <span style="color:rgba(251,247,240,0.4);">(where the work lives — site, video, repo, gallery)</span></label><input type="url" class="pf-url" value="${escapeHtml(p.url||'')}" placeholder="https://…"></div>
-        <div class="field"><label>Describe it</label><textarea class="pf-desc" placeholder="What is it, your role, the impact, the tools…">${escapeHtml(p.description||'')}</textarea></div>
+        <div class="field"><label for="pf-title-${id}">Project title</label><input type="text" id="pf-title-${id}" name="pf-title-${id}" class="pf-title" value="${escapeHtml(p.title||'')}" placeholder="e.g. Checkout redesign, Demo reel, Case study"></div>
+        <div class="field"><label for="pf-url-${id}">Link <span style="color:rgba(251,247,240,0.4);">(where the work lives — site, video, repo, gallery)</span></label><input type="url" id="pf-url-${id}" name="pf-url-${id}" class="pf-url" value="${escapeHtml(p.url||'')}" placeholder="https://…"></div>
+        <div class="field"><label for="pf-desc-${id}">Describe it</label><textarea id="pf-desc-${id}" name="pf-desc-${id}" class="pf-desc" placeholder="What is it, your role, the impact, the tools…">${escapeHtml(p.description||'')}</textarea></div>
         <button class="btn-sm danger" type="button" data-remove-portfolio="${id}">Remove project</button>
       </div>`;
   }
@@ -5792,9 +5796,9 @@
   function educationEntryHTML(e, id){
     return `
       <div class="work-entry" data-id="${id}">
-        <div class="field"><label>School / institution</label><input type="text" class="ed-school" value="${escapeHtml(e.school||'')}" placeholder="e.g. University of Michigan"></div>
-        <div class="field"><label>Degree / field of study</label><input type="text" class="ed-degree" value="${escapeHtml(e.degree||'')}" placeholder="e.g. B.S. Computer Science"></div>
-        <div class="field"><label>Year <span style="color:rgba(251,247,240,0.4);">(or range)</span></label><input type="text" class="ed-year" value="${escapeHtml(e.year||'')}" placeholder="e.g. 2018 or 2014 – 2018"></div>
+        <div class="field"><label for="ed-school-${id}">School / institution</label><input type="text" id="ed-school-${id}" name="ed-school-${id}" class="ed-school" value="${escapeHtml(e.school||'')}" placeholder="e.g. University of Michigan"></div>
+        <div class="field"><label for="ed-degree-${id}">Degree / field of study</label><input type="text" id="ed-degree-${id}" name="ed-degree-${id}" class="ed-degree" value="${escapeHtml(e.degree||'')}" placeholder="e.g. B.S. Computer Science"></div>
+        <div class="field"><label for="ed-year-${id}">Year <span style="color:rgba(251,247,240,0.4);">(or range)</span></label><input type="text" id="ed-year-${id}" name="ed-year-${id}" class="ed-year" value="${escapeHtml(e.year||'')}" placeholder="e.g. 2018 or 2014 – 2018"></div>
         <button class="btn-sm danger" type="button" data-remove-edu="${id}">Remove</button>
       </div>`;
   }
@@ -5822,11 +5826,11 @@
   function certEntryHTML(c, id){
     return `
       <div class="work-entry" data-id="${id}">
-        <div class="field"><label>Certification / license</label><input type="text" class="cf-name" value="${escapeHtml(c.name||'')}" placeholder="e.g. AWS Solutions Architect"></div>
-        <div class="field"><label>Issuing organization</label><input type="text" class="cf-issuer" value="${escapeHtml(c.issuer||'')}" placeholder="e.g. Amazon Web Services"></div>
+        <div class="field"><label for="cf-name-${id}">Certification / license</label><input type="text" id="cf-name-${id}" name="cf-name-${id}" class="cf-name" value="${escapeHtml(c.name||'')}" placeholder="e.g. AWS Solutions Architect"></div>
+        <div class="field"><label for="cf-issuer-${id}">Issuing organization</label><input type="text" id="cf-issuer-${id}" name="cf-issuer-${id}" class="cf-issuer" value="${escapeHtml(c.issuer||'')}" placeholder="e.g. Amazon Web Services"></div>
         <div class="field" style="display:flex; gap:12px;">
-          <div style="flex:1;"><label>Year</label><input type="text" class="cf-year" value="${escapeHtml(c.year||'')}" placeholder="e.g. 2024"></div>
-          <div style="flex:2;"><label>Verification link <span style="color:rgba(251,247,240,0.4);">(optional)</span></label><input type="url" class="cf-url" value="${escapeHtml(c.url||'')}" placeholder="https://…"></div>
+          <div style="flex:1;"><label for="cf-year-${id}">Year</label><input type="text" id="cf-year-${id}" name="cf-year-${id}" class="cf-year" value="${escapeHtml(c.year||'')}" placeholder="e.g. 2024"></div>
+          <div style="flex:2;"><label for="cf-url-${id}">Verification link <span style="color:rgba(251,247,240,0.4);">(optional)</span></label><input type="url" id="cf-url-${id}" name="cf-url-${id}" class="cf-url" value="${escapeHtml(c.url||'')}" placeholder="https://…"></div>
         </div>
         <button class="btn-sm danger" type="button" data-remove-cert="${id}">Remove</button>
       </div>`;
@@ -5878,8 +5882,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.3-6.2 3.3 1.2-6.8-5-4.9 6.9-1z"/></svg>
           </button>
         </div>
-        <div class="pr-helper">${escapeHtml(p.helper)}</div>
-        <textarea data-idx="${idx}" placeholder="Write your answer (optional)…"></textarea>
+        <div class="pr-helper" id="pr-helper-${idx}">${escapeHtml(p.helper)}</div>
+        <textarea data-idx="${idx}" id="pr-answer-${idx}" name="pr-answer-${idx}"
+          aria-label="Your answer: ${escapeHtml(p.label)}" aria-describedby="pr-helper-${idx}"
+          placeholder="Write your answer (optional)…"></textarea>
         <div class="pr-count">0 / 150 words</div>
       </div>
     `).join('');
@@ -6280,7 +6286,7 @@
       for(let i = 1; i <= 5; i++){
         html += `<div style="display:flex;align-items:center;gap:9px;">
           <span style="font-family:'Fraunces',serif;font-size:15px;color:var(--coral);width:14px;flex-shrink:0;">${i}</span>
-          <select id="sk-strength-${i}" style="flex:1;min-width:0;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:13.5px;padding:9px 12px;cursor:pointer;">
+          <select id="sk-strength-${i}" name="sk-strength-${i}" aria-label="CliftonStrengths theme #${i}" style="flex:1;min-width:0;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:13.5px;padding:9px 12px;cursor:pointer;">
             <option value="">Select #${i}…</option>${groups}
           </select>
         </div>`;
