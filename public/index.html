@@ -1483,6 +1483,10 @@
   .sh-go{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--coral); flex-shrink:0; }
   .sh-empty{ font-size:13.5px; color:rgba(251,247,240,0.45); background:var(--ink-soft); border:1px solid var(--line-light); border-radius:12px; padding:16px 18px; }
   .sh-loading{ color:rgba(251,247,240,0.4); padding:12px 0; }
+  .sh-titles-nudge{ display:flex; align-items:center; gap:14px; background:rgba(232,110,74,0.10); border:1px solid rgba(232,110,74,0.42); border-radius:12px; padding:13px 14px 13px 16px; margin-bottom:12px; color:var(--paper); }
+  .sh-titles-nudge .jli-btn{ flex-shrink:0; }
+  .sh-nudge-x{ flex-shrink:0; background:none; border:none; color:rgba(251,247,240,0.5); font-size:20px; line-height:1; cursor:pointer; padding:2px 4px; }
+  .sh-nudge-x:hover{ color:var(--paper); }
   .sh-more{ background:none; border:1px dashed var(--line-light); color:rgba(251,247,240,0.72); border-radius:10px; padding:10px 14px; width:100%; cursor:pointer; font-size:13px; margin-top:2px; font-family:'Inter',sans-serif; }
   .sh-more:hover{ border-color:var(--coral); color:var(--coral); }
   .sh-stat{ flex:1; min-width:150px; background:var(--ink-soft); border:1px solid var(--line-light); border-radius:14px; padding:18px 20px; }
@@ -6427,7 +6431,7 @@
   };
 
   // ---- entry point: edit profile (from nav "Edit Profile" / account dropdown) ----
-  function openProfileEdit(){
+  function openProfileEdit(focus){
     document.getElementById('importedBanner').style.display = 'none';
     renderWorkHistoryEntries(seekerProfile.workHistory);
     setPendingSkills(seekerProfile.skills);
@@ -6464,6 +6468,14 @@
     manualPhotoSet = !!seekerProfile.photo;
     setProfilePhoto(seekerProfile.photo);
     showScreen('screen-seeker-work');
+    // Deep-link into a specific field (e.g. the home nudge that sends seekers
+    // straight to desired titles). Deferred a tick so the screen is laid out.
+    if(focus === 'titles'){
+      setTimeout(() => {
+        const inp = document.getElementById('sk-desired-titles');
+        if(inp){ inp.scrollIntoView({ behavior:'smooth', block:'center' }); try{ inp.focus({ preventScroll:true }); }catch(e){ inp.focus(); } }
+      }, 60);
+    }
   }
   window.openProfileEdit = openProfileEdit;
   { const b = document.getElementById('navProfileBtn'); if(b) b.onclick = openProfileEdit; }
@@ -9020,6 +9032,11 @@
     pool.sort((a,b) => (b.rel||0) - (a.rel||0));   // best matches first; direct + ATS mixed
     return pool.slice(0, 5);
   }
+  // Desired-titles nudge: dismissible, but only for the current calendar day so
+  // it quietly returns tomorrow if the seeker still hasn't set titles.
+  function gcTitlesNudgeDismissed(){ try{ return localStorage.getItem('gc_titles_nudge') === gcTodayStr(); }catch(e){ return false; } }
+  function gcTitlesNudgeDismiss(btn){ try{ localStorage.setItem('gc_titles_nudge', gcTodayStr()); }catch(e){} const n = btn && btn.closest('.sh-titles-nudge'); if(n) n.remove(); }
+  window.gcTitlesNudgeDismiss = gcTitlesNudgeDismiss;
   async function renderHomeMatches(API){
     const el = document.getElementById('shMatches'); if(!el) return;
     el.innerHTML = '<div class="sh-loading">Loading…</div>';
@@ -9042,8 +9059,22 @@
         : `<div class="sh-empty">You're all caught up on today's matches — new ones arrive tomorrow. Meanwhile, browse the full board.</div>`) + browse;
       return;
     }
+    // Even when we have matches to show, nudge seekers who haven't named the
+    // roles they want — desired titles are the strongest matching signal and are
+    // what turn this list from "recent postings" into "picked for you".
+    const hasTitles = ((seekerProfile.desiredTitles || []).filter(Boolean).length > 0);
+    const nudge = (!hasTitles && !gcTitlesNudgeDismissed())
+      ? `<div class="sh-titles-nudge">
+           <div style="flex:1;min-width:0;">
+             <div style="font-weight:600;">Get sharper matches</div>
+             <div style="font-size:12.5px;opacity:0.75;margin-top:2px;">Tell us the roles you're targeting and we'll rank every job for you.</div>
+           </div>
+           <button class="jli-btn primary" type="button" onclick="if(window.openProfileEdit)openProfileEdit('titles')">Add desired titles</button>
+           <button class="sh-nudge-x" type="button" aria-label="Dismiss" onclick="gcTitlesNudgeDismiss(this)">&times;</button>
+         </div>`
+      : '';
     const money = v => v ? ('$'+(v>=1000?Math.round(v/1000)+'k':v)) : '';
-    el.innerHTML = items.map(it => {
+    el.innerHTML = nudge + items.map(it => {
       const rel = (it.rel != null) ? relChipHTML(it.rel) : '';
       if(it.type === 'direct'){
         const p = it.data; __directById[p.id] = p;
