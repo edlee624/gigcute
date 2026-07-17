@@ -8661,12 +8661,13 @@
       if(!groups.every(g => g.some(k => hay.includes(k.toLowerCase())))) return false;
       return true;
     });
-    // Score every candidate on the richer signal (title/role words + skills +
-    // recency + remote fit), then RE-SORT by that score so the best fits lead —
-    // previously the list stayed in raw ts_rank order while showing a different
-    // score, so a strong match could sit below a weak one.
+    // Relevance = the server ranker's score (match_jobs_for_seeker), same as the
+    // home "Jobs picked for you" list — so a given job shows the SAME match % on
+    // the board and on home. The server score sees the whole feed, not just this
+    // 50-row window. Fall back to the client scorer only if a row lacks a score.
+    // Then sort by it so the label and the order always agree.
     const sig = { terms: (kw.terms || []).map(t => t.toLowerCase()), skills: (kw.skills || []).map(s => s.toLowerCase()), prefersRemote: !!kw.prefersRemote, targetTitles: (kw.targetTitles || []), salMin: kw.salMin || null, salMax: kw.salMax || null };
-    ranked.forEach(j => { j.__relevance = scoreJobForSeeker(j, sig); });
+    ranked.forEach(j => { j.__relevance = (j.score != null ? j.score : scoreJobForSeeker(j, sig)); });
     ranked.sort((a,b) => (b.__relevance || 0) - (a.__relevance || 0)
       || (new Date(b.posted_at || 0).getTime() - new Date(a.posted_at || 0).getTime()));
     return { jobs: ranked, total: ranked.length };
