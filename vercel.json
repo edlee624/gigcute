@@ -2,6 +2,13 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "outputDirectory": "public",
   "rewrites": [
+    {
+      "source": "/profile/:code",
+      "has": [
+        { "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|Twitterbot|LinkedInBot|Slackbot|Slack-ImgProxy|WhatsApp|TelegramBot|Discordbot|Googlebot|bingbot|Applebot|redditbot|Pinterest|vkShare|W3C_Validator|SkypeUriPreview|embedly|Iframely|nuzzel|Google-InspectionTool|Mastodon|BlueSky|Bluesky).*" }
+      ],
+      "destination": "/api/og?code=:code"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
