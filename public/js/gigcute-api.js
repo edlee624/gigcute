@@ -1035,6 +1035,9 @@ const jobs = {
     const clean = s => String(s || '').replace(/[(),%]/g, ' ').trim();
     let query = requireClient()
       .from('jobs')
+      // count:'exact' is affordable only because title/company/location each have
+      // a trigram index — without them this count seq-scans the feed (~7s, timeouts).
+      // Keep those indexes if you add a column to the search OR-chain below.
       .select('*', { count: 'exact' })
       .eq('is_active', true);
     if (remote === true) query = query.eq('remote', true);
