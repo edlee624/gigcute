@@ -7829,13 +7829,32 @@
   function gcPendingSet(o){ try{ localStorage.setItem('gc_pending', JSON.stringify(o)); }catch(e){} }
   function gcPendingGet(){ try{ return JSON.parse(localStorage.getItem('gc_pending')||'null'); }catch(e){ return null; } }
   function gcPendingClear(){ try{ localStorage.removeItem('gc_pending'); }catch(e){} }
+  // Reject after ms so a stalled request can never wedge the caller. The underlying
+  // work may still land — saveFull upserts, so a late success is harmless.
+  function gcWithTimeout(p, ms, label){
+    return Promise.race([ p, new Promise((_, rej) => setTimeout(() => rej(new Error((label || 'request') + ' timed out')), ms)) ]);
+  }
+  // Finish a signup whose profile couldn't be saved at the time (the account still
+  // needed email confirmation). This runs during login, so it MUST NOT be able to
+  // block it. It used to: gcPendingClear() ran only on success, so a payload that
+  // failed retried on every future login, and a saveFull that STALLED never threw —
+  // the login handler simply never reached enterApp() and the button spun forever.
+  // (Signups interrupted by the email rate-limit outage stranded exactly such a
+  // payload, locking those accounts out until they cleared site data.) A stashed
+  // payload is also lossy by construction — a File JSON-stringifies to {} — so it
+  // can legitimately be unsaveable. Now: time-boxed, and self-disposing after a few
+  // attempts rather than retried forever.
+  const GC_PENDING_MAX_TRIES = 3;
   async function gcCompletePending(API){
     const p = gcPendingGet(); if(!p) return;
+    const tries = (p.tries || 0) + 1;
+    if(tries > GC_PENDING_MAX_TRIES){ gcPendingClear(); return; }   // give up rather than wedge login
+    gcPendingSet(Object.assign({}, p, { tries }));                  // count it BEFORE trying, so a hang still counts
     try{
-      if(p.kind === 'seeker') await API.seeker.saveFull(p.payload);
-      else if(p.kind === 'company') await API.companies.create(p.company);
+      if(p.kind === 'seeker') await gcWithTimeout(API.seeker.saveFull(p.payload), 15000, 'profile save');
+      else if(p.kind === 'company') await gcWithTimeout(API.companies.create(p.company), 15000, 'company setup');
       gcPendingClear();
-    }catch(e){ console.warn('[gigcute] pending setup deferred:', e.message); }
+    }catch(e){ console.warn('[gigcute] pending setup deferred:', e && e.message); }
   }
   function gcAuthError(id, msg){ const el = document.getElementById(id); if(el){ el.textContent = msg; el.classList.add('show'); } }
   // Does the signed-in user have a seeker profile? Admins who also keep a real
@@ -7920,18 +7939,29 @@
     document.getElementById('seekerLoginBtn').onclick = async () => {
       const email = document.getElementById('seeker-login-email').value.trim();
       const pw = document.getElementById('seeker-login-pw').value;
+      const btn = document.getElementById('seekerLoginBtn');
+      const wasLabel = btn ? btn.textContent : '';
+      const release = () => { if(btn){ btn.disabled = false; btn.textContent = wasLabel; } };
       document.getElementById('seekerLoginError').classList.remove('show');
+      if(btn){ btn.disabled = true; btn.textContent = 'Signing in…'; }
+      // ONLY the credential check may fail the login. Once signIn resolves the user
+      // is authenticated, so every step after it is best-effort — a stalled profile
+      // catch-up or role lookup must never strand them on the login screen (it did:
+      // see gcCompletePending). Each is time-boxed and falls back to the seeker app.
+      try{ await API.auth.signIn({ email, password: pw }); }
+      catch(e){ release(); return gcAuthError('seekerLoginError', (e && e.message) || 'Login failed.'); }
+      try{ await gcCompletePending(API); }catch(e){}
+      let role = 'seeker';
+      try{ const me = await gcWithTimeout(API.profiles.me(), 8000, 'profile lookup'); if(me && me.role) role = me.role; }catch(e){}
       try{
-        await API.auth.signIn({ email, password: pw }); await gcCompletePending(API);
-        let role = 'seeker'; try{ const me = await API.profiles.me(); if(me && me.role) role = me.role; }catch(e){}
         if(role === 'recruiter'){ __postLoginRecruiter = false; goRecruiterAfterAuth(); }
-        // Admins who also keep a seeker profile use the app like anyone else;
-        // only a profile-less admin goes straight to the panel (/admin is always
-        // reachable by URL either way).
-        else if(role === 'admin' && !(await gcHasSeekerProfile(API))){ navigate('/admin'); }
+        // Admins who also keep a seeker profile use the app like anyone else; only a
+        // profile-less admin goes straight to the panel (/admin stays reachable by
+        // URL either way). If that check stalls, assume seeker — the common case.
+        else if(role === 'admin' && !(await gcWithTimeout(gcHasSeekerProfile(API), 8000, 'admin check').catch(() => true))){ navigate('/admin'); }
         else { enterApp('candidate'); gcSyncIntro(); }
-      }
-      catch(e){ gcAuthError('seekerLoginError', e.message || 'Login failed.'); }
+      }catch(e){ enterApp('candidate'); }
+      release();
     };
     // (Recruiter login removed — seeker-only build.)
 
