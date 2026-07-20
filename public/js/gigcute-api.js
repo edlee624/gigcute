@@ -88,10 +88,17 @@ const auth = {
   },
   // Fires when the user arrives via a password-recovery link. The Supabase client
   // establishes a temporary session and emits PASSWORD_RECOVERY.
+  // NOTE: both subscription wrappers deliver the callback via setTimeout(0).
+  // supabase-js AWAITS auth-state subscribers while holding its internal auth
+  // lock (e.g. during the boot-time refresh of an expired stored token); a
+  // subscriber that calls back into auth (getUser/getSession/...) deadlocks the
+  // client, after which every auth call — login included — hangs forever.
+  // Deferring delivery moves the callback outside the locked section, so no
+  // subscriber can ever wedge the client, whatever it calls.
   onPasswordRecovery(cb) {
     if (!supabase) return () => {};
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') cb(session);
+      if (event === 'PASSWORD_RECOVERY') setTimeout(() => cb(session), 0);
     });
     return () => data.subscription.unsubscribe();
   },
@@ -102,7 +109,7 @@ const auth = {
   },
   onChange(cb) {
     if (!supabase) return () => {};
-    const { data } = supabase.auth.onAuthStateChange((_e, session) => cb(session));
+    const { data } = supabase.auth.onAuthStateChange((_e, session) => setTimeout(() => cb(session), 0));
     return () => data.subscription.unsubscribe();
   },
 };

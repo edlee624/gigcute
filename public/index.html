@@ -7948,8 +7948,16 @@
       // is authenticated, so every step after it is best-effort — a stalled profile
       // catch-up or role lookup must never strand them on the login screen (it did:
       // see gcCompletePending). Each is time-boxed and falls back to the seeker app.
-      try{ await API.auth.signIn({ email, password: pw }); }
-      catch(e){ release(); return gcAuthError('seekerLoginError', (e && e.message) || 'Login failed.'); }
+      // Time-boxed: a wedged auth client (e.g. the subscriber-deadlock this app
+      // once had) must surface as an actionable error, never an endless spinner.
+      try{ await gcWithTimeout(API.auth.signIn({ email, password: pw }), 20000, 'sign-in'); }
+      catch(e){
+        release();
+        const msg = /timed out/.test((e && e.message) || '')
+          ? 'Login is taking too long — please reload this page and try again.'
+          : (e && e.message) || 'Login failed.';
+        return gcAuthError('seekerLoginError', msg);
+      }
       try{ await gcCompletePending(API); }catch(e){}
       let role = 'seeker';
       try{ const me = await gcWithTimeout(API.profiles.me(), 8000, 'profile lookup'); if(me && me.role) role = me.role; }catch(e){}
@@ -8948,7 +8956,16 @@
     function wireAuth(){
       refreshAuthState();
       try{ const a = window.GigCuteAPI; if(a && a.supabase && a.supabase.auth && a.supabase.auth.onAuthStateChange){
-        a.supabase.auth.onAuthStateChange(() => refreshAuthState());
+        // The event HANDS us the session — use it. NEVER call auth methods
+        // (getUser/getSession/currentUser) inside this callback: supabase-js awaits
+        // subscribers while holding its internal auth lock (notably during the
+        // boot-time refresh of an expired stored token), so a callback that makes
+        // another lock-acquiring auth call deadlocks the client. initializePromise
+        // then never settles and EVERY later auth call — login included — hangs
+        // before it even hits the network. That was the "login spins forever until
+        // I clear site data" bug: it struck exactly when the stored token had
+        // expired by the time the page loaded (i.e. returning after ~an hour).
+        a.supabase.auth.onAuthStateChange((_e, session) => setLauncher(!!(session && session.user)));
       }}catch(e){}
     }
     if(window.GigCuteAPI) wireAuth(); else window.addEventListener('gigcute-api-ready', wireAuth);
