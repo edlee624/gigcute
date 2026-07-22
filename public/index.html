@@ -9236,6 +9236,13 @@
     if(!document.getElementById('rc1Terms').checked) return fail('Please accept the Terms to continue.');
     const API = await gcAwaitAPI();
     if(!API || !API.enabled) return fail('Backend not configured.');
+    // Recruiter accounts require a corporate email. Pre-check for a friendly
+    // message; the handle_new_user trigger enforces the same rule server-side,
+    // so if this probe errors (network etc.) we let signUp be the judge.
+    try{
+      if(!(await API.auth.isBusinessEmail(email)))
+        return fail('Please use your corporate email address — personal addresses (Gmail, Outlook, iCloud…) can’t be used for recruiter accounts.');
+    }catch(e){}
     try{
       await API.auth.signUp({ email, password: pw, role: 'recruiter', fullName: `${first} ${last}` });
       let authed = false;
@@ -9248,7 +9255,14 @@
       } else {
         fail('Account created — confirm your email, then log in to continue.');
       }
-    }catch(e){ fail((e && e.message) || 'Could not create account.'); }
+    }catch(e){
+      // The corporate-email trigger's rejection reaches us as an opaque
+      // "Database error saving new user" — translate it back to the real reason.
+      const m = (e && e.message) || '';
+      fail(/database error saving new user/i.test(m)
+        ? 'Please use your corporate email address — personal addresses (Gmail, Outlook, iCloud…) can’t be used for recruiter accounts.'
+        : (m || 'Could not create account.'));
+    }
   }
   async function recruiterSaveCompany(){
     const err = document.getElementById('coError');

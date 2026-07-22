@@ -53,6 +53,15 @@ const auth = {
     if (error) throw error;
     return data;
   },
+  // Is this a corporate email (not a free/disposable provider)? Recruiter signup
+  // pre-checks this for a friendly error; the DB trigger enforces it regardless.
+  async isBusinessEmail(email) {
+    const domain = String(email || '').split('@')[1];
+    if (!domain) return false;
+    const { data, error } = await requireClient().rpc('is_business_domain', { p_domain: domain.toLowerCase() });
+    if (error) throw error;
+    return !!data;
+  },
   async signInWithGoogle() {
     const { data, error } = await requireClient().auth.signInWithOAuth({
       provider: 'google',
