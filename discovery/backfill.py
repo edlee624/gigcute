@@ -277,6 +277,127 @@ def bamboohr(slug, name):
             salary_currency="USD", url=url, description=cap(d), tags=[x for x in [dep] if x][:4], posted_at=posted))
     return out
 
+def oraclecloud(pod, name, site):
+    # Oracle Cloud Recruiting (Fusion HCM / ORC). 2-hop: the list carries only
+    # ShortDescriptionStr, the full text needs a detail call. The list is sorted
+    # newest-first, so we stop the moment a posting falls outside the intake
+    # window — everything after it is older. external_id is keyed on pod+reqId
+    # (NOT site) so a req exposed on several CE sites collapses to one row.
+    if not site: return []
+    base = f"https://{pod}.oraclecloud.com/hcmRestApi/resources/latest/recruitingCEJobRequisitions"
+    dbase = f"https://{pod}.oraclecloud.com/hcmRestApi/resources/latest/recruitingCEJobRequisitionDetails"
+    out, details, stop = [], 0, False
+    for offset in (0, 100, 200):
+        if stop or details >= WD_DETAIL_CAP: break
+        try:
+            r = requests.get(base, headers=UA, timeout=15, params={
+                "onlyData": "true", "expand": "requisitionList.secondaryLocations",
+                "finder": f"findReqs;siteNumber={site},limit=100,offset={offset},sortBy=POSTING_DATES_DESC"})
+        except Exception:
+            break
+        if not r.ok: break
+        items = (r.json() or {}).get("items") or []
+        if not items: break
+        reqs = items[0].get("requisitionList") or []
+        if not reqs: break
+        for j in reqs:
+            if details >= WD_DETAIL_CAP: break
+            posted = j.get("PostedDate")
+            if not recent(posted):
+                stop = True; break        # newest-first: the rest are older
+            rid = j.get("Id")
+            if not rid: continue
+            details += 1
+            try:
+                dj = requests.get(dbase, headers=UA, timeout=15, params={
+                    "expand": "all", "onlyData": "true",
+                    "finder": f"ById;Id={rid},siteNumber={site}"}).json()
+            except Exception:
+                continue
+            ditems = (dj or {}).get("items") or []
+            d0 = ditems[0] if ditems else {}
+            d = htmltext("\n\n".join(x for x in [
+                d0.get("ExternalDescriptionStr"), d0.get("ExternalQualificationsStr")] if x))
+            a, b = salary(d)
+            loc = j.get("PrimaryLocation") or d0.get("PrimaryLocation")
+            wt = str(j.get("WorkplaceTypeCode") or "")
+            out.append(row(source="oraclecloud", external_id=f"ora:{pod}:{rid}",
+                title=d0.get("Title") or j.get("Title") or "Untitled", company=name or pod, location=loc,
+                remote=("REMOTE" in wt.upper()) or bool(re.search(r"remote", f"{loc or ''}", re.I)),
+                employment_type=j.get("WorkerType"), category=j.get("JobFunction"),
+                salary_min=a, salary_max=b, salary_currency="USD",
+                url=f"https://{pod}.oraclecloud.com/hcmUI/CandidateExperience/en/sites/{site}/job/{rid}",
+                description=cap(d), tags=[x for x in [j.get("JobFunction"), j.get("JobFamily")] if x][:4],
+                posted_at=posted))
+        if len(reqs) < 100: break
+    return out
+
+SF_CAP = 150   # date-fetches per company (feed is unsorted, so this bounds cost)
+SF_DATE_RE = re.compile(r'itemprop="datePosted"\s+content="([^"]+)"', re.I)
+_MON = {m: i for i, m in enumerate(
+    ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"], 1)}
+def sf_date(s):
+    # SuccessFactors RMK stamps the date as a Java Date string: "Wed Jul 08 07:00:00 UTC 2026"
+    m = re.search(r"\b([A-Z][a-z]{2}) (\d{1,2}) [\d:]+ \w+ (\d{4})", s or "")
+    if not m: return None
+    try:
+        return datetime(int(m.group(3)), _MON[m.group(1)], int(m.group(2)), tzinfo=timezone.utc).isoformat()
+    except Exception:
+        return None
+def _sf_tag(item, tag):
+    m = re.search(rf"<{tag}>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?</{tag}>", item, re.S)
+    return m.group(1).strip() if m else None
+
+def _sf_date_for(link):
+    try:
+        mm = SF_DATE_RE.search(requests.get(link, headers=UA, timeout=15).text or "")
+        return sf_date(mm.group(1)) if mm else None
+    except Exception:
+        return None
+
+def successfactors(host, name):
+    # SAP SuccessFactors Recruiting Marketing. 1 feed fetch gives the whole board
+    # WITH full descriptions + location; the posting date is only on the job page
+    # (schema.org microdata), so dating is 2-hop. The feed isn't date-sorted, so we
+    # fetch dates for up to SF_CAP jobs CONCURRENTLY and keep the recent ones. Jobs
+    # whose date is missing/old are skipped (freshness-safe) — some RMK templates
+    # omit the date.
+    try:
+        r = requests.get(f"https://{host}/job-feed.xml", headers=UA, timeout=25)
+    except Exception:
+        return []
+    if not r.ok:
+        return []
+    items = []
+    for it in re.findall(r"<item>(.*?)</item>", r.text, re.S):
+        link, gid = _sf_tag(it, "link"), _sf_tag(it, "g:id")
+        if link and gid:
+            items.append((it, link, gid))
+        if len(items) >= SF_CAP:
+            break
+    if not items:
+        return []
+    with ThreadPoolExecutor(max_workers=12) as ex:
+        dates = list(ex.map(lambda t: _sf_date_for(t[1]), items))
+    out = []
+    for (it, link, gid), posted in zip(items, dates):
+        if not (posted and recent(posted)):
+            continue
+        loc = _sf_tag(it, "g:location")
+        func = _sf_tag(it, "g:job_function")
+        if func:
+            func = re.sub(r"\s*\((?:DEPT_|[A-Z0-9_]{3,})\)\s*$", "", dec(func)).strip() or None
+        d = htmltext(_sf_tag(it, "description")); a, b = salary(d)
+        title = htmltext(_sf_tag(it, "title")) or "Untitled"
+        # SF titles repeat g:location as a trailing "(..., US, ...)" paren — drop it.
+        title = re.sub(r"\s*\([^()]*,\s*(?:US|USA)\b[^()]*\)\s*$", "", title).strip() or title
+        out.append(row(source="successfactors", external_id=f"sf:{host}:{gid}", title=title,
+            company=name or _sf_tag(it, "g:employer") or host, location=loc,
+            remote=bool(re.search(r"remote|virtual", f"{title} {loc or ''}", re.I)),
+            employment_type=None, category=func, salary_min=a, salary_max=b, salary_currency="USD",
+            url=link, description=cap(d), tags=[func] if func else [], posted_at=posted))
+    return out
+
 def fetch(rec):
     p = rec["platform"]
     try:
@@ -288,6 +409,8 @@ def fetch(rec):
         if p == "recruitee":       return rec, recruitee(rec["slug"], rec["company_name"])
         if p == "smartrecruiters": return rec, smartrecruiters(rec["slug"], rec["company_name"])
         if p == "bamboohr":        return rec, bamboohr(rec["slug"], rec["company_name"])
+        if p == "oraclecloud":     return rec, oraclecloud(rec["slug"], rec["company_name"], rec["site"])
+        if p == "successfactors":  return rec, successfactors(rec["slug"], rec["company_name"])
     except Exception:
         return rec, []
     return rec, []

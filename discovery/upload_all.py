@@ -8,7 +8,8 @@ REF = "ztvirfxxyvvcrxcjstzi"
 URI = f"https://api.supabase.com/v1/projects/{REF}/database/query"
 TOK = open(os.path.join(os.environ.get("TEMP", "/tmp"), "sbtok.txt"), encoding="utf-8").read().strip()
 HDR = {"Authorization": f"Bearer {TOK}"}
-SUPPORTED = {"greenhouse", "lever", "ashby", "workday", "smartrecruiters", "workable", "bamboohr", "recruitee"}
+SUPPORTED = {"greenhouse", "lever", "ashby", "workday", "smartrecruiters", "workable", "bamboohr", "recruitee",
+             "oraclecloud"}
 CHUNK = 500
 
 def q(sql):
@@ -18,6 +19,28 @@ def esc(v):
     return "'" + v.replace("'", "''") + "'" if v else "null"
 
 rows, seen = [], set()
+# Oracle Cloud: one pod (= one customer tenant) can expose several CandidateExperience
+# sites that mostly re-list the SAME requisitions. job_sources is unique on
+# (platform, slug), and we key jobs on pod+reqId, so keep exactly one site per pod —
+# the one advertising the most jobs.
+oracle_best = {}   # pod -> (count, site)
+for r in csv.reader(open(os.path.join(HERE, "confirmed.csv"), encoding="utf-8")):
+    if len(r) < 2:
+        continue
+    plat, ident = r[0].strip(), r[1].strip()
+    if plat != "oraclecloud":
+        continue
+    parts = ident.split("|")
+    if len(parts) != 2:
+        continue
+    pod, site = parts
+    try:
+        n = int(r[2]) if len(r) > 2 else 0
+    except ValueError:
+        n = 0
+    if pod not in oracle_best or n > oracle_best[pod][0]:
+        oracle_best[pod] = (n, site)
+
 for r in csv.reader(open(os.path.join(HERE, "confirmed.csv"), encoding="utf-8")):
     if len(r) < 2:
         continue
@@ -29,6 +52,12 @@ for r in csv.reader(open(os.path.join(HERE, "confirmed.csv"), encoding="utf-8"))
         if len(parts) != 3:
             continue
         slug, dc, site = parts
+    elif plat == "oraclecloud":
+        parts = ident.split("|")
+        if len(parts) != 2:
+            continue
+        slug, dc = parts[0], None
+        site = oracle_best.get(slug, (0, parts[1]))[1]   # winning site for this pod
     else:
         slug, dc, site = ident, None, None
     key = (plat, slug)

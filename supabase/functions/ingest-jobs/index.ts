@@ -15,7 +15,11 @@
 // Env (Project Settings → Edge Functions → Secrets):
 //   CRON_SECRET, ATS_BATCH (companies/run, default 20), JOB_TITLE_ANY,
 //   JOB_SENIORITY_ANY, JOB_MIN_SALARY (default 100000; 0 = off),
-//   JOB_MAX_AGE_DAYS (intake cap, default 7), JOB_RETENTION_DAYS (default 30)
+//   JOB_MAX_AGE_DAYS (intake cap, default 7), JOB_RETENTION_DAYS (default 14)
+//
+// NOTE: MAX_AGE_DAYS must stay comfortably ABOVE the full rotation time, or jobs
+// posted just after a company is swept will age out before we revisit it and be
+// missed entirely. Rotation = job_sources / (ATS_BATCH * 96 runs per day).
 // ============================================================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -53,8 +57,8 @@ function meetsSalary(r: { salary_min: number | null; salary_max: number | null }
 }
 // Only ingest recently-posted jobs (default 7 days). A job with no/unparseable
 // date is treated as too old (excluded) so the board stays fresh while testing.
-const MAX_AGE_DAYS = Math.max(1, parseInt(Deno.env.get("JOB_MAX_AGE_DAYS") || "14", 10) || 14);
-const RETENTION_DAYS = Math.max(1, parseInt(Deno.env.get("JOB_RETENTION_DAYS") || "30", 10) || 30);
+const MAX_AGE_DAYS = Math.max(1, parseInt(Deno.env.get("JOB_MAX_AGE_DAYS") || "7", 10) || 7);
+const RETENTION_DAYS = Math.max(1, parseInt(Deno.env.get("JOB_RETENTION_DAYS") || "14", 10) || 14);
 function isRecent(iso: string | null): boolean {
   if (!iso) return false;
   const t = Date.parse(iso);
@@ -443,6 +447,158 @@ async function fromBambooHR(supabase: any, list: Src[]): Promise<Report> {
   return { fetched, upserted };
 }
 
+// ---- Oracle Cloud Recruiting (Fusion HCM / ORC — the Taleo successor) ---------
+// Boards live at {pod}.oraclecloud.com with a CandidateExperience "site" code;
+// job_sources stores pod in `slug` and the site code in `site`. 2-hop: the list
+// carries only ShortDescriptionStr, so the full text needs a detail call
+// (finder=ById — NOT ByReqId, which the API rejects). The list is sorted
+// newest-first, so we stop as soon as a posting falls outside the intake window.
+// external_id is keyed on pod+reqId (NOT site): one pod can expose the same req
+// on several CE sites, and keying on pod collapses those into a single row.
+// deno-lint-ignore no-explicit-any
+async function fromOracleCloud(supabase: any, list: Src[]): Promise<Report> {
+  let fetched = 0, upserted = 0;
+  await runLimit(list, 3, async ({ slug: pod, company_name, site }) => {
+    if (!site) return;
+    const base = `https://${pod}.oraclecloud.com/hcmRestApi/resources/latest/recruitingCEJobRequisitions`;
+    const dbase = `https://${pod}.oraclecloud.com/hcmRestApi/resources/latest/recruitingCEJobRequisitionDetails`;
+    let details = 0, stop = false;
+    for (const offset of [0, 100, 200]) {
+      if (stop || details >= 40) break;
+      let res: Response;
+      const listUrl = `${base}?onlyData=true&expand=requisitionList.secondaryLocations` +
+        `&finder=findReqs;siteNumber=${site},limit=100,offset=${offset},sortBy=POSTING_DATES_DESC`;
+      try { res = await fetch(listUrl, { headers: UA_H }); } catch { break; }
+      if (!res.ok) break;
+      const items = (await res.json())?.items ?? [];
+      if (!items.length) break;
+      const reqs = items[0]?.requisitionList ?? [];
+      if (!reqs.length) break;
+      const rows: JobRow[] = [];
+      for (const j of reqs) {
+        if (details >= 40) break;
+        const posted = j.PostedDate ?? null;
+        if (!isRecent(posted)) { stop = true; break; }   // newest-first: the rest are older
+        const rid = j.Id;
+        if (!rid) continue;
+        details++;
+        let d0: any = {};
+        try {
+          const dr = await fetch(`${dbase}?expand=all&onlyData=true&finder=ById;Id=${rid},siteNumber=${site}`, { headers: UA_H });
+          if (!dr.ok) continue;
+          d0 = ((await dr.json())?.items ?? [])[0] ?? {};
+        } catch { continue; }
+        const desc = htmlToText([d0.ExternalDescriptionStr, d0.ExternalQualificationsStr].filter(Boolean).join("\n\n"));
+        const sal = extractSalary(desc);
+        const loc = j.PrimaryLocation ?? d0.PrimaryLocation ?? null;
+        const row: JobRow = {
+          source: "oraclecloud", external_id: `ora:${pod}:${rid}`,
+          title: d0.Title ?? j.Title ?? "Untitled", company: company_name ?? pod, location: loc,
+          remote: /remote/i.test(`${j.WorkplaceTypeCode ?? ""} ${loc ?? ""}`),
+          employment_type: j.WorkerType ?? null, category: j.JobFunction ?? null,
+          salary_min: sal.min, salary_max: sal.max, salary_currency: "USD",
+          url: `https://${pod}.oraclecloud.com/hcmUI/CandidateExperience/en/sites/${site}/job/${rid}`,
+          description: cap(desc), tags: [j.JobFunction, j.JobFamily].filter(Boolean).slice(0, 4),
+          posted_at: posted, is_active: true,
+        };
+        if (row.url) rows.push(row);
+      }
+      if (rows.length) { fetched += rows.length; upserted += await upsert(supabase, rows); }
+      if (reqs.length < 100) break;
+    }
+  });
+  return { fetched, upserted };
+}
+
+// ---- SAP SuccessFactors (Recruiting Marketing) — enterprise white-labeled tier -
+// Each company's career site lives on its own domain (slug = host, e.g.
+// 'jobs.ball.com'). One GET /job-feed.xml (RSS, Google-jobs schema) returns the
+// whole board WITH full descriptions + location; the posting date is only on the
+// job page as schema.org microdata, so dating is 2-hop. Feeds can be tens of MB
+// (Tractor Supply ~40MB), so we STREAM-read with a byte cap to protect the worker
+// memory limit (546), and cap date-fetches per company. Jobs with no/old date are
+// skipped (freshness-safe) — some RMK templates omit the date.
+const SF_MON: Record<string, number> = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+function sfDate(s: string | null): string | null {
+  const m = s ? s.match(/\b([A-Z][a-z]{2}) (\d{1,2}) [\d:]+ \w+ (\d{4})/) : null;
+  if (!m || !(m[1] in SF_MON)) return null;
+  return new Date(Date.UTC(+m[3], SF_MON[m[1]], +m[2])).toISOString();
+}
+function sfTag(item: string, tag: string): string | null {
+  const m = item.match(new RegExp(`<${tag}>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?</${tag}>`));
+  return m ? m[1].trim() : null;
+}
+async function fetchCapped(url: string, maxBytes: number): Promise<string | null> {
+  let res: Response;
+  try { res = await fetch(url, { headers: UA_H }); } catch { return null; }
+  if (!res.ok || !res.body) return null;
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let out = "", received = 0;
+  while (received < maxBytes) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    received += value.length;
+    out += dec.decode(value, { stream: true });
+  }
+  try { await reader.cancel(); } catch { /* ignore */ }
+  return out;
+}
+async function mapLimit<T, R>(items: T[], limit: number, fn: (x: T) => Promise<R>): Promise<R[]> {
+  const out = new Array(items.length) as R[];
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (i < items.length) { const idx = i++; out[idx] = await fn(items[idx]); }
+  }));
+  return out;
+}
+// deno-lint-ignore no-explicit-any
+async function fromSuccessFactors(supabase: any, list: Src[]): Promise<Report> {
+  let fetched = 0, upserted = 0;
+  await runLimit(list, 2, async ({ slug: host, company_name }) => {
+    const xml = await fetchCapped(`https://${host}/job-feed.xml`, 4_000_000);  // ~first 150 items of even huge feeds
+    if (!xml) return;
+    const items: { it: string; link: string; gid: string }[] = [];
+    const re = /<item>([\s\S]*?)<\/item>/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(xml)) && items.length < 40) {
+      const it = m[1];
+      const link = sfTag(it, "link"), gid = sfTag(it, "g:id");
+      if (link && gid) items.push({ it, link, gid });
+    }
+    if (!items.length) return;
+    const dates = await mapLimit(items, 8, async ({ link }) => {
+      try {
+        const pg = await (await fetch(link, { headers: UA_H })).text();
+        const dm = pg.match(/itemprop="datePosted"\s+content="([^"]+)"/i);
+        return dm ? sfDate(dm[1]) : null;
+      } catch { return null; }
+    });
+    const rows: JobRow[] = [];
+    items.forEach(({ it, link, gid }, k) => {
+      const posted = dates[k];
+      if (!posted || !isRecent(posted)) return;
+      const loc = sfTag(it, "g:location");
+      let func = sfTag(it, "g:job_function");
+      if (func) func = decodeEntities(func).replace(/\s*\((?:DEPT_|[A-Z0-9_]{3,})\)\s*$/, "").trim() || null;
+      const desc = htmlToText(sfTag(it, "description"));
+      const sal = extractSalary(desc);
+      let title = htmlToText(sfTag(it, "title")) || "Untitled";
+      title = title.replace(/\s*\([^()]*,\s*(?:US|USA)\b[^()]*\)\s*$/, "").trim() || title;
+      rows.push({
+        source: "successfactors", external_id: `sf:${host}:${gid}`, title,
+        company: company_name ?? sfTag(it, "g:employer") ?? host, location: loc,
+        remote: /remote|virtual/i.test(`${title} ${loc ?? ""}`),
+        employment_type: null, category: func, salary_min: sal.min, salary_max: sal.max,
+        salary_currency: "USD", url: link, description: cap(desc),
+        tags: func ? [func] : [], posted_at: posted, is_active: true,
+      });
+    });
+    if (rows.length) { fetched += rows.length; upserted += await upsert(supabase, rows); }
+  });
+  return { fetched, upserted };
+}
+
 Deno.serve(async (req) => {
   // Header only — query strings end up in proxy/edge logs (the cron sends the header).
   const secret = Deno.env.get("CRON_SECRET");
@@ -461,7 +617,7 @@ Deno.serve(async (req) => {
   // They're numerous, so in a shared oldest-first rotation they'd bury the light
   // platforms (or an unlucky batch of 40 would blow the worker memory/time limit).
   // Give each a small per-run quota, then fill the rest from the light rotation.
-  const HEAVY = ["workday", "smartrecruiters", "bamboohr"];
+  const HEAVY = ["workday", "smartrecruiters", "bamboohr", "oraclecloud", "successfactors"];
   const SEL = "id, platform, slug, company_name, datacenter, site";
   const slugsBy: Record<string, Src[]> = {};
   let batchIds: string[] = [];
@@ -491,6 +647,8 @@ Deno.serve(async (req) => {
     ["recruitee", () => fromRecruitee(supabase, slugsBy.recruitee ?? [])],
     ["smartrecruiters", () => fromSmartRecruiters(supabase, slugsBy.smartrecruiters ?? [])],
     ["bamboohr", () => fromBambooHR(supabase, slugsBy.bamboohr ?? [])],
+    ["oraclecloud", () => fromOracleCloud(supabase, slugsBy.oraclecloud ?? [])],
+    ["successfactors", () => fromSuccessFactors(supabase, slugsBy.successfactors ?? [])],
   ];
   const report: Record<string, Report> = {};
   for (const [name, fn] of runners) {
@@ -501,13 +659,23 @@ Deno.serve(async (req) => {
   if (batchIds.length) {
     try { await supabase.from("job_sources").update({ last_ingested_at: new Date().toISOString() }).in("id", batchIds); } catch (_e) { /* ignore */ }
   }
-  // Retention: drop jobs older than JOB_RETENTION_DAYS (default 30) so the board
-  // stays current. (Intake caps at MAX_AGE_DAYS; this removes rows that have since aged.)
+  // Retention: drop jobs older than JOB_RETENTION_DAYS (default 14) so the board
+  // stays current. Retention now matches the MAX_AGE_DAYS intake cap, so the board
+  // holds exactly the last 14 days — a job aging past the window is purged rather
+  // than lingering. (Widen JOB_RETENTION_DAYS to keep a longer tail.)
   let purged = 0;
+  let purgeError: string | null = null;
   try {
     const cutoff = new Date(Date.now() - RETENTION_DAYS * 86400000).toISOString();
-    const { data } = await supabase.from("jobs").delete().lt("posted_at", cutoff).select("id");
-    purged = (data ?? []).length;
-  } catch (_e) { /* ignore */ }
-  return new Response(JSON.stringify({ ok: true, report, atsBatch: batchIds.length, purged }, null, 2), { headers: { "content-type": "application/json" } });
+    // count:"exact" reports how many rows went WITHOUT materialising them. The old
+    // `.select("id")` returned every deleted row, which timed out on a large backlog
+    // — and because delete() resolves with {error} instead of throwing, the failure
+    // was swallowed by the catch and reported as a truthful-looking "purged: 0".
+    const { count, error } = await supabase.from("jobs").delete({ count: "exact" }).lt("posted_at", cutoff);
+    if (error) purgeError = error.message;
+    else purged = count ?? 0;
+  } catch (e) {
+    purgeError = String((e as Error)?.message ?? e);
+  }
+  return new Response(JSON.stringify({ ok: true, report, atsBatch: batchIds.length, purged, ...(purgeError ? { purgeError } : {}) }, null, 2), { headers: { "content-type": "application/json" } });
 });

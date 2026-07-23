@@ -12,6 +12,11 @@ UA = {"User-Agent": "gigcute-discovery/1.0"}
 
 ci = requests.get("https://index.commoncrawl.org/collinfo.json", headers=UA, timeout=30).json()
 _idx = int(sys.argv[1]) if len(sys.argv) > 1 else 0   # 0 = latest crawl, 1 = previous, ...
+ONLY = sys.argv[2].lower() if len(sys.argv) > 2 else None  # optional: harvest one platform
+if ONLY:
+    # Per-platform AND per-archive, so repeated runs accumulate instead of
+    # clobbering (each monthly archive surfaces a different slice of boards).
+    OUT = os.path.join(HERE, f"candidates_cc_{ONLY}_{_idx}.csv")
 CRAWL = ci[_idx]["id"]
 BASE = f"https://index.commoncrawl.org/{CRAWL}-index"
 print(f"crawl {CRAWL}", flush=True)
@@ -37,6 +42,9 @@ def fetch_page(pat, page):
     return ""
 
 WD_RE = re.compile(r'https?://([a-z0-9_-]+)\.(wd\d+)\.myworkdayjobs\.com/(?:[a-z]{2}-[A-Za-z]{2}/)?([A-Za-z0-9_-]+)', re.I)
+# Oracle Cloud Recruiting (Fusion HCM): pod = full subdomain chain (e.g. "ejgl.fa.ap1"),
+# site = the CandidateExperience site code (e.g. "CX_1", "UOW"). Identifier = pod|site.
+ORA_RE = re.compile(r'https?://([a-z0-9.-]+)\.oraclecloud\.com/hcmUI/CandidateExperience/[a-z-]+/sites/([A-Za-z0-9_-]+)', re.I)
 GH_RE = re.compile(r'greenhouse\.io/(?:embed/job_app\?for=)?([a-z0-9_-]+)', re.I)
 # (platform, regex, cc-query-pattern) — two Greenhouse domains, Lever, Ashby, Workday
 SOURCES = [
@@ -49,12 +57,15 @@ SOURCES = [
     ("workable",       re.compile(r'apply\.workable\.com/([a-z0-9][a-z0-9._-]+)', re.I), "apply.workable.com/*"),
     ("bamboohr",       re.compile(r'https?://([a-z0-9][a-z0-9-]+)\.bamboohr\.com', re.I), "*.bamboohr.com/*"),
     ("recruitee",      re.compile(r'https?://([a-z0-9][a-z0-9-]+)\.recruitee\.com', re.I), "*.recruitee.com/*"),
+    ("oraclecloud",    None, "*.oraclecloud.com/hcmUI/CandidateExperience/*"),
 ]
 SKIP = {"embed", "robots", "sitemap", "sitemaps", "www", "assets", "static", "favicon", "apply", "job-boards",
         "boards", "api", "help", "blog", "jobs", "careers", "account", "support", "status"}
 
 found = {}  # (platform, slugkey) -> identifier
 for platform, rx, pat in SOURCES:
+    if ONLY and platform != ONLY:
+        continue
     pages = num_pages(pat)
     print(f"\n{platform}: {pages} pages", flush=True)
     before = len(found)
@@ -74,6 +85,12 @@ for platform, rx, pat in SOURCES:
                     if tenant in SKIP:
                         continue
                     found[("workday", tenant)] = f"{tenant}|{m.group(2).lower()}|{m.group(3)}"
+            elif platform == "oraclecloud":
+                m = ORA_RE.search(u)
+                if m:
+                    pod, site = m.group(1).lower(), m.group(2)
+                    # One pod can host several sites (distinct boards) — key on both.
+                    found[("oraclecloud", f"{pod}|{site}")] = f"{pod}|{site}"
             else:
                 m = rx.search(u)
                 if m:

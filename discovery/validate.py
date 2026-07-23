@@ -39,8 +39,9 @@ def existing_job_sources():
         return set()
 
 def source_slug(platform, ident):
-    """The slug as it appears in job_sources (Workday stores only the tenant)."""
-    return ident.split("|", 1)[0] if platform == "workday" else ident
+    """The slug as it appears in job_sources (Workday stores only the tenant;
+    Oracle Cloud stores the pod, with the site code in the `site` column)."""
+    return ident.split("|", 1)[0] if platform in ("workday", "oraclecloud") else ident
 
 def check(platform, ident):
     """Return job count (>0 = live board) or 0."""
@@ -72,6 +73,20 @@ def check(platform, ident):
         if platform == "recruitee":
             r = requests.get(f"https://{ident}.recruitee.com/api/offers/", headers=UA, timeout=8)
             return len((r.json() or {}).get("offers") or []) if r.ok else 0
+        if platform == "oraclecloud":
+            pod, site = ident.split("|")
+            # TotalJobsCount is the board size; requisitionList needs the expand to populate.
+            r = requests.get(f"https://{pod}.oraclecloud.com/hcmRestApi/resources/latest/recruitingCEJobRequisitions",
+                             params={"onlyData": "true", "expand": "requisitionList.secondaryLocations",
+                                     "finder": f"findReqs;siteNumber={site},limit=1,sortBy=POSTING_DATES_DESC"},
+                             headers=UA, timeout=12)
+            if not r.ok:
+                return 0
+            items = (r.json() or {}).get("items") or []
+            if not items:
+                return 0
+            total = items[0].get("TotalJobsCount")
+            return int(total) if total else len(items[0].get("requisitionList") or [])
     except Exception:
         return 0
     return 0
