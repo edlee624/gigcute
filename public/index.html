@@ -4271,10 +4271,10 @@
     <div class="import-grid">
       <div class="import-card up" id="importResume">
         <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 8l5-5 5 5"/><path d="M5 21h14"/></svg></div>
-        <div class="meta"><strong>Upload your resume</strong><span id="upStatus">PDF or Word — we'll parse it automatically</span></div>
+        <div class="meta"><strong>Upload your resume</strong><span id="upStatus">PDF, DOC, DOCX, or TXT · under 3 MB — we'll parse it automatically</span></div>
         <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
       </div>
-      <input class="file-input" type="file" id="resumeFile" aria-label="Upload your resume file" accept=".pdf,.doc,.docx">
+      <input class="file-input" type="file" id="resumeFile" aria-label="Upload your resume file (PDF, DOC, DOCX, or TXT, under 3 MB)" accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain">
     </div>
     <div class="file-chosen" id="fileChosen">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
@@ -5132,6 +5132,50 @@
     if(__api && __api.enabled && __api.events) __api.events.log(event, data || {});
   }
 
+  // ---- Global error catcher ---------------------------------------------------
+  // The app logged screen views but not JavaScript errors, so a "the site
+  // crashed" report was undiagnosable — we could see WHERE a user got stuck but
+  // never WHY. This records uncaught errors and unhandled promise rejections as
+  // `client_error` events (visible in the admin Recent-activity table), with the
+  // current screen so the exact failure point is obvious. Best-effort and
+  // self-protective: it never throws, dedupes repeats, and caps total volume so a
+  // render loop can't flood the events table.
+  (function(){
+    const seen = new Set(); let sent = 0; const CAP = 25;
+    function currentScreen(){
+      try{ const s = document.querySelector('.screen.active, .flow-screen.active'); return (s && s.id) || location.pathname; }
+      catch(_e){ return ''; }
+    }
+    function report(kind, msg, extra){
+      try{
+        msg = String(msg || 'unknown').slice(0, 300);
+        const screen = currentScreen();
+        const key = kind + '|' + msg + '|' + screen;
+        if(seen.has(key) || sent >= CAP) return;   // dedupe + hard cap
+        seen.add(key); sent++;
+        // `detail` is what the admin activity table shows; keep it short + readable.
+        const detail = `${screen ? screen + ': ' : ''}${msg}`.slice(0, 200);
+        track('client_error', Object.assign({ detail, kind, message: msg, screen,
+          url: (location && location.href) || '', ua: (navigator && navigator.userAgent) || '' }, extra || {}));
+      }catch(_e){ /* never let the reporter itself throw */ }
+    }
+    window.addEventListener('error', e => {
+      if(e && e.target && e.target !== window && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK' || e.target.tagName === 'IMG')){
+        report('resource', 'failed to load ' + (e.target.src || e.target.href || e.target.tagName));   // CDN/script/img load failure
+        return;
+      }
+      const err = e && e.error;
+      report('error', (e && e.message) || (err && err.message),
+        { stack: err && err.stack ? String(err.stack).slice(0, 800) : null,
+          at: e ? `${e.filename||''}:${e.lineno||''}:${e.colno||''}` : '' });
+    }, true);
+    window.addEventListener('unhandledrejection', e => {
+      const r = e && e.reason;
+      report('promise', (r && (r.message || r)) || 'unhandled rejection',
+        { stack: r && r.stack ? String(r.stack).slice(0, 800) : null });
+    });
+  })();
+
   // ================= SCREEN ROUTER + URL =================
   // Maps the user-facing "pages" to clean URLs so the browser back/forward
   // buttons work and pages are linkable. The app screen (#screen-app) maps to
@@ -5583,12 +5627,20 @@
   let currentResumeFile = null;   // actual File, uploaded to Storage on finish
   const MAX_RESUME_BYTES = 3 * 1024 * 1024; // 3 MB
   upCard.onclick = () => resumeFile.click();
+  const RESUME_EXTS = ['.pdf', '.doc', '.docx', '.txt'];
   resumeFile.addEventListener('change', () => {
     if(!resumeFile.files.length) return;
     const f = resumeFile.files[0];
+    const name = (f.name || '').toLowerCase();
+    if(!RESUME_EXTS.some(ext => name.endsWith(ext))){
+      resumeFile.value = '';
+      upStatus.textContent = "That file type isn't supported — upload a PDF, DOC, DOCX, or TXT under 3 MB.";
+      if(typeof showToast === 'function') showToast('Please upload a PDF, DOC, DOCX, or TXT file.');
+      return;
+    }
     if(f.size > MAX_RESUME_BYTES){
       resumeFile.value = '';
-      upStatus.textContent = `That file is ${(f.size/1048576).toFixed(1)} MB — please upload a resume under 3 MB.`;
+      upStatus.textContent = `That file is ${(f.size/1048576).toFixed(1)} MB — please upload a PDF, DOC, DOCX, or TXT under 3 MB.`;
       if(typeof showToast === 'function') showToast('Resume must be under 3 MB.');
       return;
     }
@@ -6020,15 +6072,22 @@
       const r = await window.mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
       return r.value || '';
     }
-    return ''; // legacy .doc or unknown — heuristics can't read it
+    if(name.endsWith('.txt') || file.type === 'text/plain'){
+      return (await file.text()) || '';
+    }
+    return ''; // legacy .doc (binary) or unknown — heuristics can't read it, fall back to manual
   }
   // Heuristically pull a name, headline, and work history out of resume text.
   function parseResumeText(raw){
     const text = (raw || '').replace(/\r/g, '').replace(/ /g, ' ');
     const lines = text.split(/\n+/).map(l => l.trim()).filter(Boolean);
-    const yr = '(?:[A-Za-z]{3,9}\\.?\\s+)?((?:19|20)\\d{2})';
-    const rangeRe = new RegExp('\\b' + yr + '\\s*(?:[\\u2013\\u2014\\-]{1,2}|to)\\s*(?:' + yr + '|present|current|now)\\b', 'i');
-    const titleWords = /(engineer|designer|manager|developer|analyst|scientist|lead|director|consultant|architect|specialist|coordinator|market|writer|product|software|\bdata\b|sales|account|recruiter|founder|head of|\bvp\b|\bavp\b|officer|nurse|teacher|attorney|accountant|operations|support|intern|practitioner|principal)/i;
+    // A year, optionally preceded by a written month ("Jan"/"January") OR a numeric
+    // month ("05/", "05-", "05.") — so "May 2020", "05/2020", and a bare "2020" all
+    // anchor a role. Without the numeric form, résumés that write dates as MM/YYYY
+    // produced ZERO work history.
+    const yr = '(?:[A-Za-z]{3,9}\\.?\\s+|\\d{1,2}[\\/.\\-]\\s*)?((?:19|20)\\d{2})';
+    const rangeRe = new RegExp('\\b' + yr + '\\s*(?:[\\u2013\\u2014\\-]{1,2}|to)\\s*(?:' + yr + '|present|current|now|ongoing|date)\\b', 'i');
+    const titleWords = /(engineer|designer|manager|mgr|developer|analyst|scientist|lead|director|consultant|architect|specialist|coordinator|market|writer|product|software|\bdata\b|sales|account|recruiter|founder|co-?founder|head of|\bvp\b|\bavp\b|\bceo\b|\bcto\b|\bcfo\b|\bcoo\b|officer|nurse|teacher|professor|attorney|paralegal|accountant|auditor|bookkeeper|operations|support|intern|practitioner|principal|associate|assistant|administrator|supervisor|technician|electrician|mechanic|plumber|carpenter|chef|cook|server|barista|driver|dispatcher|pharmacist|physician|therapist|counselor|social worker|realtor|real estate|broker|agent|underwriter|loan officer|banker|advisor|adviser|representative|\brep\b|clerk|cashier|receptionist|strategist|producer|editor|photographer|videographer|copywriter|researcher|instructor|trainer|professor|paramedic|technologist|foreman|superintendent|estimator|planner|buyer|controller|partner|president|owner|proprietor)/i;
     const sectionRe = /^(education|skills|technical skills|core competencies|projects|certifications|awards|interests|references|summary|objective|experience|professional experience|work experience|employment history|employment|other prior roles|independent ai)\b/i;
     const bulletRe = /^[•·\*]/;
 
@@ -6058,26 +6117,39 @@
       const start = m[1]; let end = m[2] || 'Present';
       const onLine = clean(i), above = clean(i-1), above2 = clean(i-2), below = clean(i+1);
       let title = '', company = '';
+      // Returns 'role' when a part actually matched a title word, 'positional' when
+      // it fell back to left/right order (neither part looked like a role), else false.
       function fromParts(parts){
         if(parts.length >= 2){
           const ti = parts.findIndex(p => titleWords.test(p));
-          if(ti >= 0){ title = parts[ti]; company = parts[ti === 0 ? 1 : 0] || ''; }
-          else { company = parts[0]; title = parts[1]; }
-          return true;
+          if(ti >= 0){ title = parts[ti]; company = parts[ti === 0 ? 1 : 0] || ''; return 'role'; }
+          company = parts[0]; title = parts[1]; return 'positional';
         }
         return false;
       }
       if(onLine){
-        if(!fromParts(splitHeader(onLine))){
+        const res = fromParts(splitHeader(onLine));
+        if(!res){
           // single token on the date line = the company; title is on an adjacent line
           company = onLine;
           title = (below && titleWords.test(below)) ? below : (above && titleWords.test(above)) ? above : (below || above || '');
+        } else if(res === 'positional' && below && titleWords.test(below) && !titleWords.test(title)){
+          // header row was "Employer – Something" with no role word; the actual role
+          // sits on the line below the date.
+          company = splitHeader(onLine)[0] || company; title = below;
         }
-      } else if(!fromParts(splitHeader(above || ''))){
-        const cands = [above2, above].filter(Boolean);   // top-to-bottom: Title then Company
-        const ti = cands.findIndex(s => titleWords.test(s));
-        if(ti >= 0){ title = cands[ti]; company = cands.find((s,k) => k !== ti) || ''; }
-        else { title = cands[0] || ''; company = cands[1] || ''; }
+      } else {
+        const res = fromParts(splitHeader(above || ''));
+        if(res === 'positional' && below && titleWords.test(below) && !titleWords.test(title)){
+          // "Employer – City" above the date, the real role on the line below it —
+          // keep the employer fromParts found, take the role from below.
+          title = below;
+        } else if(!res){
+          const cands = [above2, above].filter(Boolean);   // top-to-bottom: Title then Company
+          const ti = cands.findIndex(s => titleWords.test(s));
+          if(ti >= 0){ title = cands[ti]; company = cands.find((s,k) => k !== ti) || ''; }
+          else { title = cands[0] || ''; company = cands[1] || ''; }
+        }
       }
       const desc = [];
       for(let j = i + 1; j < lines.length && j < i + 8; j++){
@@ -6172,8 +6244,19 @@
     let i = 0; if(stepEl) stepEl.textContent = steps[0];
     const anim = setInterval(() => { i++; if(stepEl && i < steps.length) stepEl.textContent = steps[i]; }, 700);
     let parsed = null, hadError = false;
-    try{ parsed = parseResumeText(await extractResumeText(file)); }
-    catch(e){ hadError = true; console.warn('[gigcute] resume parse failed:', e && e.message); }
+    // Time-box extraction: pdf.js/mammoth load from a CDN and run in the browser,
+    // so a blocked CDN, a huge PDF, or a pathological file could otherwise hang
+    // the parsing screen forever (no error thrown = the try/catch never fires).
+    // On timeout we fall back to manual entry, same as any parse failure.
+    try{
+      const text = await Promise.race([
+        extractResumeText(file),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('resume extraction timed out')), 25000))
+      ]);
+      parsed = parseResumeText(text);
+    }
+    catch(e){ hadError = true; console.warn('[gigcute] resume parse failed:', e && e.message);
+      try{ track('client_error', { detail: 'resume parse: ' + ((e&&e.message)||'failed'), kind:'resume', screen:'screen-seeker-parsing' }); }catch(_e){} }
     await new Promise(r => setTimeout(r, 450));   // let the animation breathe
     clearInterval(anim);
     applyResumeParse(parsed, hadError);
