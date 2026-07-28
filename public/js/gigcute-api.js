@@ -950,6 +950,20 @@ const events = {
     if (error) throw error;
     return data;
   },
+  // Admin: pause/resume/close a posting (any valid posting_status). Returns
+  // { id, status } or null for non-admins.
+  async setPostingStatus(id, status) {
+    const { data, error } = await requireClient().rpc('admin_set_posting_status', { p_id: id, p_status: status });
+    if (error) throw error;
+    return data;
+  },
+  // Admin: permanently delete a posting (cascades to applications, conversations,
+  // interest, views…). Irreversible. Returns { deleted, title } or null.
+  async deletePosting(id) {
+    const { data, error } = await requireClient().rpc('admin_delete_posting', { p_id: id });
+    if (error) throw error;
+    return data;
+  },
   // Admin: salary trends over the active jobs feed (by seniority/category/location/remote).
   async jobsAnalytics() {
     const { data, error } = await requireClient().rpc('jobs_analytics');

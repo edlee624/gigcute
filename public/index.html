@@ -6733,7 +6733,8 @@
     const statusColor = s => s==='active' ? 'var(--sage)' : (s==='draft' ? 'rgba(251,247,240,0.45)' : (s==='expired'||s==='closed' ? 'var(--coral)' : 'rgba(251,247,240,0.7)'));
     const money = (a,b) => { const f = n => '$'+Math.round(n/1000)+'k'; if(a&&b) return `${f(a)}–${f(b)}`; if(a) return `${f(a)}+`; if(b) return `up to ${f(b)}`; return '—'; };
     const td = (v, extra) => `<td style="padding:8px 10px;font-size:12.5px;${extra||''}">${v}</td>`;
-    const head = ['Role','Company','Recruiter','Status','Comp','Views','Interested','Outreach','Posted'].map(h=>`<th style="text-align:left;padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(251,247,240,0.4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${h}</th>`).join('');
+    const abtn = (id, label, title, color) => `<button type="button" class="admin-post-act" data-id="${id}" data-act="${label.toLowerCase()}" title="${title}" style="background:none;border:1px solid var(--line-light);border-radius:7px;color:${color};font-family:'Inter',sans-serif;font-size:11.5px;padding:4px 9px;cursor:pointer;white-space:nowrap;">${label}</button>`;
+    const head = ['Role','Company','Recruiter','Status','Comp','Views','Interested','Outreach','Posted','Actions'].map(h=>`<th style="text-align:left;padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(251,247,240,0.4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${h}</th>`).join('');
     const body = rows.map(r => {
       let when = r.created_at; try{ when = new Date(r.created_at).toLocaleDateString(); }catch(e){}
       const tier = r.tier && r.tier !== 'free' ? ` <span style="font-size:9.5px;text-transform:uppercase;letter-spacing:0.04em;color:var(--coral);border:1px solid var(--coral);border-radius:4px;padding:1px 4px;">${escapeHtml(r.tier)}</span>` : '';
@@ -6751,9 +6752,34 @@
         ${td(String(r.interest||0),'color:'+(r.interest?'var(--sage)':'rgba(251,247,240,0.5)')+';')}
         ${td(String(r.outreach||0),'color:rgba(251,247,240,0.7);')}
         ${td(when,'color:rgba(251,247,240,0.6);white-space:nowrap;')}
+        ${td(`<div style="display:flex;gap:6px;">${(r.status==='paused'||r.status==='closed'||r.status==='draft'||r.status==='expired') ? abtn(r.id,'Resume','Set to active','var(--sage)') : ''}${(r.status==='active') ? abtn(r.id,'Pause','Pause this posting','rgba(251,247,240,0.85)') : ''}${abtn(r.id,'Delete','Permanently delete','var(--coral)')}</div>`)}
       </tr>`;
     }).join('');
     list.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+    // Wire the per-row actions.
+    list.querySelectorAll('.admin-post-act').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.getAttribute('data-id'), act = btn.getAttribute('data-act');
+        const row = rows.find(x => String(x.id) === String(id));
+        const label = row ? `“${row.title}”${row.company ? ' at ' + row.company : ''}` : 'this posting';
+        try{
+          if(act === 'delete'){
+            if(!confirm(`Permanently delete ${label}?\n\nThis also removes its applications, conversations, saved/interested records, and screening questions. This cannot be undone.`)) return;
+            btn.disabled = true; btn.textContent = 'Deleting…';
+            const res = await API.events.deletePosting(id);
+            if(res === null){ showToast('Not authorized.'); return; }
+            showToast('Posting deleted.');
+          } else {
+            const status = act === 'pause' ? 'paused' : 'active';
+            btn.disabled = true; btn.textContent = '…';
+            const res = await API.events.setPostingStatus(id, status);
+            if(res === null){ showToast('Not authorized.'); return; }
+            showToast(act === 'pause' ? 'Posting paused.' : 'Posting resumed.');
+          }
+          loadAdminPostings(API, (document.getElementById('adminPostSearch')||{}).value || '');
+        }catch(e){ showToast((e && e.message) || 'Action failed.'); btn.disabled = false; }
+      };
+    });
   }
   async function loadFeedback(API){
     const list = document.getElementById('fbAdminList'); if(!list) return;
