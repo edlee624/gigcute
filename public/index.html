@@ -6709,9 +6709,51 @@
     const jb = document.getElementById('loadJobsAnalytics'); if(jb) jb.onclick = loadJobsAnalytics;
     const tb = document.getElementById('loadJobsTrends'); if(tb) tb.onclick = loadJobsTrends;
     wireBroadcast(API);
+    const ps = document.getElementById('adminPostSearch');
+    if(ps) ps.addEventListener('input', () => { clearTimeout(__adminPostTimer); __adminPostTimer = setTimeout(() => loadAdminPostings(API, ps.value), 280); });
+    const pr = document.getElementById('adminPostRefresh'); if(pr) pr.onclick = () => loadAdminPostings(API, (ps && ps.value) || '');
+    loadAdminPostings(API, '');
     const ff = document.getElementById('fbAdminFilter'); if(ff) ff.onchange = () => loadFeedback(API);
     const fr = document.getElementById('fbAdminRefresh'); if(fr) fr.onclick = () => loadFeedback(API);
     loadFeedback(API);
+  }
+  let __adminPostTimer = null;
+  // Admin: jobs posted directly by recruiters + their engagement.
+  async function loadAdminPostings(API, search){
+    const list = document.getElementById('adminPostList');
+    const countEl = document.getElementById('adminPostCount');
+    if(!list) return;
+    list.innerHTML = '<div style="color:rgba(251,247,240,0.4);padding:8px 0;">Loading…</div>';
+    let d = null;
+    try{ d = await API.events.postings(search); }catch(e){ list.innerHTML = '<div style="color:var(--coral);">Could not load postings.</div>'; return; }
+    if(!d){ list.innerHTML = '<div style="color:rgba(251,247,240,0.4);">Not authorized.</div>'; return; }
+    if(countEl) countEl.textContent = `— ${d.total||0} total · ${d.active||0} active · ${d.draft||0} draft · ${d.total_views||0} views · ${d.total_interest||0} interested`;
+    const rows = (d.postings||[]);
+    if(!rows.length){ list.innerHTML = '<div style="color:rgba(251,247,240,0.4);">No direct recruiter postings yet.</div>'; return; }
+    const statusColor = s => s==='active' ? 'var(--sage)' : (s==='draft' ? 'rgba(251,247,240,0.45)' : (s==='expired'||s==='closed' ? 'var(--coral)' : 'rgba(251,247,240,0.7)'));
+    const money = (a,b) => { const f = n => '$'+Math.round(n/1000)+'k'; if(a&&b) return `${f(a)}–${f(b)}`; if(a) return `${f(a)}+`; if(b) return `up to ${f(b)}`; return '—'; };
+    const td = (v, extra) => `<td style="padding:8px 10px;font-size:12.5px;${extra||''}">${v}</td>`;
+    const head = ['Role','Company','Recruiter','Status','Comp','Views','Interested','Outreach','Posted'].map(h=>`<th style="text-align:left;padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(251,247,240,0.4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${h}</th>`).join('');
+    const body = rows.map(r => {
+      let when = r.created_at; try{ when = new Date(r.created_at).toLocaleDateString(); }catch(e){}
+      const tier = r.tier && r.tier !== 'free' ? ` <span style="font-size:9.5px;text-transform:uppercase;letter-spacing:0.04em;color:var(--coral);border:1px solid var(--coral);border-radius:4px;padding:1px 4px;">${escapeHtml(r.tier)}</span>` : '';
+      const loc = r.location ? `<div style="font-size:11px;color:rgba(251,247,240,0.45);">${escapeHtml(r.location)}</div>` : '';
+      const rec = r.recruiter || r.recruiter_email;
+      const recCell = rec ? `<div style="color:rgba(251,247,240,0.8);">${escapeHtml(r.recruiter||'—')}</div><div style="font-size:11px;color:rgba(251,247,240,0.45);">${escapeHtml(r.recruiter_email||'')}</div>` : '<span style="color:rgba(251,247,240,0.35);">—</span>';
+      const verified = r.verified ? ' <span title="Verified company" style="color:var(--sage);">✓</span>' : '';
+      return `<tr style="border-bottom:1px solid rgba(251,247,240,0.05);">
+        ${td(`<span style="color:var(--paper);">${escapeHtml(r.title||'—')}</span>${tier}${loc}`)}
+        ${td(`${escapeHtml(r.company||'—')}${verified}`,'color:rgba(251,247,240,0.8);')}
+        ${td(recCell)}
+        ${td(`<span style="color:${statusColor(r.status)};font-family:'JetBrains Mono',monospace;font-size:11.5px;">${escapeHtml(r.status||'—')}</span>`)}
+        ${td(money(r.salary_min,r.salary_max),'color:rgba(251,247,240,0.7);white-space:nowrap;')}
+        ${td(`${r.views||0}${(r.unique_viewers!=null&&r.unique_viewers!==r.views)?` <span style="color:rgba(251,247,240,0.4);">(${r.unique_viewers}u)</span>`:''}`,'color:rgba(251,247,240,0.7);')}
+        ${td(String(r.interest||0),'color:'+(r.interest?'var(--sage)':'rgba(251,247,240,0.5)')+';')}
+        ${td(String(r.outreach||0),'color:rgba(251,247,240,0.7);')}
+        ${td(when,'color:rgba(251,247,240,0.6);white-space:nowrap;')}
+      </tr>`;
+    }).join('');
+    list.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
   }
   async function loadFeedback(API){
     const list = document.getElementById('fbAdminList'); if(!list) return;
@@ -7037,6 +7079,12 @@
          <span style="font-size:12px;color:rgba(251,247,240,0.4);">Monthly medians by attribute (from post dates) + a durable daily snapshot that grows each day.</span>
        </div>
        <div id="jobsTrendsBox"></div>`);
+    const postingsPanel = panel(`Direct recruiter postings <span id="adminPostCount" style="color:rgba(251,247,240,0.4);text-transform:none;letter-spacing:0;"></span>`,
+      `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+         <input id="adminPostSearch" placeholder="Search by role, company, or recruiter…" style="flex:1;min-width:220px;box-sizing:border-box;background:var(--ink);border:1px solid var(--line-light);border-radius:10px;color:var(--paper);font-family:'Inter',sans-serif;font-size:13.5px;padding:10px 14px;">
+         <button class="ds-nav-btn" id="adminPostRefresh" type="button">↻ Refresh</button>
+       </div>
+       <div id="adminPostList" style="color:rgba(251,247,240,0.5);">Loading…</div>`);
     const broadcastPanel = panel('Broadcast a message to users',
       `<div style="display:grid;gap:12px;max-width:620px;">
          <input id="bcTitle" placeholder="Title (optional) — e.g. New: salary filters are live" maxlength="120"
@@ -7083,6 +7131,7 @@
        <div id="fbAdminList" style="color:rgba(251,247,240,0.5);">Loading…</div>`);
     return cards
       + usersPanel
+      + postingsPanel
       + feedbackPanel
       + jobsPanel
       + trendsPanel

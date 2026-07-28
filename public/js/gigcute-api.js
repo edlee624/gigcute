@@ -941,6 +941,15 @@ const events = {
     if (error) throw error;
     return data;
   },
+  // Admin: jobs posted DIRECTLY by recruiters on GigCute (the `postings` table),
+  // with each posting's company, recruiter, and engagement (views/interest/
+  // outreach). Returns { total, active, draft, by_status, postings:[...] } or
+  // null for non-admins.
+  async postings(search) {
+    const { data, error } = await requireClient().rpc('admin_postings', { p_search: search || null });
+    if (error) throw error;
+    return data;
+  },
   // Admin: salary trends over the active jobs feed (by seniority/category/location/remote).
   async jobsAnalytics() {
     const { data, error } = await requireClient().rpc('jobs_analytics');
