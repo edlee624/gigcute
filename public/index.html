@@ -35,9 +35,9 @@
     --sage:#3D5A4C;
     --sage-light:#577463;
     --grey:#8A8784;
-    --line:rgba(21,23,28,0.1);
+    --line:rgba(var(--panel-rgb),0.1);
     --line-light:rgba(var(--fg-rgb),0.14);
-    --shadow:0 20px 50px -20px rgba(21,23,28,0.35);
+    --shadow:0 20px 50px -20px rgba(var(--panel-rgb),0.35);
     --radius:22px;
     /* ---- Theme tokens (default = Dark). Every value below resolves to the exact
        current colour, so Dark rendering is unchanged; the [data-theme="slate"]
@@ -46,6 +46,15 @@
     --bg:var(--ink);           /* page + panel background */
     --fg:var(--paper);         /* primary text */
     --surface:var(--ink-soft); /* cards, inputs, hovers */
+    --panel-rgb:21,23,28;      /* opaque/blurred panels (nav, sheets, dropdowns) */
+    /* Muted-text tiers — Dark = the exact original alpha (identity). Slate raises
+       them (see the slate block) so grey text isn't washed out on white. */
+    --fg-25:rgba(var(--fg-rgb),0.25);
+    --fg-3:rgba(var(--fg-rgb),0.3);
+    --fg-35:rgba(var(--fg-rgb),0.35);
+    --fg-4:rgba(var(--fg-rgb),0.4);
+    --fg-45:rgba(var(--fg-rgb),0.45);
+    --fg-5:rgba(var(--fg-rgb),0.5);
   }
   /* ===================== 1C SLATE — opt-in light theme ===================== */
   :root[data-theme="slate"]{
@@ -60,10 +69,25 @@
     --sage-light:#34A17E;      /* strength / positive */
     --line:rgba(26,29,33,0.10);
     --shadow:0 1px 2px rgba(20,25,35,.05), 0 10px 30px rgba(20,25,35,.08);
+    --panel-rgb:255,255,255;   /* nav bar, sticky headers, dropdowns -> light */
+    /* Darker muted text on white — the low tiers were washing out. */
+    --fg-25:rgba(var(--fg-rgb),0.42);
+    --fg-3:rgba(var(--fg-rgb),0.48);
+    --fg-35:rgba(var(--fg-rgb),0.55);
+    --fg-4:rgba(var(--fg-rgb),0.60);
+    --fg-45:rgba(var(--fg-rgb),0.64);
+    --fg-5:rgba(var(--fg-rgb),0.68);
     color-scheme:light;
   }
   /* Drop the dark radial glows on the light ground. */
   :root[data-theme="slate"] body{ background:var(--bg); background-image:none; }
+  /* Profile hero used a hardcoded dark gradient with white text — give it a light
+     surface and flip its text/avatar to dark-on-light. */
+  :root[data-theme="slate"] .pv-header{ background:linear-gradient(135deg,#F4F7F8,#EAF1EF); border:1px solid var(--line-light); color:var(--fg); }
+  :root[data-theme="slate"] .pv-headline{ color:rgba(var(--fg-rgb),0.72); }
+  :root[data-theme="slate"] .pv-meta-item{ color:rgba(var(--fg-rgb),0.62); }
+  :root[data-theme="slate"] .pv-header a, :root[data-theme="slate"] .pv-meta-item a{ color:var(--fg); }
+  :root[data-theme="slate"] .pv-photo{ background-color:var(--surface); color:var(--sage); }
   /* Swap the cream logo (built for dark) for the dark-ink version — purely via
      CSS, so it flips the instant data-theme is set (no flash, no JS). */
   :root[data-theme="slate"] img.brand-img,
@@ -150,14 +174,14 @@
   .chat-back svg, .chat-close svg{ width:20px; height:20px; }
   .chat-back:hover, .chat-close:hover{ background:var(--surface); color:var(--fg); }
   .chat-list{ flex:1; overflow-y:auto; }
-  .chat-group-label{ font-size:10px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; color:rgba(var(--fg-rgb),0.35); padding:12px 16px 4px; }
+  .chat-group-label{ font-size:10px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; color:var(--fg-35); padding:12px 16px 4px; }
   .chat-conv{ display:flex; gap:12px; align-items:center; padding:14px 16px; border-bottom:1px solid var(--line-light); cursor:pointer; }
   .chat-conv:hover{ background:var(--surface); }
   .chat-conv-av{ width:40px; height:40px; border-radius:50%; background:var(--coral); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-weight:600; color:var(--fg); }
   .chat-conv-main{ min-width:0; flex:1; }
   .chat-conv-name{ font-weight:600; font-size:14px; color:var(--fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .chat-conv-sub{ font-size:12px; color:rgba(var(--fg-rgb),0.45); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .chat-empty{ text-align:center; color:rgba(var(--fg-rgb),0.4); font-size:13px; padding:40px 24px; line-height:1.6; }
+  .chat-conv-sub{ font-size:12px; color:var(--fg-45); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .chat-empty{ text-align:center; color:var(--fg-4); font-size:13px; padding:40px 24px; line-height:1.6; }
   .chat-thread{ flex:1; display:flex; flex-direction:column; min-height:0; }
   .chat-thread[hidden]{ display:none; }
   .chat-messages{ flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:8px; }
@@ -177,7 +201,7 @@
   .chat-feedback[hidden]{ display:none; }
   .cf-title{ font-weight:700; color:var(--fg); font-size:14px; margin-bottom:12px; }
   .cf-q{ margin-bottom:12px; }
-  .cf-label{ font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:rgba(var(--fg-rgb),0.4); margin-bottom:6px; }
+  .cf-label{ font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--fg-4); margin-bottom:6px; }
   .cf-opts{ display:flex; flex-wrap:wrap; gap:6px; }
   .cf-opts label{ display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:rgba(var(--fg-rgb),0.75); border:1px solid var(--line-light); border-radius:999px; padding:5px 10px; cursor:pointer; }
   .cf-opts label:has(input:checked){ border-color:var(--coral); color:var(--coral); background:rgba(255,107,74,0.08); }
@@ -188,7 +212,7 @@
   /* Messages nav button + unread dot */
   .ds-nav-btn.has-unread::after{ content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--coral); margin-left:6px; vertical-align:middle; }
   /* Job-card description teaser */
-  .jli-preview{ font-size:12.5px; color:rgba(var(--fg-rgb),0.5); line-height:1.5; margin:2px 0 6px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .jli-preview{ font-size:12.5px; color:var(--fg-5); line-height:1.5; margin:2px 0 6px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   /* ===== Messaging inbox (LinkedIn-style two-pane, full page) ===== */
   #screen-messages.active{ height:100vh; overflow:hidden; }
   .inbox-wrap{ max-width:1280px; margin:0 auto; height:100vh; display:flex; flex-direction:column; box-sizing:border-box; }
@@ -205,14 +229,14 @@
   .conv-av{ width:40px; height:40px; border-radius:50%; background:var(--coral); color:var(--fg); display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:15px; font-weight:600; flex-shrink:0; }
   .conv-main{ min-width:0; }
   .conv-name{ font-weight:600; font-size:14px; color:var(--fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .conv-sub{ font-size:12.5px; color:rgba(var(--fg-rgb),0.5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .conv-sub{ font-size:12.5px; color:var(--fg-5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .conv-meta{ display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
   .conv-meta-top{ display:flex; align-items:center; gap:4px; }
-  .conv-time{ font-size:11px; color:rgba(var(--fg-rgb),0.4); font-family:'JetBrains Mono',monospace; }
+  .conv-time{ font-size:11px; color:var(--fg-4); font-family:'JetBrains Mono',monospace; }
   .conv-dot{ width:8px; height:8px; border-radius:50%; background:var(--coral); }
   .conv-row.unread .conv-name{ font-weight:700; }
   .conv-row.unread .conv-sub{ color:rgba(var(--fg-rgb),0.72); }
-  .conv-more{ background:none; border:none; color:rgba(var(--fg-rgb),0.45); cursor:pointer; font-size:15px; line-height:1; padding:0 3px; border-radius:5px; opacity:0; transition:opacity .1s; }
+  .conv-more{ background:none; border:none; color:var(--fg-45); cursor:pointer; font-size:15px; line-height:1; padding:0 3px; border-radius:5px; opacity:0; transition:opacity .1s; }
   .conv-row:hover .conv-more, .conv-more:focus{ opacity:1; }
   .conv-more:hover{ color:var(--fg); background:rgba(255,255,255,0.08); }
   .conv-filters{ display:flex; gap:6px; margin-top:10px; }
@@ -224,7 +248,7 @@
   .conv-menu-item.danger{ color:#E06055; }
   .conv-menu-sep{ height:1px; background:var(--line-light); margin:5px 6px; }
   /* ===== "How this works" contextual help ===== */
-  .gc-help-pill{ display:inline-flex; align-items:center; gap:4px; background:none; border:1px solid var(--line-light); color:rgba(var(--fg-rgb),0.5); font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.03em; padding:3px 9px; border-radius:999px; cursor:pointer; vertical-align:middle; margin-left:8px; transition:border-color .15s,color .15s; }
+  .gc-help-pill{ display:inline-flex; align-items:center; gap:4px; background:none; border:1px solid var(--line-light); color:var(--fg-5); font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.03em; padding:3px 9px; border-radius:999px; cursor:pointer; vertical-align:middle; margin-left:8px; transition:border-color .15s,color .15s; }
   .gc-help-pill:hover{ border-color:var(--sage); color:var(--sage); }
   .gc-help-overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.62); z-index:9998; display:flex; align-items:center; justify-content:center; padding:20px; animation:gcHelpIn .12s ease; }
   @keyframes gcHelpIn{ from{ opacity:0; } to{ opacity:1; } }
@@ -232,7 +256,7 @@
   .gc-help-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:6px; }
   .gc-help-eyebrow{ font-family:'JetBrains Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--sage); margin-bottom:4px; }
   .gc-help-title{ font-family:'Fraunces',serif; font-size:21px; font-weight:600; color:var(--fg); line-height:1.2; }
-  .gc-help-x{ background:none; border:none; color:rgba(var(--fg-rgb),0.45); font-size:15px; cursor:pointer; padding:2px 6px; line-height:1; }
+  .gc-help-x{ background:none; border:none; color:var(--fg-45); font-size:15px; cursor:pointer; padding:2px 6px; line-height:1; }
   .gc-help-x:hover{ color:var(--fg); }
   .gc-help-body{ font-size:14px; line-height:1.62; color:rgba(var(--fg-rgb),0.82); }
   .gc-help-body p{ margin:10px 0; }
@@ -244,9 +268,9 @@
   /* ===== Recruiter posting-manage page ===== */
   .pm-h2{ font-family:'Fraunces',serif; font-size:19px; font-weight:600; color:var(--fg); margin:0 0 12px; }
   .pm-sub{ font-family:'JetBrains Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--sage-soft); }
-  .pm-empty{ font-size:13px; color:rgba(var(--fg-rgb),0.45); background:var(--surface); border:1px solid var(--line-light); border-radius:12px; padding:16px 18px; }
+  .pm-empty{ font-size:13px; color:var(--fg-45); background:var(--surface); border:1px solid var(--line-light); border-radius:12px; padding:16px 18px; }
   .pm-cand{ display:flex; gap:14px; align-items:center; background:var(--surface); border:1px solid var(--line-light); border-radius:12px; padding:13px 16px; margin-bottom:10px; }
-  .pm-cand-av{ width:44px; height:44px; border-radius:10px; background:var(--bg); border:1px solid var(--line-light); display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:17px; color:rgba(var(--fg-rgb),0.5); flex-shrink:0; }
+  .pm-cand-av{ width:44px; height:44px; border-radius:10px; background:var(--bg); border:1px solid var(--line-light); display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:17px; color:var(--fg-5); flex-shrink:0; }
   .pm-cand-actions{ display:flex; flex-direction:column; gap:6px; align-items:flex-end; flex-shrink:0; }
   .cand-badges{ display:flex; gap:6px; margin-top:5px; flex-wrap:wrap; }
   .cand-badge{ font-size:10px; font-family:'JetBrains Mono',monospace; border-radius:20px; padding:2px 8px; border:1px solid; white-space:nowrap; }
@@ -264,22 +288,22 @@
   .match-chip.tier-vs{ color:var(--fg); background:rgba(122,158,126,0.30); border-color:var(--sage); }
   .match-chip.tier-s{ color:var(--sage); background:rgba(122,158,126,0.14); border-color:rgba(122,158,126,0.5); }
   .match-chip.tier-m{ color:var(--coral); background:rgba(255,90,60,0.1); border-color:rgba(255,90,60,0.35); }
-  .match-chip.tier-w{ color:rgba(var(--fg-rgb),0.45); background:rgba(255,255,255,0.03); border-color:var(--line-light); }
+  .match-chip.tier-w{ color:var(--fg-45); background:rgba(255,255,255,0.03); border-color:var(--line-light); }
   .notif-row{ display:flex; align-items:center; justify-content:space-between; font-size:13px; color:rgba(var(--fg-rgb),0.82); padding:7px 0; cursor:pointer; }
   .notif-row input{ accent-color:var(--coral); width:16px; height:16px; cursor:pointer; }
   /* message thread bubbles (sender + time + day separators) */
   .msg-day{ text-align:center; margin:12px 0 6px; }
-  .msg-day span{ font-size:11px; color:rgba(var(--fg-rgb),0.4); background:var(--bg); border:1px solid var(--line-light); padding:2px 10px; border-radius:10px; font-family:'JetBrains Mono',monospace; }
+  .msg-day span{ font-size:11px; color:var(--fg-4); background:var(--bg); border:1px solid var(--line-light); padding:2px 10px; border-radius:10px; font-family:'JetBrains Mono',monospace; }
   .msg-row{ display:flex; gap:8px; align-items:flex-end; }
   .msg-row.mine{ justify-content:flex-end; }
   .msg-av{ width:26px; height:26px; border-radius:50%; background:var(--coral); color:var(--fg); display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:600; flex-shrink:0; font-family:'Fraunces',serif; }
   .msg-av:empty{ background:transparent; }
   .msg-col{ display:flex; flex-direction:column; max-width:78%; min-width:0; }
   .msg-row.mine .msg-col{ align-items:flex-end; }
-  .msg-meta{ font-size:10.5px; color:rgba(var(--fg-rgb),0.4); margin:4px 2px 2px; }
+  .msg-meta{ font-size:10.5px; color:var(--fg-4); margin:4px 2px 2px; }
   .msg-bubble{ background:var(--surface); color:rgba(var(--fg-rgb),0.92); border:1px solid var(--line-light); border-radius:12px; padding:8px 12px; font-size:13.5px; line-height:1.45; word-break:break-word; margin-top:2px; }
   .msg-row.mine .msg-bubble{ background:var(--coral); color:var(--fg); border-color:var(--coral); }
-  .msg-status{ align-self:flex-end; font-size:10.5px; color:rgba(var(--fg-rgb),0.4); margin:3px 2px 2px; font-family:'JetBrains Mono',monospace; }
+  .msg-status{ align-self:flex-end; font-size:10.5px; color:var(--fg-4); margin:3px 2px 2px; font-family:'JetBrains Mono',monospace; }
   .inbox-thread{ display:flex; flex-direction:column; min-height:0; }
   .thread-empty{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:6px; padding:30px; }
   .thread-head{ display:flex; align-items:center; gap:12px; padding:13px 18px; border-bottom:1px solid var(--line-light); }
@@ -303,7 +327,7 @@
   .cv-title{ font-family:'Fraunces',serif; font-style:italic; font-size:22px; color:var(--fg); }
   .cv-close{ background:none; border:none; color:rgba(var(--fg-rgb),0.72); cursor:pointer; }
   .cv-close svg{ width:22px; height:22px; }
-  .cv-sub{ font-size:13px; color:rgba(var(--fg-rgb),0.5); margin:6px 0 18px; line-height:1.5; }
+  .cv-sub{ font-size:13px; color:var(--fg-5); margin:6px 0 18px; line-height:1.5; }
   .cv-list{ display:flex; flex-direction:column; gap:10px; }
   .cv-row{ display:flex; align-items:center; gap:14px; padding:14px 16px; border:1px solid var(--line-light); border-radius:12px; cursor:pointer; }
   .cv-row:hover{ border-color:var(--coral); }
@@ -359,20 +383,20 @@
   .mock-prompt .mp-label{ font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--coral); margin-bottom:7px; }
   .mock-prompt .mp-answer{ font-family:'Fraunces',serif; font-size:15px; color:var(--fg); line-height:1.4; font-style:italic; }
   .mock-prompt .mp-rate{ display:flex; gap:7px; margin-top:11px; align-items:center; }
-  .mock-prompt .mp-rate span{ font-size:11px; color:rgba(var(--fg-rgb),0.4); margin-right:auto; }
+  .mock-prompt .mp-rate span{ font-size:11px; color:var(--fg-4); margin-right:auto; }
   .mock-rate-btn{ width:28px;height:28px;border-radius:8px; border:1px solid var(--line-light); background:var(--surface); display:flex;align-items:center;justify-content:center; }
-  .mock-rate-btn svg{ width:14px;height:14px;color:rgba(var(--fg-rgb),0.5); }
+  .mock-rate-btn svg{ width:14px;height:14px;color:var(--fg-5); }
   .mock-rate-btn.up{ border-color:rgba(87,116,99,0.5); } .mock-rate-btn.up svg{ color:#9fc2ad; }
   .mock-profile-head{ display:flex; gap:14px; align-items:center; margin-bottom:16px; }
   .mock-pf-photo{ width:52px;height:52px;border-radius:50%;background-size:cover;background-position:center;flex-shrink:0;border:2px solid rgba(255,90,60,0.6); }
   .mock-pf-name{ font-family:'Fraunces',serif; font-size:17px; color:var(--fg); }
-  .mock-pf-title{ font-size:12.5px; color:rgba(var(--fg-rgb),0.5); }
+  .mock-pf-title{ font-size:12.5px; color:var(--fg-5); }
   .mock-tags{ display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; }
   .mock-tag{ background:var(--bg); border:1px solid var(--line-light); border-radius:6px; padding:3px 8px; font-size:10.5px; color:rgba(var(--fg-rgb),0.72); }
   .lm-compare{ background:var(--surface); border:1px solid var(--line-light); border-radius:18px; overflow:hidden; margin-top:8px; }
   .lm-compare table{ width:100%; border-collapse:collapse; }
   .lm-compare th, .lm-compare td{ padding:16px 20px; text-align:left; border-bottom:1px solid var(--line-light); }
-  .lm-compare thead th{ font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:rgba(var(--fg-rgb),0.4); }
+  .lm-compare thead th{ font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--fg-4); }
   .lm-compare thead th.gigcute{ color:var(--coral); }
   .lm-compare tbody td:first-child{ font-size:14px; color:rgba(var(--fg-rgb),0.75); font-weight:500; }
   .lm-compare tbody td{ font-size:14px; color:rgba(var(--fg-rgb),0.7); }
@@ -381,12 +405,12 @@
   .lm-compare .price-big{ font-family:'Fraunces',serif; font-size:22px; font-weight:700; }
   .lm-compare .price-big.coral{ color:var(--coral); }
   .lm-check{ width:17px;height:17px;color:#9fc2ad;vertical-align:-3px; }
-  .lm-x{ width:15px;height:15px;color:rgba(var(--fg-rgb),0.25);vertical-align:-2px; }
+  .lm-x{ width:15px;height:15px;color:var(--fg-25);vertical-align:-2px; }
   .lm-cta-row{ text-align:center; margin-top:44px; }
   .lm-cta-btn{ background:var(--coral); border:none; border-radius:12px; color:var(--fg); font-family:'Inter',sans-serif; font-size:15px; font-weight:700; padding:15px 34px; cursor:pointer; transition:opacity .15s; }
   .lm-cta-btn:hover{ opacity:0.88; }
   .lm-cta-btn.sage{ background:var(--sage); }
-  .lm-cta-sub{ font-size:13px; color:rgba(var(--fg-rgb),0.4); margin-top:12px; }
+  .lm-cta-sub{ font-size:13px; color:var(--fg-4); margin-top:12px; }
   @media (max-width:760px){
     .lm-value-grid{ grid-template-columns:1fr; }
     .lm-shots{ grid-template-columns:1fr; }
@@ -622,7 +646,7 @@
   .hint{
     text-align:center;
     font-size:12px;
-    color:rgba(var(--fg-rgb),0.4);
+    color:var(--fg-4);
     margin-top:14px;
     font-weight:500;
     letter-spacing:0.01em;
@@ -674,7 +698,7 @@
   /* ---------- match modal ---------- */
   .match-overlay{
     position:fixed; inset:0;
-    background:rgba(21,23,28,0.88);
+    background:rgba(var(--panel-rgb),0.88);
     backdrop-filter:blur(6px);
     display:none;
     align-items:center;
@@ -818,7 +842,7 @@
   .role-card .ic svg{ width:23px;height:23px;color:var(--ink); }
   .role-card h3{ font-family:'Fraunces',serif; font-size:19px; margin:0 0 4px; color:var(--fg); }
   .role-card p{ font-size:13px; color:rgba(var(--fg-rgb),0.7); margin:0; line-height:1.45; }
-  .role-card .arrow{ margin-left:auto; align-self:center; color:rgba(var(--fg-rgb),0.3); flex-shrink:0; }
+  .role-card .arrow{ margin-left:auto; align-self:center; color:var(--fg-3); flex-shrink:0; }
   .role-card .arrow svg{ width:18px;height:18px; }
 
   .field{ margin-bottom:18px; }
@@ -868,8 +892,8 @@
   .loc-bubble-list{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
   .loc-bubble{ display:inline-flex; align-items:center; gap:4px; background:var(--surface);
     border:1px solid var(--line-light); border-radius:999px; padding:5px 6px 5px 12px; font-size:12.5px; color:rgba(var(--fg-rgb),0.8); }
-  .loc-bubble-dist{ color:rgba(var(--fg-rgb),0.45); font-size:11px; }
-  .loc-bubble button{ background:none; border:none; color:rgba(var(--fg-rgb),0.5); cursor:pointer; font-size:16px; line-height:1; padding:0 4px; }
+  .loc-bubble-dist{ color:var(--fg-45); font-size:11px; }
+  .loc-bubble button{ background:none; border:none; color:var(--fg-5); cursor:pointer; font-size:16px; line-height:1; padding:0 4px; }
   .loc-bubble button:hover{ color:var(--coral); }
   .field .chip{
     border:1.5px solid var(--line-light);
@@ -892,9 +916,9 @@
     cursor:pointer;
     background:var(--surface);
   }
-  .logo-drop svg{ width:26px;height:26px;color:rgba(var(--fg-rgb),0.45); margin-bottom:8px; }
+  .logo-drop svg{ width:26px;height:26px;color:var(--fg-45); margin-bottom:8px; }
   .logo-drop .t{ font-size:13.5px; font-weight:600; color:rgba(var(--fg-rgb),0.7); }
-  .logo-drop .s{ font-size:11.5px; color:rgba(var(--fg-rgb),0.4); margin-top:3px; }
+  .logo-drop .s{ font-size:11.5px; color:var(--fg-4); margin-top:3px; }
   .logo-drop.has-file{ border-style:solid; border-color:var(--sage-light); }
 
   .ob-primary{
@@ -928,7 +952,7 @@
   .ob-divider{
     display:flex;align-items:center;gap:12px;
     margin:22px 0;
-    color:rgba(var(--fg-rgb),0.35);
+    color:var(--fg-35);
     font-size:12px;
     font-weight:600;
   }
@@ -951,11 +975,11 @@
   .import-card.manual .ic{ background:var(--sage-light); }
   .import-card .ic svg{ width:18px;height:18px;color:#fff; }
   .import-card .meta strong{ display:block; font-size:14.5px; color:var(--fg); margin-bottom:2px; }
-  .import-card .meta span{ font-size:12px; color:rgba(var(--fg-rgb),0.5); }
+  .import-card .meta span{ font-size:12px; color:var(--fg-5); }
   .import-card.selected{ border-color:var(--coral); background:rgba(255,90,60,0.08); }
   .import-card .check{
     width:22px;height:22px;border-radius:50%;
-    border:1.5px solid rgba(var(--fg-rgb),0.3);
+    border:1.5px solid var(--fg-3);
     flex-shrink:0;
     display:flex;align-items:center;justify-content:center;
     margin-left:auto;
@@ -963,16 +987,16 @@
   .import-card .check svg{ width:12px;height:12px;color:var(--ink); opacity:0; }
   .import-card.selected .check{ background:var(--coral); border-color:var(--coral); }
   .import-card.selected .check svg{ opacity:1; }
-  .import-hint{ font-size:12px; color:rgba(var(--fg-rgb),0.4); margin:4px 2px 18px; line-height:1.5; }
+  .import-hint{ font-size:12px; color:var(--fg-4); margin:4px 2px 18px; line-height:1.5; }
   .details-divider{
     display:flex; align-items:center; gap:10px;
     margin:26px 0 16px;
-    color:rgba(var(--fg-rgb),0.4);
+    color:var(--fg-4);
     font-family:'JetBrains Mono',monospace;
     font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;
   }
   .details-divider::before, .details-divider::after{ content:''; flex:1; height:1px; background:var(--line-light); }
-  .field .hint{ display:block; font-size:11.5px; color:rgba(var(--fg-rgb),0.4); margin-top:5px; }
+  .field .hint{ display:block; font-size:11.5px; color:var(--fg-4); margin-top:5px; }
 
   /* ================= SCREENING QUESTIONS ================= */
   .sq-list{ display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
@@ -986,7 +1010,7 @@
   .sq-question{ font-weight:600; font-size:14px; color:var(--fg); line-height:1.35; flex:1; }
   .sq-remove{
     background:none; border:none; cursor:pointer;
-    color:rgba(var(--fg-rgb),0.35); padding:2px; line-height:0;
+    color:var(--fg-35); padding:2px; line-height:0;
     flex-shrink:0;
   }
   .sq-remove:hover{ color:var(--coral); }
@@ -1001,15 +1025,15 @@
   }
   .sq-fill-row .field input:focus, .sq-fill-row .field select:focus{ border-color:var(--coral); }
   .sq-fill-row .field select option{ background:var(--surface); }
-  .sq-fill-row .field label{ font-size:11.5px; color:rgba(var(--fg-rgb),0.45); display:block; margin-bottom:5px; }
+  .sq-fill-row .field label{ font-size:11.5px; color:var(--fg-45); display:block; margin-bottom:5px; }
   .sq-bottom{ display:flex; align-items:center; justify-content:space-between; padding-top:10px; border-top:1px solid rgba(var(--fg-rgb),0.07); }
-  .sq-ideal{ font-size:12.5px; color:rgba(var(--fg-rgb),0.5); }
+  .sq-ideal{ font-size:12.5px; color:var(--fg-5); }
   .sq-ideal strong{ color:rgba(var(--fg-rgb),0.85); }
   .sq-essential{ display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; }
   .sq-essential input[type=checkbox]{ display:none; }
   .sq-ess-box{
     width:20px;height:20px;border-radius:6px;
-    border:2px solid rgba(var(--fg-rgb),0.25);
+    border:2px solid var(--fg-25);
     display:flex;align-items:center;justify-content:center;
     transition:background .15s ease, border-color .15s ease;
     flex-shrink:0;
@@ -1055,8 +1079,8 @@
   .rejection-toggle-label{ font-size:13.5px; font-weight:600; color:rgba(var(--fg-rgb),0.75); line-height:1.4; }
   .rejection-preview-wrap{ margin-top:14px; display:none; }
   .rejection-preview-wrap.show{ display:block; }
-  .rejection-preview-label{ font-size:11.5px; color:rgba(var(--fg-rgb),0.4); margin-bottom:6px; display:flex; justify-content:space-between; }
-  .rejection-preview-label span{ color:rgba(var(--fg-rgb),0.3); }
+  .rejection-preview-label{ font-size:11.5px; color:var(--fg-4); margin-bottom:6px; display:flex; justify-content:space-between; }
+  .rejection-preview-label span{ color:var(--fg-3); }
   .rejection-preview-wrap textarea{
     width:100%; background:var(--bg);
     border:1.5px solid var(--line-light); border-radius:10px;
@@ -1148,7 +1172,7 @@
     background:var(--surface);
     border:1.5px solid var(--line-light);
     border-radius:12px;
-    color:rgba(var(--fg-rgb),0.5);
+    color:var(--fg-5);
     cursor:pointer;
   }
 
@@ -1179,7 +1203,7 @@
     font-weight:600;
     color:rgba(var(--fg-rgb),0.75);
   }
-  .recruiter-bar svg{ width:16px;height:16px; color:rgba(var(--fg-rgb),0.4); flex-shrink:0; }
+  .recruiter-bar svg{ width:16px;height:16px; color:var(--fg-4); flex-shrink:0; }
 
   .posting-card{
     background:var(--surface);
@@ -1220,7 +1244,7 @@
   }
   .status-badge.active{ background:rgba(87,116,99,0.25); color:#9fc2ad; }
   .status-badge.paused{ background:rgba(201,162,39,0.2); color:#e0bb55; }
-  .status-badge.closed{ background:rgba(var(--fg-rgb),0.08); color:rgba(var(--fg-rgb),0.4); }
+  .status-badge.closed{ background:rgba(var(--fg-rgb),0.08); color:var(--fg-4); }
 
   .dash-empty{
     text-align:center;
@@ -1241,7 +1265,7 @@
   .pp-counter{
     font-size:12.5px;
     font-weight:600;
-    color:rgba(var(--fg-rgb),0.45);
+    color:var(--fg-45);
     margin-bottom:14px;
   }
   .prompt-pick{
@@ -1256,7 +1280,7 @@
   .pp-head{ display:flex; align-items:center; gap:10px; cursor:pointer; }
   .pp-box{
     width:20px;height:20px;border-radius:6px;
-    border:1.5px solid rgba(var(--fg-rgb),0.35);
+    border:1.5px solid var(--fg-35);
     flex-shrink:0;
     display:flex;align-items:center;justify-content:center;
     transition:background .2s ease, border-color .2s ease;
@@ -1300,7 +1324,7 @@
     border:2px solid var(--line-light);
     flex-shrink:0;
     display:flex;align-items:center;justify-content:center;
-    color:rgba(var(--fg-rgb),0.3);
+    color:var(--fg-3);
   }
   .photo-circle svg{ width:28px;height:28px; }
   .photo-circle.has-photo svg{ display:none; }
@@ -1321,7 +1345,7 @@
   /* ---------- work artifacts (per role) ---------- */
   .wh-artifacts{ border-top:1px dashed var(--line-light); margin-top:6px; padding-top:14px; margin-bottom:12px; }
   .wh-art-label{ display:block; font-size:13.5px; font-weight:600; color:var(--fg); margin-bottom:6px; }
-  .wh-art-sub{ font-weight:400; color:rgba(var(--fg-rgb),0.45); font-size:12px; }
+  .wh-art-sub{ font-weight:400; color:var(--fg-45); font-size:12px; }
   .wh-art-warn{ display:flex; align-items:flex-start; gap:7px; font-size:11.5px; line-height:1.45; color:rgba(var(--fg-rgb),0.6); background:rgba(255,90,60,0.07); border:1px solid rgba(255,90,60,0.25); border-radius:9px; padding:8px 11px; margin-bottom:11px; }
   .wh-art-warn svg{ width:14px; height:14px; color:var(--coral); flex-shrink:0; margin-top:1px; }
   .wh-art-row{ background:var(--bg); border:1px solid var(--line-light); border-radius:10px; padding:9px 10px; margin-bottom:8px; }
@@ -1331,8 +1355,8 @@
   .wh-art-row .wh-art-title{ margin-top:7px; }
   .wh-art-file-name{ flex:1; display:inline-flex; align-items:center; gap:7px; font-size:13px; color:rgba(var(--fg-rgb),0.85); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .wh-art-file-name svg{ width:14px; height:14px; color:var(--coral); flex-shrink:0; }
-  .wh-art-pending{ color:rgba(var(--fg-rgb),0.4); font-size:11.5px; }
-  .wh-art-del{ background:none; border:none; color:rgba(var(--fg-rgb),0.4); font-size:20px; line-height:1; cursor:pointer; padding:0 4px; flex-shrink:0; }
+  .wh-art-pending{ color:var(--fg-4); font-size:11.5px; }
+  .wh-art-del{ background:none; border:none; color:var(--fg-4); font-size:20px; line-height:1; cursor:pointer; padding:0 4px; flex-shrink:0; }
   .wh-art-del:hover{ color:var(--danger,#D9382B); }
   .wh-art-actions{ display:flex; gap:8px; flex-wrap:wrap; }
   .btn-sm.wh-art-add{ background:var(--bg); }
@@ -1374,7 +1398,7 @@
   .pr-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
   .pr-label{ font-weight:600; font-size:14px; color:var(--fg); flex:1; }
   .pr-badge{ display:inline-block; margin-left:8px; font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--coral); background:rgba(255,90,60,0.12); border:1px solid rgba(255,90,60,0.3); border-radius:999px; padding:2px 8px; vertical-align:middle; line-height:1.5; }
-  .pr-star{ background:none; border:none; padding:2px; cursor:pointer; color:rgba(var(--fg-rgb),0.3); flex-shrink:0; line-height:0; }
+  .pr-star{ background:none; border:none; padding:2px; cursor:pointer; color:var(--fg-3); flex-shrink:0; line-height:0; }
   .pr-star svg{ width:20px;height:20px; }
   .prompt-row.favorited .pr-star{ color:var(--coral); }
   .prompt-row.favorited .pr-star svg{ fill:var(--coral); }
@@ -1393,7 +1417,7 @@
     overflow:hidden;
     outline:none;
   }
-  .prompt-row .pr-count{ font-family:'JetBrains Mono',monospace; font-size:10.5px; color:rgba(var(--fg-rgb),0.35); text-align:right; margin-top:5px; }
+  .prompt-row .pr-count{ font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--fg-35); text-align:right; margin-top:5px; }
   .prompt-row .pr-count.over{ color:var(--coral); }
 
   /* ================= PROFILE PREVIEW ================= */
@@ -1414,7 +1438,7 @@
   .preview-section-label{
     font-family:'JetBrains Mono',monospace;
     font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;
-    color:rgba(var(--fg-rgb),0.45);
+    color:var(--fg-45);
     margin:26px 0 12px;
   }
   .wh-readonly{
@@ -1425,7 +1449,7 @@
     margin-bottom:12px;
   }
   .wh-readonly .wh-r-title{ font-family:'Fraunces',serif; font-weight:600; font-size:15.5px; color:var(--fg); }
-  .wh-readonly .wh-r-meta{ font-family:'JetBrains Mono',monospace; font-size:11px; color:rgba(var(--fg-rgb),0.45); margin:3px 0 8px; }
+  .wh-readonly .wh-r-meta{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--fg-45); margin:3px 0 8px; }
   .wh-readonly .wh-r-desc{ font-size:13px; color:rgba(var(--fg-rgb),0.7); line-height:1.5; white-space:pre-line; }
 
   /* ================= JOB POSTING CARD SECTIONS ================= */
@@ -1460,7 +1484,7 @@
   /* ===================== DESKTOP APP SHELL ===================== */
   .ds-nav{
     height:60px;
-    background:rgba(21,23,28,0.95);
+    background:rgba(var(--panel-rgb),0.95);
     backdrop-filter:blur(12px);
     border-bottom:1px solid var(--line-light);
     display:flex;
@@ -1506,25 +1530,25 @@
   .ds-nav-btn.nav-search{ padding:8px 18px; font-size:13.5px; font-weight:700; }
   /* ===== Seeker home / landing ===== */
   .sh-h2{ font-family:'Fraunces',serif; font-size:20px; font-weight:600; color:var(--fg); margin:0 0 12px; }
-  .sh-count{ font-size:13px; font-weight:400; color:rgba(var(--fg-rgb),0.4); }
+  .sh-count{ font-size:13px; font-weight:400; color:var(--fg-4); }
   .sh-card{ display:flex; align-items:center; gap:14px; background:var(--surface); border:1px solid var(--line-light); border-radius:12px; padding:14px 16px; margin-bottom:10px; cursor:pointer; transition:border-color .15s; }
   .sh-card:hover{ border-color:var(--coral); }
   .sh-av{ width:42px; height:42px; border-radius:10px; background:var(--bg); border:1px solid var(--line-light); display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:17px; color:rgba(var(--fg-rgb),0.7); flex-shrink:0; }
   .sh-card-title{ font-weight:700; color:var(--fg); font-size:14.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .sh-card-sub{ font-size:12.5px; color:rgba(var(--fg-rgb),0.72); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
   .sh-go{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--coral); flex-shrink:0; }
-  .sh-empty{ font-size:13.5px; color:rgba(var(--fg-rgb),0.45); background:var(--surface); border:1px solid var(--line-light); border-radius:12px; padding:16px 18px; }
-  .sh-loading{ color:rgba(var(--fg-rgb),0.4); padding:12px 0; }
+  .sh-empty{ font-size:13.5px; color:var(--fg-45); background:var(--surface); border:1px solid var(--line-light); border-radius:12px; padding:16px 18px; }
+  .sh-loading{ color:var(--fg-4); padding:12px 0; }
   .sh-titles-nudge{ display:flex; align-items:center; gap:14px; background:rgba(232,110,74,0.10); border:1px solid rgba(232,110,74,0.42); border-radius:12px; padding:13px 14px 13px 16px; margin-bottom:12px; color:var(--fg); }
   .sh-titles-nudge .jli-btn{ flex-shrink:0; }
-  .sh-nudge-x{ flex-shrink:0; background:none; border:none; color:rgba(var(--fg-rgb),0.5); font-size:20px; line-height:1; cursor:pointer; padding:2px 4px; }
+  .sh-nudge-x{ flex-shrink:0; background:none; border:none; color:var(--fg-5); font-size:20px; line-height:1; cursor:pointer; padding:2px 4px; }
   .sh-nudge-x:hover{ color:var(--fg); }
   .sh-more{ background:none; border:1px dashed var(--line-light); color:rgba(var(--fg-rgb),0.72); border-radius:10px; padding:10px 14px; width:100%; cursor:pointer; font-size:13px; margin-top:2px; font-family:'Inter',sans-serif; }
   .sh-more:hover{ border-color:var(--coral); color:var(--coral); }
   .sh-stat{ flex:1; min-width:150px; background:var(--surface); border:1px solid var(--line-light); border-radius:14px; padding:18px 20px; }
   .sh-stat-n{ font-family:'Fraunces',serif; font-size:32px; font-weight:600; color:var(--coral); }
   .sh-stat-l{ font-size:12px; color:rgba(var(--fg-rgb),0.7); font-family:'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:0.04em; margin-top:2px; }
-  .sh-note{ font-size:12px; color:rgba(var(--fg-rgb),0.4); margin-top:10px; }
+  .sh-note{ font-size:12px; color:var(--fg-4); margin-top:10px; }
   /* End chat: a red (danger) button; fills solid red once armed for confirm. */
   .end-chat-btn{ border-color:var(--danger); color:var(--danger); }
   .end-chat-btn:hover{ background:var(--danger-soft); }
@@ -1553,7 +1577,7 @@
   }
   .nd-id{ min-width:0; }
   .nd-name{ font-weight:700; font-size:14px; color:var(--fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .nd-sub{ font-size:12px; color:rgba(var(--fg-rgb),0.5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .nd-sub{ font-size:12px; color:var(--fg-5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .nd-view{
     width:100%; margin:0 0 6px; padding:8px; border-radius:999px;
     background:none; border:1.5px solid var(--coral); color:var(--coral);
@@ -1561,7 +1585,7 @@
   }
   .nd-view:hover{ background:rgba(255,107,74,0.08); }
   .nd-sep{ height:1px; background:var(--line-light); margin:6px 4px; }
-  .nd-label{ font-size:10px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; color:rgba(var(--fg-rgb),0.35); padding:6px 10px 4px; }
+  .nd-label{ font-size:10px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; color:var(--fg-35); padding:6px 10px 4px; }
   .nd-item{
     display:block; width:100%; text-align:left; background:none; border:none;
     color:rgba(var(--fg-rgb),0.78); font-size:13.5px; font-family:'Inter',sans-serif;
@@ -1603,15 +1627,15 @@
     font-family:'Fraunces',serif; font-size:18px; color:var(--fg);
   }
   .cs-name{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; margin-bottom:2px; }
-  .cs-title{ font-size:12px; color:rgba(var(--fg-rgb),0.5); margin-bottom:12px; line-height:1.4; }
+  .cs-title{ font-size:12px; color:var(--fg-5); margin-bottom:12px; line-height:1.4; }
   .cs-stat-row{ display:flex; justify-content:space-around; padding-top:12px; border-top:1px solid var(--line-light); }
   .cs-stat{ text-align:center; }
   .cs-stat .n{ font-family:'Fraunces',serif; font-size:20px; font-weight:600; color:var(--coral); }
-  .cs-stat .l{ font-size:10.5px; color:rgba(var(--fg-rgb),0.45); margin-top:1px; }
+  .cs-stat .l{ font-size:10.5px; color:var(--fg-45); margin-top:1px; }
   .cs-section-label{
     font-family:'JetBrains Mono',monospace;
     font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;
-    color:rgba(var(--fg-rgb),0.35);
+    color:var(--fg-35);
     margin:18px 0 8px;
   }
   .cs-insight{
@@ -1634,7 +1658,7 @@
   .cs-insight .n{ font-weight:700; color:var(--fg); }
   .cs-progress-bar{ background:var(--surface); border-radius:6px; height:6px; margin:6px 0 3px; }
   .cs-progress-fill{ background:var(--coral); border-radius:6px; height:100%; transition:width .4s ease; }
-  .cs-progress-label{ font-size:11px; color:rgba(var(--fg-rgb),0.4); display:flex; justify-content:space-between; }
+  .cs-progress-label{ font-size:11px; color:var(--fg-4); display:flex; justify-content:space-between; }
 
   /* candidate dashboard main content */
   .cand-main{
@@ -1653,7 +1677,7 @@
     transition:border-color .2s;
   }
   .cd-search-wrap:focus-within{ border-color:var(--coral); }
-  .cd-search-wrap svg{ width:18px;height:18px;color:rgba(var(--fg-rgb),0.35);flex-shrink:0; }
+  .cd-search-wrap svg{ width:18px;height:18px;color:var(--fg-35);flex-shrink:0; }
   .cd-search-wrap input{
     background:none; border:none; outline:none;
     color:var(--fg); font-family:'Inter',sans-serif;
@@ -1680,7 +1704,7 @@
     color:rgba(var(--fg-rgb),0.65); cursor:pointer;
     transition:border-color .15s, color .15s;
   }
-  .filter-toggle-btn:hover{ border-color:rgba(var(--fg-rgb),0.4); color:var(--fg); }
+  .filter-toggle-btn:hover{ border-color:var(--fg-4); color:var(--fg); }
   .filter-toggle-btn.has-filters{ border-color:var(--coral); color:var(--coral); background:rgba(255,90,60,0.07); }
   .filter-toggle-btn svg{ width:14px;height:14px; }
   .filter-count-badge{
@@ -1698,7 +1722,7 @@
     transition:border-color .15s, color .15s, background .15s;
     white-space:nowrap;
   }
-  .quick-chip:hover{ border-color:rgba(var(--fg-rgb),0.4); color:var(--fg); }
+  .quick-chip:hover{ border-color:var(--fg-4); color:var(--fg); }
   .quick-chip.active{ background:var(--coral); border-color:var(--coral); color:var(--fg); }
 
   /* advanced filter panel */
@@ -1723,7 +1747,7 @@
     font-family:'JetBrains Mono',monospace;
     font-size:10px; font-weight:700;
     text-transform:uppercase; letter-spacing:0.05em;
-    color:rgba(var(--fg-rgb),0.35);
+    color:var(--fg-35);
     margin-bottom:8px;
   }
   .adv-filter-chips{ display:flex; flex-wrap:wrap; gap:6px; }
@@ -1734,7 +1758,7 @@
     color:rgba(var(--fg-rgb),0.72); cursor:pointer;
     transition:border-color .15s, color .15s, background .15s;
   }
-  .adv-chip:hover{ border-color:rgba(var(--fg-rgb),0.4); color:var(--fg); }
+  .adv-chip:hover{ border-color:var(--fg-4); color:var(--fg); }
   .adv-chip.active{ background:rgba(255,90,60,0.12); border-color:var(--coral); color:var(--coral); }
 
   /* salary range row */
@@ -1769,7 +1793,7 @@
   .clear-all-btn{
     background:none; border:none; cursor:pointer;
     font-family:'Inter',sans-serif; font-size:12px; font-weight:700;
-    color:rgba(var(--fg-rgb),0.4); padding:4px 8px;
+    color:var(--fg-4); padding:4px 8px;
   }
   .clear-all-btn:hover{ color:var(--coral); }
 
@@ -1780,7 +1804,7 @@
   }
   .results-summary h2{ font-family:'Fraunces',serif; font-size:20px; margin:0; }
   .results-summary h2 em{ color:var(--coral); font-style:italic; }
-  .results-meta{ font-size:12.5px; color:rgba(var(--fg-rgb),0.4); }
+  .results-meta{ font-size:12.5px; color:var(--fg-4); }
   .sort-select{
     background:var(--surface); border:1px solid var(--line-light);
     border-radius:8px; color:rgba(var(--fg-rgb),0.65);
@@ -1799,7 +1823,7 @@
   .cd-section-head h2 em{ color:var(--coral); font-style:italic; }
   .cd-section-link{
     font-size:13px; font-weight:700;
-    color:rgba(var(--fg-rgb),0.5);
+    color:var(--fg-5);
     background:none; border:none; cursor:pointer;
     font-family:'Inter',sans-serif;
     padding:0;
@@ -1876,7 +1900,7 @@
     background-color:var(--bg);
     border:1px solid var(--line-light);
   }
-  .jli-company{ font-size:12px; font-weight:700; color:rgba(var(--fg-rgb),0.5); margin-bottom:2px; }
+  .jli-company{ font-size:12px; font-weight:700; color:var(--fg-5); margin-bottom:2px; }
   .jli-role{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; margin-bottom:6px; }
   .jli-tags{ display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px; }
   .jli-tag{
@@ -1892,7 +1916,7 @@
   .jli-prompts{ display:flex; flex-direction:column; gap:6px; }
   .jli-prompt{
     background:var(--paper); border-radius:8px; padding:8px 10px;
-    font-size:12.5px; color:rgba(21,23,28,0.75); line-height:1.4;
+    font-size:12.5px; color:rgba(var(--panel-rgb),0.75); line-height:1.4;
   }
   .jli-prompt .jlp-label{
     font-family:'JetBrains Mono',monospace; font-size:9.5px; font-weight:700;
@@ -1929,7 +1953,7 @@
   .tracker-table th{
     font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700;
     text-transform:uppercase; letter-spacing:0.05em;
-    color:rgba(var(--fg-rgb),0.35);
+    color:var(--fg-35);
     text-align:left; padding:0 14px 10px;
     border-bottom:1px solid var(--line-light);
   }
@@ -1941,7 +1965,7 @@
   }
   .tracker-table tr:last-child td{ border-bottom:none; }
   .tracker-table tr:hover td{ background:rgba(255,255,255,0.02); }
-  .tr-company{ font-size:11.5px; color:rgba(var(--fg-rgb),0.45); }
+  .tr-company{ font-size:11.5px; color:var(--fg-45); }
   .tr-role{ font-weight:600; color:var(--fg); }
   .tracker-badge{
     display:inline-block;
@@ -1949,11 +1973,11 @@
     border-radius:6px; padding:4px 9px;
     text-transform:uppercase; letter-spacing:0.03em;
   }
-  .tracker-badge.saved{ background:rgba(var(--fg-rgb),0.08); color:rgba(var(--fg-rgb),0.45); }
+  .tracker-badge.saved{ background:rgba(var(--fg-rgb),0.08); color:var(--fg-45); }
   .tracker-badge.interested{ background:rgba(255,90,60,0.15); color:var(--coral); }
   .tracker-badge.matched{ background:rgba(61,90,76,0.25); color:#9fc2ad; }
   .tracker-badge.applied{ background:rgba(201,162,39,0.2); color:#e0bb55; }
-  .tracker-empty{ text-align:center; padding:30px; color:rgba(var(--fg-rgb),0.35); font-size:13px; }
+  .tracker-empty{ text-align:center; padding:30px; color:var(--fg-35); font-size:13px; }
 
   /* answer-prompt modal */
   .answer-overlay{
@@ -1980,7 +2004,7 @@
     font-family:'Fraunces',serif; font-size:20px; font-weight:600;
     line-height:1.3; margin-bottom:6px;
   }
-  .am-company{ font-size:12.5px; color:rgba(var(--fg-rgb),0.45); margin-bottom:18px; }
+  .am-company{ font-size:12.5px; color:var(--fg-45); margin-bottom:18px; }
   .am-ta{
     width:100%; background:var(--paper); border:none; border-radius:12px;
     padding:14px 16px; font-family:'Fraunces',serif; font-size:15px;
@@ -1997,7 +2021,7 @@
     color:var(--fg); font-family:'Inter',sans-serif;
     font-weight:700; font-size:13.5px; padding:10px 24px; cursor:pointer;
   }
-  .am-note{ font-size:12px; color:rgba(var(--fg-rgb),0.4); line-height:1.5; margin-bottom:14px; }
+  .am-note{ font-size:12px; color:var(--fg-4); line-height:1.5; margin-bottom:14px; }
 
   /* job detail drawer (for candidate clicking a job) */
   .job-drawer{
@@ -2015,16 +2039,16 @@
     padding:18px 24px;
     border-bottom:1px solid var(--line-light);
     position:sticky; top:0;
-    background:rgba(21,23,28,0.97); backdrop-filter:blur(8px); z-index:10;
+    background:rgba(var(--panel-rgb),0.97); backdrop-filter:blur(8px); z-index:10;
   }
   .jd-company{ font-family:'Fraunces',serif; font-size:18px; flex:1; }
   .jd-body{ padding:24px; }
   .jd-hero{ margin-bottom:20px; }
   .jd-role{ font-family:'Fraunces',serif; font-size:24px; margin-bottom:6px; }
-  .jd-meta{ font-size:13px; color:rgba(var(--fg-rgb),0.5); margin-bottom:12px; }
+  .jd-meta{ font-size:13px; color:var(--fg-5); margin-bottom:12px; }
   .jd-section-label{
     font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700;
-    text-transform:uppercase; letter-spacing:0.05em; color:rgba(var(--fg-rgb),0.4);
+    text-transform:uppercase; letter-spacing:0.05em; color:var(--fg-4);
     margin:24px 0 10px; padding-top:20px; border-top:1px solid var(--line-light);
   }
   .jd-section-label:first-of-type{ border-top:none; padding-top:0; margin-top:0; }
@@ -2041,12 +2065,12 @@
     text-transform:uppercase; letter-spacing:0.04em; color:var(--coral-dim); margin-bottom:6px;
   }
   .jd-rp .rp-answer{ font-family:'Fraunces',serif; font-size:15px; color:var(--fg); line-height:1.4; }
-  .jd-rp .rp-empty{ font-size:13px; color:rgba(var(--fg-rgb),0.4); font-style:italic; margin-bottom:8px; }
+  .jd-rp .rp-empty{ font-size:13px; color:var(--fg-4); font-style:italic; margin-bottom:8px; }
   .jd-action-row{
     display:flex; gap:10px; padding:18px 24px;
     border-top:1px solid var(--line-light);
     position:sticky; bottom:0;
-    background:rgba(21,23,28,0.97); backdrop-filter:blur(8px);
+    background:rgba(var(--panel-rgb),0.97); backdrop-filter:blur(8px);
   }
   .jd-action-row .msc-btn{ flex:1; padding:12px 0; font-size:13.5px; }
 
@@ -2062,7 +2086,7 @@
   .hire-view.active{ display:flex; flex:1; min-height:0; }
   /* Live interested-candidates panel (real backend seekers who liked a posting) */
   .lc-head{ font-family:'Fraunces',serif; font-size:18px; color:var(--fg); margin:0 0 12px; }
-  .lc-head .lc-sub{ font-family:'Inter',sans-serif; font-size:12.5px; color:rgba(var(--fg-rgb),0.45); font-weight:400; }
+  .lc-head .lc-sub{ font-family:'Inter',sans-serif; font-size:12.5px; color:var(--fg-45); font-weight:400; }
   .lc-block{ background:var(--surface); border:1px solid var(--line-light); border-radius:14px; padding:14px 16px; margin-bottom:12px; }
   .lc-role{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:var(--coral); margin-bottom:10px; }
   .lc-row{ display:flex; align-items:center; gap:12px; padding:8px 0; border-top:1px solid rgba(var(--fg-rgb),0.06); }
@@ -2070,7 +2094,7 @@
   .lc-av{ width:38px; height:38px; border-radius:50%; background:var(--bg) center/cover no-repeat; display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--fg); flex-shrink:0; }
   .lc-main{ flex:1; min-width:0; }
   .lc-name{ font-size:14px; font-weight:600; color:var(--fg); }
-  .lc-headline{ font-size:12px; color:rgba(var(--fg-rgb),0.5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lc-headline{ font-size:12px; color:var(--fg-5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .lc-btn{ background:var(--coral); color:var(--fg); border:none; border-radius:9px; padding:8px 14px; font-size:12.5px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0; }
   .lc-btn.open{ background:var(--sage); }
   .lc-btn.super{ background:linear-gradient(135deg,#d4a017,#e8c848); color:var(--ink); margin-left:6px; }
@@ -2107,7 +2131,7 @@
   .posting-tile.closed{ opacity:0.45; }
   .pt-top{ display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:6px; }
   .pt-title{ font-family:'Fraunces',serif; font-size:18px; font-weight:600; color:var(--fg); line-height:1.25; }
-  .pt-dept{ font-size:12px; color:rgba(var(--fg-rgb),0.45); margin-bottom:12px; }
+  .pt-dept{ font-size:12px; color:var(--fg-45); margin-bottom:12px; }
   .pt-stats{
     display:grid; grid-template-columns:repeat(3,1fr);
     gap:0; border-top:1px solid var(--line-light); margin-top:14px; padding-top:14px;
@@ -2115,7 +2139,7 @@
   .pt-stat{ text-align:center; }
   .pt-stat .n{ font-family:'Fraunces',serif; font-size:22px; font-weight:600; color:var(--coral); }
   .pt-stat .n.new-count{ color:#9fc2ad; }
-  .pt-stat .l{ font-size:11px; color:rgba(var(--fg-rgb),0.4); margin-top:1px; }
+  .pt-stat .l{ font-size:11px; color:var(--fg-4); margin-top:1px; }
   .pt-actions{ display:flex; gap:7px; margin-top:14px; }
   .pt-btn{
     background:var(--bg); border:1.5px solid var(--line-light);
@@ -2124,9 +2148,9 @@
     padding:7px 13px; cursor:pointer;
     transition:border-color .15s ease;
   }
-  .pt-btn:hover{ border-color:rgba(var(--fg-rgb),0.4); }
+  .pt-btn:hover{ border-color:var(--fg-4); }
   .pt-btn.primary{ background:var(--coral); border-color:var(--coral); color:var(--fg); }
-  .pt-btn.edit{ border-color:rgba(var(--fg-rgb),0.3); color:rgba(var(--fg-rgb),0.85); }
+  .pt-btn.edit{ border-color:var(--fg-3); color:rgba(var(--fg-rgb),0.85); }
   .new-posting-tile{
     background:none;
     border:1.5px dashed var(--line-light);
@@ -2135,7 +2159,7 @@
     cursor:pointer;
     display:flex; align-items:center; justify-content:center;
     flex-direction:column; gap:10px;
-    color:rgba(var(--fg-rgb),0.35);
+    color:var(--fg-35);
     transition:border-color .18s ease, color .18s ease;
     min-height:160px;
     font-size:14px; font-weight:600;
@@ -2155,7 +2179,7 @@
   .pd-back{
     display:flex; align-items:center; gap:8px;
     background:none; border:none; cursor:pointer;
-    color:rgba(var(--fg-rgb),0.5); font-family:'Inter',sans-serif;
+    color:var(--fg-5); font-family:'Inter',sans-serif;
     font-size:13px; font-weight:700; padding:0; margin-bottom:16px;
   }
   .pd-back:hover{ color:var(--fg); }
@@ -2168,13 +2192,13 @@
   }
   .pd-stat{ text-align:center; }
   .pd-stat .n{ font-family:'Fraunces',serif; font-size:20px; font-weight:600; color:var(--coral); }
-  .pd-stat .l{ font-size:11px; color:rgba(var(--fg-rgb),0.4); margin-top:2px; }
+  .pd-stat .l{ font-size:11px; color:var(--fg-4); margin-top:2px; }
   .pd-tabs{
     display:flex; gap:0; margin-top:0;
   }
   .pd-tab{
     background:none; border:none; border-bottom:2.5px solid transparent;
-    color:rgba(var(--fg-rgb),0.45); font-family:'Inter',sans-serif;
+    color:var(--fg-45); font-family:'Inter',sans-serif;
     font-size:13.5px; font-weight:700; padding:12px 20px 11px;
     cursor:pointer; transition:color .15s ease, border-color .15s ease;
   }
@@ -2216,7 +2240,7 @@
     flex-shrink:0;
   }
   .pd-c-name{ font-family:'Fraunces',serif; font-size:15.5px; font-weight:600; margin-bottom:2px; }
-  .pd-c-title{ font-size:12.5px; color:rgba(var(--fg-rgb),0.5); margin-bottom:6px; }
+  .pd-c-title{ font-size:12.5px; color:var(--fg-5); margin-bottom:6px; }
   .pd-c-activity{ display:flex; flex-wrap:wrap; gap:5px 10px; margin:0 0 6px; }
   .act-pill{ font-size:11px; color:rgba(var(--fg-rgb),0.7); white-space:nowrap; }
   .act-pill.gated{ filter:blur(3.5px); opacity:0.5; user-select:none; pointer-events:none; }
@@ -2224,7 +2248,7 @@
   .pd-c-tag{
     font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
     background:var(--bg); border:1px solid var(--line-light); border-radius:5px;
-    padding:3px 7px; color:rgba(var(--fg-rgb),0.5);
+    padding:3px 7px; color:var(--fg-5);
   }
   .pd-match-pill{
     font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
@@ -2244,13 +2268,13 @@
   .pd-c-actions{ display:flex; flex-direction:column; gap:6px; }
   .pd-section-head{
     font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700;
-    text-transform:uppercase; letter-spacing:0.05em; color:rgba(var(--fg-rgb),0.35);
+    text-transform:uppercase; letter-spacing:0.05em; color:var(--fg-35);
     margin:0 0 12px;
   }
   .pd-section-head:not(:first-child){ margin-top:28px; }
   .pd-empty{
     text-align:center; padding:48px 20px;
-    color:rgba(var(--fg-rgb),0.3); font-size:13.5px; line-height:1.6;
+    color:var(--fg-3); font-size:13.5px; line-height:1.6;
   }
   .pd-empty .em{ font-family:'Fraunces',serif; font-size:18px; font-style:italic; color:rgba(255,90,60,0.5); display:block; margin-bottom:8px; }
 
@@ -2303,7 +2327,7 @@
     background:var(--bg);
     border-radius:50%;
     font-family:'Fraunces',serif; font-size:18px; font-weight:600;
-    color:rgba(var(--fg-rgb),0.25);
+    color:var(--fg-25);
   }
 
   /* sidebar */
@@ -2323,7 +2347,7 @@
     font-weight:700;
     text-transform:uppercase;
     letter-spacing:0.06em;
-    color:rgba(var(--fg-rgb),0.4);
+    color:var(--fg-4);
     margin:22px 0 10px;
   }
   .hs-label:first-child{ margin-top:0; }
@@ -2338,7 +2362,7 @@
     transition:border-color .2s;
   }
   .hs-search:focus-within{ border-color:var(--coral); }
-  .hs-search svg{ width:16px;height:16px;color:rgba(var(--fg-rgb),0.35);flex-shrink:0; }
+  .hs-search svg{ width:16px;height:16px;color:var(--fg-35);flex-shrink:0; }
   .hs-search input{
     background:none;
     border:none;
@@ -2367,7 +2391,7 @@
   .hs-count{
     font-family:'JetBrains Mono',monospace;
     font-size:10.5px;
-    color:rgba(var(--fg-rgb),0.35);
+    color:var(--fg-35);
     margin-top:18px;
   }
 
@@ -2439,7 +2463,7 @@
   .cand-prompt-snip{
     font-family:'Fraunces',serif;
     font-size:13.5px;
-    color:rgba(21,23,28,0.75);
+    color:rgba(var(--panel-rgb),0.75);
     background:var(--paper);
     border-radius:9px;
     padding:9px 12px;
@@ -2502,13 +2526,13 @@
     border-bottom:1px solid var(--line-light);
     position:sticky;
     top:0;
-    background:rgba(21,23,28,0.97);
+    background:rgba(var(--panel-rgb),0.97);
     backdrop-filter:blur(8px);
     z-index:10;
   }
   .drawer-close{
     background:none; border:none; cursor:pointer;
-    color:rgba(var(--fg-rgb),0.5);
+    color:var(--fg-5);
     display:flex;align-items:center;justify-content:center;
     padding:4px;
   }
@@ -2529,7 +2553,7 @@
   .d-section-label{
     font-family:'JetBrains Mono',monospace;
     font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;
-    color:rgba(var(--fg-rgb),0.4);
+    color:var(--fg-4);
     margin:28px 0 12px;
     padding-top:24px;
     border-top:1px solid var(--line-light);
@@ -2539,7 +2563,7 @@
   .d-work-entry:last-child{ margin-bottom:0; }
   .d-job-title{ font-weight:700; font-size:14.5px; color:var(--fg); margin-bottom:2px; }
   .d-company{ font-size:13px; color:rgba(var(--fg-rgb),0.7); margin-bottom:4px; }
-  .d-years{ font-family:'JetBrains Mono',monospace; font-size:11px; color:rgba(var(--fg-rgb),0.35); grid-column:2; grid-row:1/3; text-align:right; white-space:nowrap; }
+  .d-years{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--fg-35); grid-column:2; grid-row:1/3; text-align:right; white-space:nowrap; }
   .d-bullets{ margin:6px 0 0 0; padding:0 0 0 16px; }
   .d-bullets li{ font-size:13px; color:rgba(var(--fg-rgb),0.65); margin-bottom:3px; line-height:1.45; }
   .d-edu-item{ font-size:13.5px; color:rgba(var(--fg-rgb),0.75); margin-bottom:6px; }
@@ -2558,11 +2582,11 @@
   .drawer-prompt-card .pa{ font-family:'Fraunces',serif; font-size:16px; line-height:1.35; margin-bottom:10px; }
   .prompt-rating-row{
     display:flex; align-items:center; justify-content:space-between;
-    border-top:1px solid rgba(21,23,28,0.09);
+    border-top:1px solid rgba(var(--panel-rgb),0.09);
     padding-top:9px; margin-top:2px;
   }
   .prompt-rating-label{
-    font-size:11px; color:rgba(21,23,28,0.38);
+    font-size:11px; color:rgba(var(--panel-rgb),0.38);
     font-family:'Inter',sans-serif;
     display:flex; align-items:center; gap:5px;
   }
@@ -2572,16 +2596,16 @@
   }
   .rating-btns{ display:flex; gap:4px; position:relative; }
   .rating-btn{
-    background:none; border:1.5px solid rgba(21,23,28,0.15);
+    background:none; border:1.5px solid rgba(var(--panel-rgb),0.15);
     border-radius:7px; cursor:pointer;
     width:30px; height:28px;
     display:flex;align-items:center;justify-content:center;
     font-size:13px; line-height:1;
-    color:rgba(21,23,28,0.4);
+    color:rgba(var(--panel-rgb),0.4);
     transition:background .15s ease, border-color .15s ease, color .15s ease;
     position:relative;
   }
-  .rating-btn:hover{ background:rgba(21,23,28,0.06); border-color:rgba(21,23,28,0.3); color:rgba(21,23,28,0.7); }
+  .rating-btn:hover{ background:rgba(var(--panel-rgb),0.06); border-color:rgba(var(--panel-rgb),0.3); color:rgba(var(--panel-rgb),0.7); }
   .rating-btn.active-up{ background:#dcf0e3; border-color:#4caf70; color:#2d7a4a; }
   .rating-btn.active-down{ background:#fde8e4; border-color:#e07060; color:#c0392b; }
 
@@ -2627,14 +2651,14 @@
     display:flex; gap:10px; padding:20px 28px;
     border-top:1px solid var(--line-light);
     position:sticky; bottom:0;
-    background:rgba(21,23,28,0.97);
+    background:rgba(var(--panel-rgb),0.97);
     backdrop-filter:blur(8px);
   }
   .drawer-action-row .ca-btn{ padding:12px 22px; font-size:13px; flex:1; text-align:center; }
   .no-results{
     text-align:center;
     padding:80px 40px;
-    color:rgba(var(--fg-rgb),0.4);
+    color:var(--fg-4);
   }
   .no-results .nr-icon{ font-family:'Fraunces',serif; font-style:italic; font-size:32px; color:var(--coral); margin-bottom:12px; }
   .no-results p{ font-size:14px; line-height:1.6; }
@@ -2654,12 +2678,12 @@
     margin-bottom:10px;
     transition:border-color .18s ease;
   }
-  .oauth-btn:hover{ border-color:rgba(var(--fg-rgb),0.4); }
+  .oauth-btn:hover{ border-color:var(--fg-4); }
   .oauth-btn svg, .oauth-btn img{ width:20px;height:20px;flex-shrink:0; }
 
   .auth-divider{
     display:flex; align-items:center; gap:12px;
-    color:rgba(var(--fg-rgb),0.35);
+    color:var(--fg-35);
     font-size:12.5px; font-weight:600;
     margin:18px 0;
   }
@@ -2672,7 +2696,7 @@
   .pw-toggle{
     position:absolute; right:12px; bottom:13px;
     background:none; border:none; cursor:pointer;
-    color:rgba(var(--fg-rgb),0.4); padding:2px;
+    color:var(--fg-4); padding:2px;
     line-height:0;
   }
   .pw-toggle:hover{ color:rgba(var(--fg-rgb),0.75); }
@@ -2693,7 +2717,7 @@
   .auth-footer{
     text-align:center;
     font-size:13px;
-    color:rgba(var(--fg-rgb),0.45);
+    color:var(--fg-45);
     margin-top:20px;
   }
   .auth-footer a, .auth-link{
@@ -2718,7 +2742,7 @@
   .role-login-link{
     text-align:center;
     font-size:12.5px;
-    color:rgba(var(--fg-rgb),0.45);
+    color:var(--fg-45);
   }
   .role-login-link button{
     background:none; border:none; color:var(--coral);
@@ -2748,7 +2772,7 @@
     white-space:nowrap;
   }
   .tier-badge:hover{ opacity:0.8; }
-  .tier-badge.free{ background:rgba(var(--fg-rgb),0.08); color:rgba(var(--fg-rgb),0.45); border:1px solid rgba(var(--fg-rgb),0.15); }
+  .tier-badge.free{ background:rgba(var(--fg-rgb),0.08); color:var(--fg-45); border:1px solid rgba(var(--fg-rgb),0.15); }
   .tier-badge.pro{ background:rgba(61,90,76,0.25); color:#9fc2ad; border:1px solid rgba(87,116,99,0.5); }
   .tier-badge.max{ background:rgba(224,187,85,0.15); color:#e0bb55; border:1px solid rgba(224,187,85,0.35); }
   .tier-badge svg{ width:11px;height:11px; }
@@ -2774,14 +2798,14 @@
   .pricing-close{
     position:absolute; top:18px; right:18px;
     background:none; border:none; cursor:pointer;
-    color:rgba(var(--fg-rgb),0.4); line-height:0;
+    color:var(--fg-4); line-height:0;
   }
   .pricing-close:hover{ color:var(--fg); }
   .pricing-close svg{ width:20px;height:20px; }
   .pricing-header{ text-align:center; margin-bottom:32px; }
   .pricing-header h2{ font-family:'Fraunces',serif; font-size:28px; margin:0 0 8px; }
   .pricing-header h2 em{ color:var(--coral); font-style:italic; }
-  .pricing-header p{ font-size:14px; color:rgba(var(--fg-rgb),0.5); margin:0; }
+  .pricing-header p{ font-size:14px; color:var(--fg-5); margin:0; }
   .pricing-cards{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
   .plan-card{
     background:var(--surface);
@@ -2803,7 +2827,7 @@
   .plan-name{
     font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700;
     text-transform:uppercase; letter-spacing:0.05em;
-    color:rgba(var(--fg-rgb),0.45); margin-bottom:8px;
+    color:var(--fg-45); margin-bottom:8px;
   }
   .plan-card.popular .plan-name{ color:#9fc2ad; }
   .plan-card.current .plan-name{ color:var(--coral); }
@@ -2811,8 +2835,8 @@
     font-family:'Fraunces',serif; font-size:36px; font-weight:700;
     color:var(--fg); margin-bottom:4px; line-height:1;
   }
-  .plan-price span{ font-size:16px; font-weight:400; color:rgba(var(--fg-rgb),0.45); }
-  .plan-desc{ font-size:12.5px; color:rgba(var(--fg-rgb),0.45); margin-bottom:20px; line-height:1.5; }
+  .plan-price span{ font-size:16px; font-weight:400; color:var(--fg-45); }
+  .plan-desc{ font-size:12.5px; color:var(--fg-45); margin-bottom:20px; line-height:1.5; }
   .plan-cta{
     width:100%; border-radius:10px; padding:11px 0;
     font-family:'Inter',sans-serif; font-size:13.5px; font-weight:700;
@@ -2820,7 +2844,7 @@
     transition:opacity .15s;
   }
   .plan-cta:hover{ opacity:0.85; }
-  .plan-cta.current-plan{ background:rgba(var(--fg-rgb),0.08); color:rgba(var(--fg-rgb),0.4); cursor:default; }
+  .plan-cta.current-plan{ background:rgba(var(--fg-rgb),0.08); color:var(--fg-4); cursor:default; }
   .plan-cta.upgrade-pro{ background:var(--sage); color:var(--fg); }
   .plan-cta.upgrade-max{ background:linear-gradient(135deg, #d4a017, #e8c848); color:var(--ink); }
   .plan-features{ display:flex; flex-direction:column; gap:9px; }
@@ -2829,7 +2853,7 @@
     font-size:13px; color:rgba(var(--fg-rgb),0.7); line-height:1.4;
   }
   .plan-feat svg{ width:14px;height:14px; flex-shrink:0; margin-top:2px; }
-  .plan-feat.locked{ color:rgba(var(--fg-rgb),0.3); }
+  .plan-feat.locked{ color:var(--fg-3); }
   .plan-feat.locked svg{ color:rgba(var(--fg-rgb),0.2); }
   .feat-check{ color:#9fc2ad; }
   .feat-gold{ color:#e0bb55; }
@@ -2847,7 +2871,7 @@
   .upgrade-gate svg{ width:22px;height:22px; color:var(--coral); flex-shrink:0; }
   .ug-text{ flex:1; }
   .ug-text strong{ display:block; font-size:14px; margin-bottom:3px; color:var(--fg); }
-  .ug-text span{ font-size:12.5px; color:rgba(var(--fg-rgb),0.5); line-height:1.4; }
+  .ug-text span{ font-size:12.5px; color:var(--fg-5); line-height:1.4; }
   .ug-btn{
     background:var(--coral); border:none; border-radius:9px;
     color:var(--fg); font-family:'Inter',sans-serif; font-weight:700;
@@ -2859,7 +2883,7 @@
   }
   .feature-locked-overlay::after{
     content:''; position:absolute; inset:0;
-    background:rgba(21,23,28,0.6); backdrop-filter:blur(3px);
+    background:rgba(var(--panel-rgb),0.6); backdrop-filter:blur(3px);
     border-radius:14px; pointer-events:none;
     z-index:2;
   }
@@ -2876,7 +2900,7 @@
 
   /* usage bar in nav */
   .tier-usage{
-    font-size:11.5px; color:rgba(var(--fg-rgb),0.4);
+    font-size:11.5px; color:var(--fg-4);
     display:flex; flex-direction:column; gap:2px;
     align-items:flex-end;
   }
@@ -2893,7 +2917,7 @@
   /* ================= REPORT BUTTON & MODAL ================= */
   .report-btn{
     background:none; border:none; cursor:pointer;
-    color:rgba(var(--fg-rgb),0.25); padding:4px; line-height:0;
+    color:var(--fg-25); padding:4px; line-height:0;
     transition:color .15s;
   }
   .report-btn:hover{ color:var(--coral); }
@@ -2914,7 +2938,7 @@
     box-shadow:0 30px 60px -20px rgba(0,0,0,0.7);
   }
   .report-modal h3{ font-family:'Fraunces',serif; font-size:18px; margin:0 0 6px; }
-  .report-modal .rm-sub{ font-size:12.5px; color:rgba(var(--fg-rgb),0.45); margin-bottom:18px; line-height:1.5; }
+  .report-modal .rm-sub{ font-size:12.5px; color:var(--fg-45); margin-bottom:18px; line-height:1.5; }
   .report-reasons{ display:flex; flex-direction:column; gap:7px; margin-bottom:16px; }
   .report-reason{
     display:flex; align-items:center; gap:10px;
@@ -2928,7 +2952,7 @@
   .report-reason input[type=radio]{ display:none; }
   .report-reason .rr-dot{
     width:16px;height:16px;border-radius:50%;
-    border:2px solid rgba(var(--fg-rgb),0.25);
+    border:2px solid var(--fg-25);
     flex-shrink:0; transition:background .15s, border-color .15s;
   }
   .report-reason.selected .rr-dot{ background:var(--coral); border-color:var(--coral); }
@@ -2971,12 +2995,12 @@
   .legal-close{
     position:absolute; top:16px; right:16px;
     background:none; border:none; cursor:pointer;
-    color:rgba(var(--fg-rgb),0.4); line-height:0;
+    color:var(--fg-4); line-height:0;
   }
   .legal-close:hover{ color:var(--fg); }
   .legal-close svg{ width:18px;height:18px; }
   .legal-modal h2{ font-family:'Fraunces',serif; font-size:22px; margin:0 0 5px; }
-  .legal-modal .lm-date{ font-size:11.5px; color:rgba(var(--fg-rgb),0.35); margin-bottom:20px; font-family:'JetBrains Mono',monospace; }
+  .legal-modal .lm-date{ font-size:11.5px; color:var(--fg-35); margin-bottom:20px; font-family:'JetBrains Mono',monospace; }
   .legal-modal h3{ font-size:14px; font-weight:700; margin:20px 0 6px; color:var(--fg); }
   .legal-modal p, .legal-modal li{ font-size:13px; color:rgba(var(--fg-rgb),0.72); line-height:1.7; margin:0 0 8px; }
   .legal-modal ul{ padding-left:18px; margin:0 0 10px; }
@@ -2987,12 +3011,12 @@
     text-align:center;
     margin-top:22px;
     font-size:12px;
-    color:rgba(var(--fg-rgb),0.3);
+    color:var(--fg-3);
     line-height:1.8;
   }
   .landing-footer a, .landing-footer button{
     background:none; border:none; cursor:pointer;
-    color:rgba(var(--fg-rgb),0.45); font-size:12px;
+    color:var(--fg-45); font-size:12px;
     text-decoration:underline; font-family:'Inter',sans-serif; padding:0;
   }
   .landing-footer a:hover, .landing-footer button:hover{ color:var(--coral); }
@@ -3015,7 +3039,7 @@
     background-image:none;
   }
   .admin-nav{
-    height:56px; background:rgba(21,23,28,0.97);
+    height:56px; background:rgba(var(--panel-rgb),0.97);
     border-bottom:1px solid var(--line-light);
     display:flex; align-items:center; padding:0 28px; gap:16px;
     position:sticky; top:0; z-index:100;
@@ -3032,7 +3056,7 @@
   .admin-nav-tabs{ display:flex; gap:4px; margin-left:16px; }
   .admin-tab{
     background:none; border:none; cursor:pointer;
-    color:rgba(var(--fg-rgb),0.45); font-family:'Inter',sans-serif;
+    color:var(--fg-45); font-family:'Inter',sans-serif;
     font-size:13px; font-weight:600; padding:8px 14px; border-radius:8px;
     transition:background .15s, color .15s;
   }
@@ -3058,7 +3082,7 @@
     border-radius:14px; padding:18px;
   }
   .admin-stat-card .n{ font-family:'Fraunces',serif; font-size:30px; font-weight:600; color:var(--fg); }
-  .admin-stat-card .l{ font-size:12px; color:rgba(var(--fg-rgb),0.4); margin-top:3px; }
+  .admin-stat-card .l{ font-size:12px; color:var(--fg-4); margin-top:3px; }
   .admin-stat-card .delta{ font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:700; margin-top:6px; }
   .admin-stat-card .delta.up{ color:#9fc2ad; }
   .admin-stat-card .delta.down{ color:var(--coral); }
@@ -3074,7 +3098,7 @@
     background:var(--surface); border:1px solid var(--line-light);
     border-radius:8px; padding:0 10px;
   }
-  .admin-search-small svg{ width:14px;height:14px;color:rgba(var(--fg-rgb),0.3); }
+  .admin-search-small svg{ width:14px;height:14px;color:var(--fg-3); }
   .admin-search-small input{
     background:none; border:none; outline:none;
     color:var(--fg); font-family:'Inter',sans-serif; font-size:13px;
@@ -3084,7 +3108,7 @@
   .admin-table{ width:100%; border-collapse:collapse; }
   .admin-table th{
     font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
-    text-transform:uppercase; letter-spacing:0.05em; color:rgba(var(--fg-rgb),0.35);
+    text-transform:uppercase; letter-spacing:0.05em; color:var(--fg-35);
     text-align:left; padding:11px 16px; border-bottom:1px solid var(--line-light);
   }
   .admin-table td{ padding:12px 16px; border-bottom:1px solid rgba(var(--fg-rgb),0.05); font-size:13.5px; vertical-align:middle; }
@@ -3103,7 +3127,7 @@
     padding:5px 11px; cursor:pointer; margin-right:5px;
     transition:border-color .15s, color .15s;
   }
-  .admin-action-btn:hover{ border-color:rgba(var(--fg-rgb),0.4); color:var(--fg); }
+  .admin-action-btn:hover{ border-color:var(--fg-4); color:var(--fg); }
   .admin-action-btn.danger{ border-color:rgba(255,90,60,0.35); color:var(--coral); }
   .admin-action-btn.danger:hover{ background:rgba(255,90,60,0.1); }
   .admin-action-btn.success{ border-color:rgba(87,116,99,0.5); color:#9fc2ad; }
@@ -3115,7 +3139,7 @@
   .flag-badge.spam{ background:rgba(255,90,60,0.15); color:var(--coral); }
   .flag-badge.scam{ background:rgba(224,187,85,0.15); color:#e0bb55; }
   .flag-badge.harassment{ background:rgba(150,80,200,0.15); color:#c09fd0; }
-  .flag-badge.reported{ background:rgba(var(--fg-rgb),0.08); color:rgba(var(--fg-rgb),0.45); }
+  .flag-badge.reported{ background:rgba(var(--fg-rgb),0.08); color:var(--fg-45); }
   .flag-badge.clear{ background:rgba(87,116,99,0.2); color:#9fc2ad; }
 
   /* analytics chart-style bar */
@@ -3136,7 +3160,7 @@
   .super-invite-btn{ background:linear-gradient(135deg,#d4a017,#e8c848); border:none; border-radius:8px; color:var(--ink); font-family:'Inter',sans-serif; font-size:12px; font-weight:800; padding:7px 13px; cursor:pointer; white-space:nowrap; }
   .super-invite-btn:hover{ opacity:0.85; }
   .super-invite-btn.super-invited{ background:rgba(224,187,85,0.15); color:#e0bb55; border:1.5px solid rgba(224,187,85,0.4); }
-  .invite-count-bar{ display:flex; align-items:center; gap:8px; font-size:12px; color:rgba(var(--fg-rgb),0.5); padding:10px 0 4px; border-top:1px solid var(--line-light); margin-top:4px; }
+  .invite-count-bar{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--fg-5); padding:10px 0 4px; border-top:1px solid var(--line-light); margin-top:4px; }
   .invite-count-bar .n{ font-weight:700; color:var(--fg); }
   .rescind-link{ background:none; border:none; cursor:pointer; color:rgba(255,90,60,0.6); font-family:'Inter',sans-serif; font-size:11.5px; font-weight:700; padding:0; text-decoration:underline; }
   .rescind-link:hover{ color:var(--coral); }
@@ -3148,7 +3172,7 @@
   .basic-locked-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
   .basic-locked-head h4{ font-family:'Fraunces',serif; font-size:15px; margin:0; color:rgba(var(--fg-rgb),0.7); }
   .basic-extend-btn{ background:var(--coral); border:none; border-radius:8px; color:var(--fg); font-family:'Inter',sans-serif; font-size:12.5px; font-weight:700; padding:8px 16px; cursor:pointer; }
-  .duration-badge{ display:inline-flex; align-items:center; gap:5px; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; background:rgba(var(--fg-rgb),0.06); border:1px solid rgba(var(--fg-rgb),0.15); border-radius:7px; padding:3px 9px; color:rgba(var(--fg-rgb),0.5); }
+  .duration-badge{ display:inline-flex; align-items:center; gap:5px; font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; background:rgba(var(--fg-rgb),0.06); border:1px solid rgba(var(--fg-rgb),0.15); border-radius:7px; padding:3px 9px; color:var(--fg-5); }
   .duration-badge.expiring{ background:rgba(255,90,60,0.1); border-color:rgba(255,90,60,0.35); color:var(--coral); }
 
   /* ===== TRENDING (Featured) ===== */
@@ -3161,7 +3185,7 @@
   .confirm-modal{ background:var(--surface); border:1px solid var(--line-light); border-radius:18px; padding:28px 30px; width:min(460px,90vw); box-shadow:0 30px 60px -20px rgba(0,0,0,0.7); }
   .confirm-modal h3{ font-family:'Fraunces',serif; font-size:20px; margin:0 0 10px; }
   .confirm-modal p{ font-size:13.5px; color:rgba(var(--fg-rgb),0.65); line-height:1.6; margin:0 0 10px; }
-  .confirm-modal .note{ font-size:12px; color:rgba(var(--fg-rgb),0.45); background:rgba(255,90,60,0.06); border:1px solid rgba(255,90,60,0.2); border-radius:9px; padding:10px 13px; margin-bottom:18px; line-height:1.5; }
+  .confirm-modal .note{ font-size:12px; color:var(--fg-45); background:rgba(255,90,60,0.06); border:1px solid rgba(255,90,60,0.2); border-radius:9px; padding:10px 13px; margin-bottom:18px; line-height:1.5; }
   .confirm-actions{ display:flex; gap:10px; justify-content:flex-end; }
   .confirm-cancel{ background:none; border:1px solid var(--line-light); border-radius:9px; color:rgba(var(--fg-rgb),0.7); font-family:'Inter',sans-serif; font-weight:700; font-size:13px; padding:10px 18px; cursor:pointer; }
   .confirm-ok{ background:var(--coral); border:none; border-radius:9px; color:var(--fg); font-family:'Inter',sans-serif; font-weight:700; font-size:13px; padding:10px 22px; cursor:pointer; }
@@ -3188,7 +3212,7 @@
   .pv-toolbar{
     display:flex; align-items:center; gap:10px;
     padding:14px 20px;
-    background:rgba(21,23,28,0.97);
+    background:rgba(var(--panel-rgb),0.97);
     border-radius:18px 18px 0 0;
     border-bottom:1px solid rgba(var(--fg-rgb),0.08);
   }
@@ -3199,7 +3223,7 @@
     font-family:'Inter',sans-serif; font-size:13px; font-weight:600;
     padding:7px 14px; cursor:pointer;
   }
-  .pv-close-btn:hover{ border-color:rgba(var(--fg-rgb),0.5); color:var(--fg); }
+  .pv-close-btn:hover{ border-color:var(--fg-5); color:var(--fg); }
   .pv-print-btn{
     background:var(--coral); border:none; border-radius:8px;
     color:#fff; font-family:'Inter',sans-serif;
@@ -3214,7 +3238,7 @@
     padding:7px 14px; cursor:pointer;
     display:flex; align-items:center; gap:6px;
   }
-  .pv-share-btn:hover{ border-color:rgba(var(--fg-rgb),0.5); color:var(--fg); }
+  .pv-share-btn:hover{ border-color:var(--fg-5); color:var(--fg); }
   .pv-share-btn svg{ width:14px;height:14px; }
 
   /* profile content (white page) */
@@ -3254,7 +3278,7 @@
   .skills-chips{ display:flex; flex-wrap:wrap; gap:8px; }
   .skills-chips:not(:empty){ margin-bottom:10px; }
   .skill-tag{ display:inline-flex; align-items:center; gap:7px; background:var(--surface); border:1px solid var(--line-light); color:var(--fg); border-radius:20px; padding:6px 8px 6px 13px; font-size:13px; }
-  .skill-tag button{ background:none; border:none; color:rgba(var(--fg-rgb),0.5); cursor:pointer; font-size:13px; line-height:1; padding:2px 4px; border-radius:50%; }
+  .skill-tag button{ background:none; border:none; color:var(--fg-5); cursor:pointer; font-size:13px; line-height:1; padding:2px 4px; border-radius:50%; }
   .skill-tag button:hover{ color:var(--coral); }
   .skills-input{ width:100%; box-sizing:border-box; background:var(--bg); border:1px solid var(--line-light); border-radius:10px; color:var(--fg); font-family:'Inter',sans-serif; font-size:14px; padding:11px 14px; }
   .skills-input:focus{ outline:none; border-color:var(--coral); }
@@ -3366,7 +3390,7 @@
   #tourOverlay{ display:none; position:fixed; inset:0; z-index:900; background:rgba(10,10,12,0.72); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:20px; }
   #tourOverlay.open{ display:flex; }
   .tour-card{ position:relative; width:100%; max-width:430px; background:var(--surface); border:1px solid var(--line-light); border-radius:18px; padding:30px 28px 24px; box-shadow:0 40px 80px -20px rgba(0,0,0,0.8); }
-  .tour-skip{ position:absolute; top:16px; right:18px; background:none; border:none; color:rgba(var(--fg-rgb),0.5); font-family:'Inter',sans-serif; font-size:13px; cursor:pointer; }
+  .tour-skip{ position:absolute; top:16px; right:18px; background:none; border:none; color:var(--fg-5); font-family:'Inter',sans-serif; font-size:13px; cursor:pointer; }
   .tour-skip:hover{ color:var(--fg); }
   .tour-step-num{ font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--coral); margin-bottom:10px; }
   .tour-title{ font-family:'Fraunces',serif; font-size:22px; font-weight:600; color:var(--fg); margin:0 0 10px; line-height:1.2; }
@@ -3383,7 +3407,7 @@
   .tour-nav{ display:flex; gap:10px; }
   .tour-back, .tour-next{ flex:1; border-radius:10px; font-family:'Inter',sans-serif; font-size:14px; font-weight:700; padding:11px 0; cursor:pointer; }
   .tour-back{ background:none; border:1px solid var(--line-light); color:rgba(var(--fg-rgb),0.75); }
-  .tour-back:hover{ border-color:rgba(var(--fg-rgb),0.5); color:var(--fg); }
+  .tour-back:hover{ border-color:var(--fg-5); color:var(--fg); }
   .tour-back:disabled{ opacity:0.35; cursor:default; }
   .tour-next{ background:var(--coral); border:none; color:var(--fg); }
   .tour-next:hover{ background:var(--coral-dim); }
@@ -3409,8 +3433,8 @@
   .qr-ex figcaption{ font-size:13px; color:rgba(var(--fg-rgb),0.65); text-align:center; margin-top:12px; max-width:320px; }
   .qr-ex figcaption strong{ color:var(--fg); font-weight:600; }
   .qr-mini{ display:block; image-rendering:pixelated; background:#fff; }
-  .bar{ height:7px; border-radius:3px; background:rgba(21,23,28,0.85); margin-bottom:6px; }
-  .bar.dim{ background:rgba(21,23,28,0.4); }
+  .bar{ height:7px; border-radius:3px; background:rgba(var(--panel-rgb),0.85); margin-bottom:6px; }
+  .bar.dim{ background:rgba(var(--panel-rgb),0.4); }
   .w70{ width:70%; } .w60{ width:60%; } .w50{ width:50%; } .w40{ width:40%; }
   /* résumé */
   .ex-paper{ background:#fff; border-radius:10px; padding:20px; width:270px; height:350px; box-shadow:0 10px 30px rgba(0,0,0,0.4); }
@@ -3541,7 +3565,7 @@
   }
   .super-invite-card .si-company{ font-size:12px; color:#c9a030; font-weight:700; margin-bottom:3px; font-family:'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:0.04em; }
   .super-invite-card .si-role{ font-family:'Fraunces',serif; font-size:18px; font-weight:600; color:var(--fg); margin-bottom:6px; }
-  .super-invite-card .si-meta{ font-size:12.5px; color:rgba(var(--fg-rgb),0.5); margin-bottom:14px; }
+  .super-invite-card .si-meta{ font-size:12.5px; color:var(--fg-5); margin-bottom:14px; }
   .super-invite-card .si-note{ font-size:13px; color:rgba(var(--fg-rgb),0.7); font-style:italic; margin-bottom:14px; line-height:1.45; border-left:3px solid rgba(224,187,85,0.4); padding-left:12px; }
 
   /* regular invite card */
@@ -3556,15 +3580,15 @@
   .regular-invite-card.locked::after{
     content:'🔒 Accept or decline ⭐ Super Invites first';
     position:absolute; inset:0;
-    background:rgba(21,23,28,0.55); border-radius:14px;
+    background:rgba(var(--panel-rgb),0.55); border-radius:14px;
     display:flex; align-items:center; justify-content:center;
     font-family:'JetBrains Mono',monospace; font-size:10.5px;
     font-weight:700; color:rgba(var(--fg-rgb),0.7);
     backdrop-filter:blur(2px); letter-spacing:0.02em;
   }
-  .ri-company{ font-size:12px; color:rgba(var(--fg-rgb),0.45); font-weight:700; margin-bottom:2px; }
+  .ri-company{ font-size:12px; color:var(--fg-45); font-weight:700; margin-bottom:2px; }
   .ri-role{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--fg); margin-bottom:4px; }
-  .ri-meta{ font-size:12.5px; color:rgba(var(--fg-rgb),0.45); margin-bottom:12px; }
+  .ri-meta{ font-size:12.5px; color:var(--fg-45); margin-bottom:12px; }
 
   /* invite action buttons */
   .invite-action-row{ display:flex; gap:8px; }
@@ -3587,10 +3611,10 @@
   .invite-decline-btn:hover{ border-color:var(--coral); color:var(--coral); }
   .invite-empty{
     text-align:center; padding:28px 20px;
-    color:rgba(var(--fg-rgb),0.3); font-size:13px;
+    color:var(--fg-3); font-size:13px;
   }
   .invite-limit-note{
-    font-size:11.5px; color:rgba(var(--fg-rgb),0.35);
+    font-size:11.5px; color:var(--fg-35);
     text-align:center; margin-top:6px; font-family:'JetBrains Mono',monospace;
   }
 
@@ -3692,7 +3716,7 @@
 
 <!-- ============ SEARCH "coming soon" blocker (over the /search preview) ============ -->
 <div class="recruit-overlay" id="searchComingSoon" style="display:none; pointer-events:auto; z-index:900;">
-  <button class="ob-back" id="searchCsBack" type="button" style="position:fixed; top:18px; left:18px; z-index:60; pointer-events:auto; background:rgba(21,23,28,0.65);">
+  <button class="ob-back" id="searchCsBack" type="button" style="position:fixed; top:18px; left:18px; z-index:60; pointer-events:auto; background:rgba(var(--panel-rgb),0.65);">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
   </button>
   <span>Maybe coming soon...</span>
@@ -3723,7 +3747,7 @@
     <button class="lm-cta-btn" id="lmSeekerCta" type="button" style="display:block; margin:0 auto;">Create a profile now</button>
     <button id="seeSampleBtn" type="button" style="display:block; margin:12px auto 0; background:var(--surface); border:1px solid var(--line-light); color:var(--fg); border-radius:12px; font-family:'Inter',sans-serif; font-size:14px; font-weight:600; padding:12px 26px; cursor:pointer;">See sample profile</button>
     <button id="browseJobsBtn" type="button" style="display:block; margin:12px auto 0; background:none; border:none; color:var(--coral); font-family:'Inter',sans-serif; font-size:14px; font-weight:700; padding:4px 10px; cursor:pointer;">Browse jobs →</button>
-    <div style="text-align:center; font-size:13px; color:rgba(var(--fg-rgb),0.45); margin-top:14px;">Already have an account? <button id="loginSeeker" type="button" style="background:none; border:none; color:var(--coral); font:inherit; font-weight:700; cursor:pointer; padding:0;">Log in</button></div>
+    <div style="text-align:center; font-size:13px; color:var(--fg-45); margin-top:14px;">Already have an account? <button id="loginSeeker" type="button" style="background:none; border:none; color:var(--coral); font:inherit; font-weight:700; cursor:pointer; padding:0;">Log in</button></div>
   </div>
 
   <!-- ============ FOR JOB SEEKERS ============ -->
@@ -3931,8 +3955,8 @@
     </div>
     <div id="recruiterPostings"></div>
     <div id="recruiterExpiredWrap" style="display:none; margin-top:34px;">
-      <h2 style="font-family:'Fraunces',serif; font-size:22px; font-weight:600; margin:0 0 2px;">Expired <em style="color:rgba(var(--fg-rgb),0.5);font-style:italic;">postings</em></h2>
-      <p style="color:rgba(var(--fg-rgb),0.45); font-size:13px; margin:0 0 16px;">Stored for 30 days, then deleted. Repost to make one active again.</p>
+      <h2 style="font-family:'Fraunces',serif; font-size:22px; font-weight:600; margin:0 0 2px;">Expired <em style="color:var(--fg-5);font-style:italic;">postings</em></h2>
+      <p style="color:var(--fg-45); font-size:13px; margin:0 0 16px;">Stored for 30 days, then deleted. Repost to make one active again.</p>
       <div id="recruiterExpired"></div>
     </div>
   </div>
@@ -3948,7 +3972,7 @@
         <button class="ds-nav-btn" id="pmBackBtn" type="button">← Your postings</button>
       </div>
     </div>
-    <div id="pmContent"><div style="color:rgba(var(--fg-rgb),0.4);padding:40px 0;">Loading…</div></div>
+    <div id="pmContent"><div style="color:var(--fg-4);padding:40px 0;">Loading…</div></div>
   </div>
 </div>
 
@@ -3981,9 +4005,9 @@
         <div class="field" style="flex:1;min-width:0;"><label for="pf-salmax">Salary max ($)</label><input type="number" id="pf-salmax" placeholder="160000"></div>
       </div>
       <label class="accept-row" style="margin:-2px 0 12px;"><input type="checkbox" id="pf-equity"><span>This role offers equity</span></label>
-      <div class="field"><label for="pf-resp">Key responsibilities <span style="color:rgba(var(--fg-rgb),0.4);font-weight:400;">(one per line)</span></label><textarea id="pf-resp" rows="3" placeholder="Own the product roadmap…"></textarea></div>
-      <div class="field"><label for="pf-qual">Qualifications <span style="color:rgba(var(--fg-rgb),0.4);font-weight:400;">(one per line)</span></label><textarea id="pf-qual" rows="3" placeholder="5+ years in product…"></textarea></div>
-      <div class="field"><div class="fld-title">Prompts you'd love candidates to answer <span style="color:rgba(var(--fg-rgb),0.4);font-weight:400;">(pick up to 3 from the bank)</span></div>
+      <div class="field"><label for="pf-resp">Key responsibilities <span style="color:var(--fg-4);font-weight:400;">(one per line)</span></label><textarea id="pf-resp" rows="3" placeholder="Own the product roadmap…"></textarea></div>
+      <div class="field"><label for="pf-qual">Qualifications <span style="color:var(--fg-4);font-weight:400;">(one per line)</span></label><textarea id="pf-qual" rows="3" placeholder="5+ years in product…"></textarea></div>
+      <div class="field"><div class="fld-title">Prompts you'd love candidates to answer <span style="color:var(--fg-4);font-weight:400;">(pick up to 3 from the bank)</span></div>
         <div style="display:flex; flex-direction:column; gap:8px;">
           <select id="pf-prompt1" aria-label="Prompt 1 to ask candidates" class="pf-prompt"></select>
           <select id="pf-prompt2" aria-label="Prompt 2 to ask candidates" class="pf-prompt"></select>
@@ -4026,7 +4050,7 @@
       <section class="inbox-thread" id="inboxThread">
         <div class="thread-empty" id="threadEmpty">
           <div style="font-family:'Fraunces',serif; font-size:20px; font-style:italic; color:rgba(var(--fg-rgb),0.72);">Your messages</div>
-          <div style="font-size:13px; color:rgba(var(--fg-rgb),0.4);">Select a conversation to start chatting.</div>
+          <div style="font-size:13px; color:var(--fg-4);">Select a conversation to start chatting.</div>
         </div>
         <div id="threadView" style="display:none; flex:1; min-height:0; flex-direction:column;">
           <div class="thread-head">
@@ -4034,7 +4058,7 @@
             <div class="conv-av" id="chatAvatar"></div>
             <div style="min-width:0;">
               <div id="chatPeer" style="font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
-              <div id="chatPeerSub" style="font-size:12px; color:rgba(var(--fg-rgb),0.5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+              <div id="chatPeerSub" style="font-size:12px; color:var(--fg-5); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
             </div>
             <button class="ds-nav-btn pm-tip tip-down end-chat-btn" id="chatEndBtn" type="button" data-tip="Archives this chat, kept 30 days, then auto-deleted — this keeps GigCute low-cost for everyone." style="margin-left:auto; flex-shrink:0;">End chat</button>
             <button class="ds-nav-btn" id="chatMoreBtn" type="button" aria-label="Report or block" style="flex-shrink:0; margin-left:8px; padding:7px 11px;">⋯</button>
@@ -4160,11 +4184,11 @@
       <a id="jdApply" href="#" target="_blank" rel="noopener noreferrer nofollow" class="lm-cta-btn" style="text-decoration:none; font-size:14px;">Apply on source ↗</a>
       <button id="jdRemove" type="button" class="ds-nav-btn" style="font-size:12.5px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="vertical-align:-1px;margin-right:4px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Remove</button>
       <button id="jdReport" type="button" class="ds-nav-btn" style="border-color:rgba(217,56,43,0.5); color:#E06055; font-size:12.5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px;"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>Report</button>
-      <div id="jdSource" style="font-size:11.5px; color:rgba(var(--fg-rgb),0.4);"></div>
+      <div id="jdSource" style="font-size:11.5px; color:var(--fg-4);"></div>
     </div>
     <div id="jdApplied" style="display:none; margin-top:14px; font-size:13px; color:var(--sage); font-weight:600; font-family:'JetBrains Mono',monospace;"></div>
     <div id="jdDesc" style="font-size:15px; color:rgba(var(--fg-rgb),0.82); line-height:1.75; margin-top:24px; white-space:pre-wrap; max-width:800px;"></div>
-    <div id="jdFullNote" style="font-size:12.5px; color:rgba(var(--fg-rgb),0.45); margin-top:22px; padding-top:16px; border-top:1px solid var(--line-light); max-width:800px;"></div>
+    <div id="jdFullNote" style="font-size:12.5px; color:var(--fg-45); margin-top:22px; padding-top:16px; border-top:1px solid var(--line-light); max-width:800px;"></div>
   </div>
 </div>
 
@@ -4184,7 +4208,7 @@
       <button id="pdInterested" type="button" class="lm-cta-btn" style="font-size:14px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1.5px;margin-right:5px;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Interested</button>
       <button id="pdRemove" type="button" class="ds-nav-btn" style="font-size:12.5px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" style="vertical-align:-1px;margin-right:4px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Remove</button>
       <button id="pdReport" type="button" class="ds-nav-btn" style="border-color:rgba(217,56,43,0.5); color:#E06055; font-size:12.5px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px;"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>Report</button>
-      <div style="font-size:11.5px; color:rgba(var(--fg-rgb),0.4);">Posted directly by the hiring team — express interest and they’ll see your full GigCute profile.</div>
+      <div style="font-size:11.5px; color:var(--fg-4);">Posted directly by the hiring team — express interest and they’ll see your full GigCute profile.</div>
     </div>
     <div id="pdBody" style="margin-top:28px; max-width:760px;"></div>
   </div>
@@ -4240,7 +4264,7 @@
     <div class="reset-sent" id="resetSentWrap" style="display:none;">
       <div class="rs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
       <p style="font-family:'Fraunces',serif;font-size:18px;margin:0 0 8px;">Check your inbox.</p>
-      <p style="font-size:13px;color:rgba(var(--fg-rgb),0.5);margin:0;">We sent a reset link to <strong id="resetEmailSentTo" style="color:var(--fg);"></strong>. If it doesn't show up, check your spam folder.</p>
+      <p style="font-size:13px;color:var(--fg-5);margin:0;">We sent a reset link to <strong id="resetEmailSentTo" style="color:var(--fg);"></strong>. If it doesn't show up, check your spam folder.</p>
       <div class="auth-footer" style="margin-top:24px;"><button class="auth-link" id="backToLoginFromReset">← Back to log in</button></div>
     </div>
   </div>
@@ -4269,7 +4293,7 @@
     <div class="reset-sent" id="setPwDoneWrap" style="display:none;">
       <div class="rs-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
       <p style="font-family:'Fraunces',serif;font-size:18px;margin:0 0 8px;">Password updated.</p>
-      <p style="font-size:13px;color:rgba(var(--fg-rgb),0.5);margin:0;">You can now use your new password. You're signed in and ready to go.</p>
+      <p style="font-size:13px;color:var(--fg-5);margin:0;">You can now use your new password. You're signed in and ready to go.</p>
       <div class="auth-footer" style="margin-top:24px;"><button class="auth-link" id="setPwContinue">Continue →</button></div>
     </div>
   </div>
@@ -4385,13 +4409,13 @@
     <div id="workHistoryList"></div>
     <button class="btn-sm" id="addWorkEntry" type="button" style="margin-bottom:26px;">+ Add another role</button>
 
-    <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">Your <em style="font-style:italic;color:var(--coral);">skills</em> <span style="font-size:13px;font-weight:400;color:rgba(var(--fg-rgb),0.45);">(recommended)</span></h2>
+    <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">Your <em style="font-style:italic;color:var(--coral);">skills</em> <span style="font-size:13px;font-weight:400;color:var(--fg-45);">(recommended)</span></h2>
     <p class="ob-sub" style="margin-bottom:12px;">The skills, tools, and technologies you want recruiters — and our job matching — to consider. Type one and press Enter or comma.</p>
     <div id="skillsChips" class="skills-chips"></div>
     <input type="text" id="sk-skills-input" name="sk-skills-input" aria-label="Add a skill, then press Enter or comma" class="skills-input" placeholder="e.g. Figma, SQL, Project management" autocomplete="off">
     <div style="margin-bottom:26px;"></div>
 
-    <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">What you're <em style="font-style:italic;color:var(--coral);">looking for</em> <span style="font-size:13px;font-weight:400;color:rgba(var(--fg-rgb),0.45);">(recommended)</span></h2>
+    <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">What you're <em style="font-style:italic;color:var(--coral);">looking for</em> <span style="font-size:13px;font-weight:400;color:var(--fg-45);">(recommended)</span></h2>
     <p class="ob-sub" style="margin-bottom:12px;">The roles and pay you're targeting. This powers your job matches and tells recruiters what you're after.</p>
     <div style="display:block;font-size:12.5px;color:rgba(var(--fg-rgb),0.6);margin-bottom:6px;">Job titles you're open to</div>
     <div id="desiredTitlesChips" class="skills-chips"></div>
@@ -4407,7 +4431,7 @@
       </div>
     </div>
 
-    <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">Your <em style="font-style:italic;color:var(--coral);">personality</em> <span style="font-size:13px;font-weight:400;color:rgba(var(--fg-rgb),0.45);">(optional)</span></h2>
+    <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">Your <em style="font-style:italic;color:var(--coral);">personality</em> <span style="font-size:13px;font-weight:400;color:var(--fg-45);">(optional)</span></h2>
     <p class="ob-sub" style="margin-bottom:12px;">Share your Myers-Briggs type so recruiters get a feel for how you think and work. Don't know yours? Take the free 5-minute test, then pick your 4-letter type below.</p>
     <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
       <div style="flex:1; min-width:230px;">
@@ -4422,27 +4446,27 @@
           </select>
         </div>
         <div class="field" style="margin-bottom:0;">
-          <label for="sk-personality-url">Link to your results <span style="color:rgba(var(--fg-rgb),0.4);">(optional)</span></label>
+          <label for="sk-personality-url">Link to your results <span style="color:var(--fg-4);">(optional)</span></label>
           <input type="url" id="sk-personality-url" placeholder="https://www.testmypersona.com/…/results?r=…" style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--line-light);border-radius:10px;color:var(--fg);font-family:'Inter',sans-serif;font-size:13.5px;padding:11px 14px;">
-          <div style="font-size:11.5px;color:rgba(var(--fg-rgb),0.4);margin-top:5px;">On your results page tap “Share Results” and paste the link here — viewers can open your full write-up.</div>
+          <div style="font-size:11.5px;color:var(--fg-4);margin-top:5px;">On your results page tap “Share Results” and paste the link here — viewers can open your full write-up.</div>
         </div>
       </div>
       <div style="flex:0 0 auto; width:230px;">
-        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:rgba(var(--fg-rgb),0.4);margin-bottom:7px;">Example result</div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--fg-4);margin-bottom:7px;">Example result</div>
         <div style="background:var(--bg);border:1px solid var(--line-light);border-radius:14px;padding:18px 16px;text-align:center;">
-          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(var(--fg-rgb),0.5);margin-bottom:7px;">Your Personality Type</div>
+          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.08em;color:var(--fg-5);margin-bottom:7px;">Your Personality Type</div>
           <div style="font-family:'Fraunces',serif;font-size:34px;font-weight:600;color:var(--coral);line-height:1;">ISFP</div>
           <div style="font-family:'Fraunces',serif;font-size:16px;color:var(--fg);margin-top:5px;">Adventurer</div>
-          <div style="font-size:12px;color:rgba(var(--fg-rgb),0.5);margin-top:2px;">“The Composer”</div>
+          <div style="font-size:12px;color:var(--fg-5);margin-top:2px;">“The Composer”</div>
           <div style="font-size:11.5px;color:rgba(var(--fg-rgb),0.55);line-height:1.45;margin-top:10px;border-top:1px solid var(--line-light);padding-top:10px;">A flexible, charming creative who values authenticity — thrives in roles with independence and room to make things.</div>
         </div>
-        <div style="font-size:11px;color:rgba(var(--fg-rgb),0.4);margin-top:8px;line-height:1.4;">This is what your results page shows — grab the bold 4-letter code.</div>
+        <div style="font-size:11px;color:var(--fg-4);margin-top:8px;line-height:1.4;">This is what your results page shows — grab the bold 4-letter code.</div>
       </div>
     </div>
 
     <!-- ---- CliftonStrengths: ranked Top 5 talent themes ---- -->
     <div style="border-top:1px dashed var(--line-light); margin-top:24px; padding-top:20px;">
-      <h3 style="font-family:'Fraunces',serif;font-size:18px;font-weight:600;margin:0 0 4px;">CliftonStrengths <span style="font-size:12.5px;font-weight:400;color:rgba(var(--fg-rgb),0.45);">(optional)</span></h3>
+      <h3 style="font-family:'Fraunces',serif;font-size:18px;font-weight:600;margin:0 0 4px;">CliftonStrengths <span style="font-size:12.5px;font-weight:400;color:var(--fg-45);">(optional)</span></h3>
       <p class="ob-sub" style="margin-bottom:12px;">Your Top 5 talent themes — what you naturally do best. Pick them in the same order your results page ranks them.</p>
       <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start;">
         <div style="flex:1; min-width:250px;">
@@ -4452,39 +4476,39 @@
           </a>
           <div id="cliftonSelects" style="display:grid; gap:9px; margin-bottom:14px;"></div>
           <div class="field" style="margin-bottom:0;">
-            <label for="sk-strengths-url">Link to your results <span style="color:rgba(var(--fg-rgb),0.4);">(optional)</span></label>
+            <label for="sk-strengths-url">Link to your results <span style="color:var(--fg-4);">(optional)</span></label>
             <input type="url" id="sk-strengths-url" placeholder="https://www.testmypersona.com/…/clifton-strengths/results?r=…" style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--line-light);border-radius:10px;color:var(--fg);font-family:'Inter',sans-serif;font-size:13.5px;padding:11px 14px;">
           </div>
         </div>
         <div style="flex:0 0 auto; width:230px;">
-          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:rgba(var(--fg-rgb),0.4);margin-bottom:7px;">Example result</div>
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--fg-4);margin-bottom:7px;">Example result</div>
           <div style="background:var(--bg);border:1px solid var(--line-light);border-radius:14px;padding:16px 15px;">
-            <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(var(--fg-rgb),0.5);margin-bottom:9px;">Your Top 5 CliftonStrengths</div>
+            <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.08em;color:var(--fg-5);margin-bottom:9px;">Your Top 5 CliftonStrengths</div>
             <div style="display:flex;flex-direction:column;gap:7px;">
-              <div style="display:flex;align-items:center;gap:9px;"><span style="font-family:'Fraunces',serif;font-size:15px;color:var(--coral);width:12px;">1</span><span style="font-size:13px;color:var(--fg);font-weight:600;">Consistency</span><span style="font-size:10.5px;color:rgba(var(--fg-rgb),0.45);margin-left:auto;">Executing</span></div>
-              <div style="display:flex;align-items:center;gap:9px;"><span style="font-family:'Fraunces',serif;font-size:15px;color:var(--coral);width:12px;">2</span><span style="font-size:13px;color:var(--fg);font-weight:600;">Analytical</span><span style="font-size:10.5px;color:rgba(var(--fg-rgb),0.45);margin-left:auto;">Strategic</span></div>
-              <div style="display:flex;align-items:center;gap:9px;"><span style="font-family:'Fraunces',serif;font-size:15px;color:var(--coral);width:12px;">3</span><span style="font-size:13px;color:var(--fg);font-weight:600;">Context</span><span style="font-size:10.5px;color:rgba(var(--fg-rgb),0.45);margin-left:auto;">Strategic</span></div>
-              <div style="display:flex;align-items:center;gap:9px;"><span style="font-family:'Fraunces',serif;font-size:15px;color:var(--coral);width:12px;">4</span><span style="font-size:13px;color:var(--fg);font-weight:600;">Ideation</span><span style="font-size:10.5px;color:rgba(var(--fg-rgb),0.45);margin-left:auto;">Strategic</span></div>
-              <div style="display:flex;align-items:center;gap:9px;"><span style="font-family:'Fraunces',serif;font-size:15px;color:var(--coral);width:12px;">5</span><span style="font-size:13px;color:var(--fg);font-weight:600;">Strategic</span><span style="font-size:10.5px;color:rgba(var(--fg-rgb),0.45);margin-left:auto;">Strategic</span></div>
+              <div style="display:flex;align-items:center;gap:9px;"><span style="font-family:'Fraunces',serif;font-size:15px;color:var(--coral);width:12px;">1</span><span style="font-size:13px;color:var(--fg);font-weight:600;">Consistency</span><span style="font-size:10.5px;color:var(--fg-45);margin-left:auto;">Executing</span></div>
+              <div style="display:flex;align-items:center;gap:9px;"><span style="font-family:'Fraunces',serif;font-size:15px;color:var(--coral);width:12px;">2</span><span style="font-size:13px;color:var(--fg);font-weight:600;">Analytical</span><span style="font-size:10.5px;color:var(--fg-45);margin-left:auto;">Strategic</span></div>
+              <div style="display:flex;align-items:center;gap:9px;"><span style="font-family:'Fraunces',serif;font-size:15px;color:var(--coral);width:12px;">3</span><span style="font-size:13px;color:var(--fg);font-weight:600;">Context</span><span style="font-size:10.5px;color:var(--fg-45);margin-left:auto;">Strategic</span></div>
+              <div style="display:flex;align-items:center;gap:9px;"><span style="font-family:'Fraunces',serif;font-size:15px;color:var(--coral);width:12px;">4</span><span style="font-size:13px;color:var(--fg);font-weight:600;">Ideation</span><span style="font-size:10.5px;color:var(--fg-45);margin-left:auto;">Strategic</span></div>
+              <div style="display:flex;align-items:center;gap:9px;"><span style="font-family:'Fraunces',serif;font-size:15px;color:var(--coral);width:12px;">5</span><span style="font-size:13px;color:var(--fg);font-weight:600;">Strategic</span><span style="font-size:10.5px;color:var(--fg-45);margin-left:auto;">Strategic</span></div>
             </div>
           </div>
-          <div style="font-size:11px;color:rgba(var(--fg-rgb),0.4);margin-top:8px;line-height:1.4;">Copy your Top 5 in the order shown on your results page.</div>
+          <div style="font-size:11px;color:var(--fg-4);margin-top:8px;line-height:1.4;">Copy your Top 5 in the order shown on your results page.</div>
         </div>
       </div>
     </div>
     <div style="margin-bottom:26px;"></div>
 
-    <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">Portfolio &amp; <em style="font-style:italic;color:var(--coral);">projects</em> <span style="font-size:13px;font-weight:400;color:rgba(var(--fg-rgb),0.45);">(optional)</span></h2>
+    <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;">Portfolio &amp; <em style="font-style:italic;color:var(--coral);">projects</em> <span style="font-size:13px;font-weight:400;color:var(--fg-45);">(optional)</span></h2>
     <p class="ob-sub" style="margin-bottom:14px;">Show off your work. Link out to the live site, video, repo, or gallery — then describe it in your own words.</p>
     <div id="portfolioList"></div>
     <button class="btn-sm" id="addPortfolioEntry" type="button" style="margin-bottom:26px;">+ Add a project</button>
 
-    <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;"><em style="font-style:italic;color:var(--coral);">Education</em> <span style="font-size:13px;font-weight:400;color:rgba(var(--fg-rgb),0.45);">(optional)</span></h2>
+    <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;"><em style="font-style:italic;color:var(--coral);">Education</em> <span style="font-size:13px;font-weight:400;color:var(--fg-45);">(optional)</span></h2>
     <p class="ob-sub" style="margin-bottom:14px;">Degrees, schools, and the years you attended.</p>
     <div id="educationList"></div>
     <button class="btn-sm" id="addEducationEntry" type="button" style="margin-bottom:26px;">+ Add education</button>
 
-    <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;"><em style="font-style:italic;color:var(--coral);">Certifications</em> <span style="font-size:13px;font-weight:400;color:rgba(var(--fg-rgb),0.45);">(optional)</span></h2>
+    <h2 style="font-family:'Fraunces',serif;font-size:22px;margin:6px 0 4px;"><em style="font-style:italic;color:var(--coral);">Certifications</em> <span style="font-size:13px;font-weight:400;color:var(--fg-45);">(optional)</span></h2>
     <p class="ob-sub" style="margin-bottom:14px;">Licenses and credentials — with a verification link if you have one.</p>
     <div id="certificationsList"></div>
     <button class="btn-sm" id="addCertEntry" type="button" style="margin-bottom:22px;">+ Add certification</button>
@@ -4738,7 +4762,7 @@
                   </select>
                   <button type="button" id="useMyLocationBtn" class="jli-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Use my location</button>
                 </div>
-                <div id="locHint" style="font-size:11px;color:rgba(var(--fg-rgb),0.4);margin-top:6px;">Remote roles always match. Metro areas cover ~75 miles from the city center.</div>
+                <div id="locHint" style="font-size:11px;color:var(--fg-4);margin-top:6px;">Remote roles always match. Metro areas cover ~75 miles from the city center.</div>
               </div>
 
               <div class="adv-filter-group">
@@ -4919,7 +4943,7 @@
           <option value="90">Last 90 days</option>
         </select>
         <input type="date" id="adminFrom" aria-label="Analytics start date" title="From date" class="ds-nav-btn" style="cursor:pointer; color-scheme:dark;">
-        <span style="color:rgba(var(--fg-rgb),0.4); font-size:13px;">→</span>
+        <span style="color:var(--fg-4); font-size:13px;">→</span>
         <input type="date" id="adminTo" aria-label="Analytics end date" title="To date" class="ds-nav-btn" style="cursor:pointer; color-scheme:dark;">
         <button class="ds-nav-btn" id="adminRefresh" type="button">Refresh</button>
         <button class="ds-nav-btn" id="adminReset" type="button" style="border-color:rgba(217,56,43,0.5); color:#E06055;">Reset</button>
@@ -4927,7 +4951,7 @@
     </div>
     <h1 style="font-family:'Fraunces',serif; font-size:30px; font-weight:600; margin:8px 0 2px;">Admin · <em style="font-style:italic; color:var(--coral);">Analytics</em></h1>
     <p style="color:rgba(var(--fg-rgb),0.7); font-size:14px; margin:0 0 24px;">Site activity captured from the events log.</p>
-    <div id="adminContent"><div style="color:rgba(var(--fg-rgb),0.5); padding:40px 0;">Loading…</div></div>
+    <div id="adminContent"><div style="color:var(--fg-5); padding:40px 0;">Loading…</div></div>
   </div>
 </div>
 
@@ -4946,7 +4970,7 @@
     <div id="fbForm">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:4px;">
         <h2 style="font-family:'Fraunces',serif;font-size:22px;font-weight:600;margin:0;">Send us <em style="font-style:italic;color:var(--coral);">feedback</em></h2>
-        <button id="fbClose" type="button" aria-label="Close" style="background:none;border:none;color:rgba(var(--fg-rgb),0.5);font-size:22px;line-height:1;cursor:pointer;padding:0 2px;">×</button>
+        <button id="fbClose" type="button" aria-label="Close" style="background:none;border:none;color:var(--fg-5);font-size:22px;line-height:1;cursor:pointer;padding:0 2px;">×</button>
       </div>
       <p style="color:rgba(var(--fg-rgb),0.7);font-size:13.5px;margin:0 0 16px;">Found a bug, have an idea, or just want to reach the team? We read every message.</p>
       <div style="display:flex;gap:8px;margin-bottom:14px;" id="fbCats">
@@ -4957,7 +4981,7 @@
       <textarea id="fbMessage" aria-label="Your feedback message" rows="5" maxlength="4000" placeholder="What's on your mind?"
         style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--line-light);border-radius:10px;color:var(--fg);font-family:'Inter',sans-serif;font-size:14px;padding:12px 14px;resize:vertical;margin-bottom:12px;"></textarea>
       <div id="fbEmailWrap" style="margin-bottom:6px;">
-        <label for="fbEmail" style="display:block;font-size:12.5px;color:rgba(var(--fg-rgb),0.6);margin-bottom:5px;">Email <span id="fbEmailHint" style="color:rgba(var(--fg-rgb),0.4);">(so we can reply)</span></label>
+        <label for="fbEmail" style="display:block;font-size:12.5px;color:rgba(var(--fg-rgb),0.6);margin-bottom:5px;">Email <span id="fbEmailHint" style="color:var(--fg-4);">(so we can reply)</span></label>
         <input type="email" id="fbEmail" placeholder="you@example.com" readonly
           style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--line-light);border-radius:10px;color:rgba(var(--fg-rgb),0.65);font-family:'Inter',sans-serif;font-size:14px;padding:11px 14px;cursor:not-allowed;">
       </div>
@@ -5884,7 +5908,7 @@
     return `
       <div class="work-entry" data-id="${id}">
         <div class="field"><label for="pf-title-${id}">Project title</label><input type="text" id="pf-title-${id}" name="pf-title-${id}" class="pf-title" value="${escapeHtml(p.title||'')}" placeholder="e.g. Checkout redesign, Demo reel, Case study"></div>
-        <div class="field"><label for="pf-url-${id}">Link <span style="color:rgba(var(--fg-rgb),0.4);">(where the work lives — site, video, repo, gallery)</span></label><input type="url" id="pf-url-${id}" name="pf-url-${id}" class="pf-url" value="${escapeHtml(p.url||'')}" placeholder="https://…"></div>
+        <div class="field"><label for="pf-url-${id}">Link <span style="color:var(--fg-4);">(where the work lives — site, video, repo, gallery)</span></label><input type="url" id="pf-url-${id}" name="pf-url-${id}" class="pf-url" value="${escapeHtml(p.url||'')}" placeholder="https://…"></div>
         <div class="field"><label for="pf-desc-${id}">Describe it</label><textarea id="pf-desc-${id}" name="pf-desc-${id}" class="pf-desc" placeholder="What is it, your role, the impact, the tools…">${escapeHtml(p.description||'')}</textarea></div>
         <button class="btn-sm danger" type="button" data-remove-portfolio="${id}">Remove project</button>
       </div>`;
@@ -5926,7 +5950,7 @@
       <div class="work-entry" data-id="${id}">
         <div class="field"><label for="ed-school-${id}">School / institution</label><input type="text" id="ed-school-${id}" name="ed-school-${id}" class="ed-school" value="${escapeHtml(e.school||'')}" placeholder="e.g. University of Michigan"></div>
         <div class="field"><label for="ed-degree-${id}">Degree / field of study</label><input type="text" id="ed-degree-${id}" name="ed-degree-${id}" class="ed-degree" value="${escapeHtml(e.degree||'')}" placeholder="e.g. B.S. Computer Science"></div>
-        <div class="field"><label for="ed-year-${id}">Year <span style="color:rgba(var(--fg-rgb),0.4);">(or range)</span></label><input type="text" id="ed-year-${id}" name="ed-year-${id}" class="ed-year" value="${escapeHtml(e.year||'')}" placeholder="e.g. 2018 or 2014 – 2018"></div>
+        <div class="field"><label for="ed-year-${id}">Year <span style="color:var(--fg-4);">(or range)</span></label><input type="text" id="ed-year-${id}" name="ed-year-${id}" class="ed-year" value="${escapeHtml(e.year||'')}" placeholder="e.g. 2018 or 2014 – 2018"></div>
         <button class="btn-sm danger" type="button" data-remove-edu="${id}">Remove</button>
       </div>`;
   }
@@ -5958,7 +5982,7 @@
         <div class="field"><label for="cf-issuer-${id}">Issuing organization</label><input type="text" id="cf-issuer-${id}" name="cf-issuer-${id}" class="cf-issuer" value="${escapeHtml(c.issuer||'')}" placeholder="e.g. Amazon Web Services"></div>
         <div class="field" style="display:flex; gap:12px;">
           <div style="flex:1;"><label for="cf-year-${id}">Year</label><input type="text" id="cf-year-${id}" name="cf-year-${id}" class="cf-year" value="${escapeHtml(c.year||'')}" placeholder="e.g. 2024"></div>
-          <div style="flex:2;"><label for="cf-url-${id}">Verification link <span style="color:rgba(var(--fg-rgb),0.4);">(optional)</span></label><input type="url" id="cf-url-${id}" name="cf-url-${id}" class="cf-url" value="${escapeHtml(c.url||'')}" placeholder="https://…"></div>
+          <div style="flex:2;"><label for="cf-url-${id}">Verification link <span style="color:var(--fg-4);">(optional)</span></label><input type="url" id="cf-url-${id}" name="cf-url-${id}" class="cf-url" value="${escapeHtml(c.url||'')}" placeholder="https://…"></div>
         </div>
         <button class="btn-sm danger" type="button" data-remove-cert="${id}">Remove</button>
       </div>`;
@@ -6532,7 +6556,7 @@
             <div class="label">${escapeHtml(p.label)}</div>
             <div class="answer">${p.answer ? escapeHtml(p.answer) : '<em style="opacity:.5">No answer yet</em>'}</div>
           </div>`).join('')
-      : '<p style="font-size:13px;color:rgba(var(--fg-rgb),0.45);">No prompts featured yet — go back to star a few.</p>';
+      : '<p style="font-size:13px;color:var(--fg-45);">No prompts featured yet — go back to star a few.</p>';
 
     document.getElementById('previewWorkHistory').innerHTML = pendingWorkHistory.length
       ? pendingWorkHistory.map(w => `
@@ -6542,7 +6566,7 @@
             <div class="wh-r-desc">${escapeHtml(w.description || '')}</div>
             ${(w.artifacts||[]).filter(a => a && (a.url || a._file)).length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${(w.artifacts||[]).filter(a => a && (a.url || a._file)).map(a => `<span style="display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:rgba(var(--fg-rgb),0.7);background:var(--bg);border:1px solid var(--line-light);border-radius:7px;padding:4px 9px;">${a.kind === 'file' ? '📎' : '🔗'} ${escapeHtml(a.title || a.fileName || a.url || 'artifact')}</span>`).join('')}</div>` : ''}
           </div>`).join('')
-      : '<p style="font-size:13px;color:rgba(var(--fg-rgb),0.45);">No work history added yet.</p>';
+      : '<p style="font-size:13px;color:var(--fg-45);">No work history added yet.</p>';
   }
 
   // ================= SUCCESS SCREEN (shared) =================
@@ -6831,7 +6855,7 @@
     showScreen('screen-admin');
     const c = document.getElementById('adminContent');
     const controls = document.getElementById('adminControls');
-    c.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.5); padding:40px 0;">Loading…</div>';
+    c.innerHTML = '<div style="color:var(--fg-5); padding:40px 0;">Loading…</div>';
     const API = await gcAwaitAPI();
     let user = null; try{ user = await (API && API.enabled && API.auth.currentUser()); }catch(e){}
     if(!user){ if(controls) controls.style.display = 'none'; renderAdminLogin(c, API); return; }
@@ -6878,24 +6902,24 @@
     const list = document.getElementById('adminPostList');
     const countEl = document.getElementById('adminPostCount');
     if(!list) return;
-    list.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.4);padding:8px 0;">Loading…</div>';
+    list.innerHTML = '<div style="color:var(--fg-4);padding:8px 0;">Loading…</div>';
     let d = null;
     try{ d = await API.events.postings(search); }catch(e){ list.innerHTML = '<div style="color:var(--coral);">Could not load postings.</div>'; return; }
-    if(!d){ list.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.4);">Not authorized.</div>'; return; }
+    if(!d){ list.innerHTML = '<div style="color:var(--fg-4);">Not authorized.</div>'; return; }
     if(countEl) countEl.textContent = `— ${d.total||0} total · ${d.active||0} active · ${d.draft||0} draft · ${d.total_views||0} views · ${d.total_interest||0} interested`;
     const rows = (d.postings||[]);
-    if(!rows.length){ list.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.4);">No direct recruiter postings yet.</div>'; return; }
-    const statusColor = s => s==='active' ? 'var(--sage)' : (s==='draft' ? 'rgba(var(--fg-rgb),0.45)' : (s==='expired'||s==='closed' ? 'var(--coral)' : 'rgba(var(--fg-rgb),0.7)'));
+    if(!rows.length){ list.innerHTML = '<div style="color:var(--fg-4);">No direct recruiter postings yet.</div>'; return; }
+    const statusColor = s => s==='active' ? 'var(--sage)' : (s==='draft' ? 'var(--fg-45)' : (s==='expired'||s==='closed' ? 'var(--coral)' : 'rgba(var(--fg-rgb),0.7)'));
     const money = (a,b) => { const f = n => '$'+Math.round(n/1000)+'k'; if(a&&b) return `${f(a)}–${f(b)}`; if(a) return `${f(a)}+`; if(b) return `up to ${f(b)}`; return '—'; };
     const td = (v, extra) => `<td style="padding:8px 10px;font-size:12.5px;${extra||''}">${v}</td>`;
     const abtn = (id, label, title, color) => `<button type="button" class="admin-post-act" data-id="${id}" data-act="${label.toLowerCase()}" title="${title}" style="background:none;border:1px solid var(--line-light);border-radius:7px;color:${color};font-family:'Inter',sans-serif;font-size:11.5px;padding:4px 9px;cursor:pointer;white-space:nowrap;">${label}</button>`;
-    const head = ['Role','Company','Recruiter','Status','Comp','Views','Interested','Outreach','Posted','Actions'].map(h=>`<th style="text-align:left;padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(var(--fg-rgb),0.4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${h}</th>`).join('');
+    const head = ['Role','Company','Recruiter','Status','Comp','Views','Interested','Outreach','Posted','Actions'].map(h=>`<th style="text-align:left;padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--fg-4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${h}</th>`).join('');
     const body = rows.map(r => {
       let when = r.created_at; try{ when = new Date(r.created_at).toLocaleDateString(); }catch(e){}
       const tier = r.tier && r.tier !== 'free' ? ` <span style="font-size:9.5px;text-transform:uppercase;letter-spacing:0.04em;color:var(--coral);border:1px solid var(--coral);border-radius:4px;padding:1px 4px;">${escapeHtml(r.tier)}</span>` : '';
-      const loc = r.location ? `<div style="font-size:11px;color:rgba(var(--fg-rgb),0.45);">${escapeHtml(r.location)}</div>` : '';
+      const loc = r.location ? `<div style="font-size:11px;color:var(--fg-45);">${escapeHtml(r.location)}</div>` : '';
       const rec = r.recruiter || r.recruiter_email;
-      const recCell = rec ? `<div style="color:rgba(var(--fg-rgb),0.8);">${escapeHtml(r.recruiter||'—')}</div><div style="font-size:11px;color:rgba(var(--fg-rgb),0.45);">${escapeHtml(r.recruiter_email||'')}</div>` : '<span style="color:rgba(var(--fg-rgb),0.35);">—</span>';
+      const recCell = rec ? `<div style="color:rgba(var(--fg-rgb),0.8);">${escapeHtml(r.recruiter||'—')}</div><div style="font-size:11px;color:var(--fg-45);">${escapeHtml(r.recruiter_email||'')}</div>` : '<span style="color:var(--fg-35);">—</span>';
       const verified = r.verified ? ' <span title="Verified company" style="color:var(--sage);">✓</span>' : '';
       return `<tr style="border-bottom:1px solid rgba(var(--fg-rgb),0.05);">
         ${td(`<span style="color:var(--fg);">${escapeHtml(r.title||'—')}</span>${tier}${loc}`)}
@@ -6903,8 +6927,8 @@
         ${td(recCell)}
         ${td(`<span style="color:${statusColor(r.status)};font-family:'JetBrains Mono',monospace;font-size:11.5px;">${escapeHtml(r.status||'—')}</span>`)}
         ${td(money(r.salary_min,r.salary_max),'color:rgba(var(--fg-rgb),0.7);white-space:nowrap;')}
-        ${td(`${r.views||0}${(r.unique_viewers!=null&&r.unique_viewers!==r.views)?` <span style="color:rgba(var(--fg-rgb),0.4);">(${r.unique_viewers}u)</span>`:''}`,'color:rgba(var(--fg-rgb),0.7);')}
-        ${td(String(r.interest||0),'color:'+(r.interest?'var(--sage)':'rgba(var(--fg-rgb),0.5)')+';')}
+        ${td(`${r.views||0}${(r.unique_viewers!=null&&r.unique_viewers!==r.views)?` <span style="color:var(--fg-4);">(${r.unique_viewers}u)</span>`:''}`,'color:rgba(var(--fg-rgb),0.7);')}
+        ${td(String(r.interest||0),'color:'+(r.interest?'var(--sage)':'var(--fg-5)')+';')}
         ${td(String(r.outreach||0),'color:rgba(var(--fg-rgb),0.7);')}
         ${td(when,'color:rgba(var(--fg-rgb),0.6);white-space:nowrap;')}
         ${td(`<div style="display:flex;gap:6px;">${(r.status==='paused'||r.status==='closed'||r.status==='draft'||r.status==='expired') ? abtn(r.id,'Resume','Set to active','var(--sage)') : ''}${(r.status==='active') ? abtn(r.id,'Pause','Pause this posting','rgba(var(--fg-rgb),0.85)') : ''}${abtn(r.id,'Delete','Permanently delete','var(--coral)')}</div>`)}
@@ -6940,12 +6964,12 @@
     const list = document.getElementById('fbAdminList'); if(!list) return;
     const filter = document.getElementById('fbAdminFilter');
     const status = filter ? filter.value : 'new';
-    list.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.4);padding:8px 0;">Loading…</div>';
+    list.innerHTML = '<div style="color:var(--fg-4);padding:8px 0;">Loading…</div>';
     let rows = null;
     try{ rows = await API.events.feedbackList(status || null); }catch(e){ list.innerHTML = '<div style="color:var(--coral);">Could not load feedback.</div>'; return; }
-    if(!rows){ list.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.4);">Not authorized.</div>'; return; }
+    if(!rows){ list.innerHTML = '<div style="color:var(--fg-4);">Not authorized.</div>'; return; }
     const cnt = document.getElementById('fbAdminCount'); if(cnt) cnt.textContent = '· ' + rows.length + (status ? ' ' + status : '');
-    if(!rows.length){ list.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.4);padding:8px 0;">No feedback here.</div>'; return; }
+    if(!rows.length){ list.innerHTML = '<div style="color:var(--fg-4);padding:8px 0;">No feedback here.</div>'; return; }
     const catBadge = { bug:'🐞 Bug', idea:'💡 Idea', general:'💬 General' };
     const statusColor = { new:'color:#e8c848;', read:'color:rgba(var(--fg-rgb),0.6);', resolved:'color:var(--sage-soft);' };
     const fdate = v => { if(!v) return ''; try{ return new Date(v).toLocaleString(); }catch(e){ return String(v); } };
@@ -6959,7 +6983,7 @@
           <span style="font-size:13px;color:var(--fg);font-weight:600;">${escapeHtml(who)}</span>
           ${contact ? `<a href="mailto:${escapeHtml(contact)}" style="font-size:12px;color:var(--coral);text-decoration:none;">${escapeHtml(contact)}</a>` : ''}
           <span style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;${statusColor[r.status]||''}">${escapeHtml(r.status)}</span>
-          <span style="font-size:11.5px;color:rgba(var(--fg-rgb),0.4);margin-left:auto;">${escapeHtml(fdate(r.created_at))}</span>
+          <span style="font-size:11.5px;color:var(--fg-4);margin-left:auto;">${escapeHtml(fdate(r.created_at))}</span>
         </div>
         <div style="font-size:13.5px;line-height:1.5;color:rgba(var(--fg-rgb),0.88);white-space:pre-wrap;">${escapeHtml(r.message)}</div>
         ${replied}
@@ -6972,7 +6996,7 @@
           <textarea rows="3" placeholder="Type your reply…" style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--line-light);border-radius:10px;color:var(--fg);font-family:'Inter',sans-serif;font-size:13px;padding:9px 12px;resize:vertical;"></textarea>
           <div style="display:flex;gap:8px;align-items:center;margin-top:7px;">
             <button class="ob-primary fb-reply-send" type="button" data-id="${r.id}" style="padding:8px 15px;font-size:12.5px;">Send reply</button>
-            <span style="font-size:11.5px;color:rgba(var(--fg-rgb),0.45);">${r.user_id ? 'Delivered in-app to the user.' : 'No account on file — reply via email above.'}</span>
+            <span style="font-size:11.5px;color:var(--fg-45);">${r.user_id ? 'Delivered in-app to the user.' : 'No account on file — reply via email above.'}</span>
           </div>
         </div>
       </div>`;
@@ -7012,14 +7036,14 @@
   let __jobsTrendsData = null, __jobsAnalyticsData = null;
   async function loadJobsAnalytics(){
     const box = document.getElementById('jobsAnalyticsBox'); if(!box) return;
-    box.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.4);padding:8px 0;">Crunching the full jobs feed…</div>';
+    box.innerHTML = '<div style="color:var(--fg-4);padding:8px 0;">Crunching the full jobs feed…</div>';
     const API = await gcAwaitAPI();
     let a = null; try{ a = await API.events.jobsAnalytics(); }catch(e){}
     if(!a){ box.innerHTML = '<div style="color:var(--coral);">Could not load (admin only).</div>'; return; }
     __jobsAnalyticsData = a;
     const money = v => (v==null) ? '—' : ('$' + Math.round(v/1000) + 'k');
     const so = a.salary_overall || {};
-    const kpi = (l,v) => `<div style="background:var(--bg);border:1px solid var(--line-light);border-radius:12px;padding:13px 15px;"><div style="font-size:21px;font-family:'Fraunces',serif;color:var(--coral);line-height:1;">${v}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(var(--fg-rgb),0.5);margin-top:5px;">${l}</div></div>`;
+    const kpi = (l,v) => `<div style="background:var(--bg);border:1px solid var(--line-light);border-radius:12px;padding:13px 15px;"><div style="font-size:21px;font-family:'Fraunces',serif;color:var(--coral);line-height:1;">${v}</div><div style="font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--fg-5);margin-top:5px;">${l}</div></div>`;
     const cards = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:11px;margin-bottom:18px;">${kpi('Active jobs',(a.total_active||0).toLocaleString())}${kpi('With salary',(a.with_salary||0).toLocaleString())}${kpi('Median',money(so.median))}${kpi('25th–75th',money(so.p25)+'–'+money(so.p75))}${kpi('Range',money(so.min)+'–'+money(so.max))}</div>`;
     const breakdown = (title, arr, keyName) => {
       if(!arr || !arr.length) return '';
@@ -7028,9 +7052,9 @@
         <div style="flex:0 0 190px;font-size:12.5px;color:rgba(var(--fg-rgb),0.82);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(String(x[keyName]))}">${escapeHtml(String(x[keyName]))}</div>
         <div style="flex:1;background:var(--bg);border-radius:5px;overflow:hidden;min-width:40px;"><div style="height:15px;width:${Math.round((x.median||0)/maxMed*100)}%;background:var(--sage);min-width:2px;"></div></div>
         <div style="flex:0 0 56px;text-align:right;font-size:12.5px;color:var(--sage-soft);font-weight:700;">${money(x.median)}</div>
-        <div style="flex:0 0 58px;text-align:right;font-size:11.5px;color:rgba(var(--fg-rgb),0.5);">${(x.n||0).toLocaleString()}</div>
+        <div style="flex:0 0 58px;text-align:right;font-size:11.5px;color:var(--fg-5);">${(x.n||0).toLocaleString()}</div>
       </div>`).join('');
-      return `<div style="margin-bottom:20px;"><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:rgba(var(--fg-rgb),0.45);margin-bottom:9px;">${title} <span style="color:rgba(var(--fg-rgb),0.3);text-transform:none;letter-spacing:0;">— median · # jobs</span></div>${rows}</div>`;
+      return `<div style="margin-bottom:20px;"><div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--fg-45);margin-bottom:9px;">${title} <span style="color:var(--fg-3);text-transform:none;letter-spacing:0;">— median · # jobs</span></div>${rows}</div>`;
     };
     box.innerHTML = cards
       + breakdown('By seniority', a.by_seniority, 'bucket')
@@ -7056,7 +7080,7 @@
     const box = document.getElementById('jobsTrendsBox'); if(!box) return;
     const sel = document.getElementById('trendsMonths');
     const months = sel ? parseInt(sel.value, 10) : 12;
-    box.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.4);padding:8px 0;">Building the time-series…</div>';
+    box.innerHTML = '<div style="color:var(--fg-4);padding:8px 0;">Building the time-series…</div>';
     const API = await gcAwaitAPI();
     let t = null; try{ t = await API.events.jobsTrends(months); }catch(e){}
     if(!t){ box.innerHTML = '<div style="color:var(--coral);">Could not load (admin only).</div>'; return; }
@@ -7072,11 +7096,11 @@
     // Build a month×bucket median table per dimension.
     function dimTable(dim){
       const rows = byDim[dim]; if(!rows || !rows.length) return '';
-      const head = `<th style="text-align:left;padding:5px 9px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(var(--fg-rgb),0.4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${escapeHtml(dimLabels[dim]||dim)}</th>`
-        + months_arr.map(m => `<th style="text-align:right;padding:5px 9px;font-size:10px;color:rgba(var(--fg-rgb),0.4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${escapeHtml(m)}</th>`).join('');
+      const head = `<th style="text-align:left;padding:5px 9px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--fg-4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${escapeHtml(dimLabels[dim]||dim)}</th>`
+        + months_arr.map(m => `<th style="text-align:right;padding:5px 9px;font-size:10px;color:var(--fg-4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${escapeHtml(m)}</th>`).join('');
       const body = rows.map(r => {
         const map = {}; (r.points||[]).forEach(p => map[p.ym] = p);
-        const cells = months_arr.map(m => { const p = map[m]; return `<td style="text-align:right;padding:5px 9px;font-size:12px;color:${p?'var(--sage-soft)':'rgba(var(--fg-rgb),0.25)'};white-space:nowrap;" ${p?`title="${p.n} job${p.n===1?'':'s'}"`:''}>${p?money(p.median):'·'}</td>`; }).join('');
+        const cells = months_arr.map(m => { const p = map[m]; return `<td style="text-align:right;padding:5px 9px;font-size:12px;color:${p?'var(--sage-soft)':'var(--fg-25)'};white-space:nowrap;" ${p?`title="${p.n} job${p.n===1?'':'s'}"`:''}>${p?money(p.median):'·'}</td>`; }).join('');
         return `<tr><td style="padding:5px 9px;font-size:12.5px;color:rgba(var(--fg-rgb),0.82);white-space:nowrap;">${escapeHtml(String(r.bucket))}</td>${cells}</tr>`;
       }).join('');
       return `<div style="overflow-x:auto;margin-bottom:18px;"><table style="border-collapse:collapse;min-width:100%;"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
@@ -7087,15 +7111,15 @@
     if(daily.length){
       const maxMed = Math.max(1, ...daily.map(d => d.median||0));
       const bars = daily.map(d => `<div title="${escapeHtml(d.day)}: median ${money(d.median)} · ${d.with_salary} w/ salary" style="flex:1;min-width:4px;display:flex;flex-direction:column;justify-content:flex-end;"><div style="height:${Math.round((d.median||0)/maxMed*100)}px;background:var(--coral);border-radius:3px 3px 0 0;min-height:2px;"></div></div>`).join('');
-      dailyBlock = `<div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:rgba(var(--fg-rgb),0.45);margin:6px 0 9px;">Live feed · daily median salary <span style="color:rgba(var(--fg-rgb),0.3);text-transform:none;letter-spacing:0;">— ${daily.length} day${daily.length===1?'':'s'} so far, grows daily</span></div><div style="display:flex;align-items:flex-end;gap:2px;height:100px;margin-bottom:20px;">${bars}</div>`;
+      dailyBlock = `<div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--fg-45);margin:6px 0 9px;">Live feed · daily median salary <span style="color:var(--fg-3);text-transform:none;letter-spacing:0;">— ${daily.length} day${daily.length===1?'':'s'} so far, grows daily</span></div><div style="display:flex;align-items:flex-end;gap:2px;height:100px;margin-bottom:20px;">${bars}</div>`;
     } else {
-      dailyBlock = `<div style="font-size:12px;color:rgba(var(--fg-rgb),0.4);margin-bottom:18px;">Daily feed history starts building today — check back tomorrow for a growing trend line.</div>`;
+      dailyBlock = `<div style="font-size:12px;color:var(--fg-4);margin-bottom:18px;">Daily feed history starts building today — check back tomorrow for a growing trend line.</div>`;
     }
     const note = months_arr.length < 3
-      ? `<div style="font-size:12px;color:rgba(var(--fg-rgb),0.5);background:var(--bg);border:1px solid var(--line-light);border-radius:10px;padding:10px 13px;margin-bottom:16px;">Only ${months_arr.length} month${months_arr.length===1?'':'s'} of post-date history in the feed right now (jobs are ingested fresh and old ones are purged). The <b>daily snapshot</b> below is the durable trend that deepens over time.</div>`
+      ? `<div style="font-size:12px;color:var(--fg-5);background:var(--bg);border:1px solid var(--line-light);border-radius:10px;padding:10px 13px;margin-bottom:16px;">Only ${months_arr.length} month${months_arr.length===1?'':'s'} of post-date history in the feed right now (jobs are ingested fresh and old ones are purged). The <b>daily snapshot</b> below is the durable trend that deepens over time.</div>`
       : '';
     box.innerHTML = note + dailyBlock + dimOrder.map(dimTable).join('')
-      + `<div style="font-size:11px;color:rgba(var(--fg-rgb),0.4);margin-top:2px;">Cells show median salary; hover for job counts. Months bucket on each job's post date.</div>`;
+      + `<div style="font-size:11px;color:var(--fg-4);margin-top:2px;">Cells show median salary; hover for job counts. Months bucket on each job's post date.</div>`;
     const dt = document.getElementById('dlTrendsCsv'); if(dt){ dt.style.display = ''; dt.onclick = downloadTrendsCsv; }
     const dd = document.getElementById('dlDailyCsv'); if(dd){ dd.style.display = daily.length ? '' : 'none'; dd.onclick = downloadDailyCsv; }
   }
@@ -7154,13 +7178,13 @@
   }
   async function loadAdminUsers(API, search){
     const list = document.getElementById('adminUsersList'); if(!list) return;
-    list.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.4);padding:8px 0;">Searching…</div>';
+    list.innerHTML = '<div style="color:var(--fg-4);padding:8px 0;">Searching…</div>';
     let res = null;
     try{ res = await API.events.users(search); }catch(e){ list.innerHTML = '<div style="color:var(--coral);">Could not load users.</div>'; return; }
-    if(!res){ list.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.4);">Not authorized.</div>'; return; }
+    if(!res){ list.innerHTML = '<div style="color:var(--fg-4);">Not authorized.</div>'; return; }
     const users = res.users || [];
     const cnt = document.getElementById('adminUsersCount'); if(cnt) cnt.textContent = '· ' + (search ? (users.length + ' match' + (users.length===1?'':'es')) : (res.total + ' total'));
-    if(!users.length){ list.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.4);padding:8px 0;">No users found.</div>'; return; }
+    if(!users.length){ list.innerHTML = '<div style="color:var(--fg-4);padding:8px 0;">No users found.</div>'; return; }
     const td = (v, extra) => `<td style="padding:8px 10px;font-size:12.5px;${extra||''}">${escapeHtml(v==null||v===''?'—':String(v))}</td>`;
     const linkCell = (url, label) => { const safe = /^https?:\/\//i.test(url||'') ? url : (url ? 'https://'+url : ''); return safe ? `<td style="padding:8px 10px;font-size:12.5px;"><a href="${escapeHtml(safe)}" target="_blank" rel="noopener noreferrer nofollow" style="color:var(--coral);text-decoration:none;">${label} ↗</a></td>` : td('—'); };
     const roleColor = r => r==='admin' ? 'color:#e8c848;font-weight:700;' : (r==='recruiter' ? 'color:var(--sage-soft);' : 'color:rgba(var(--fg-rgb),0.72);');
@@ -7171,14 +7195,14 @@
         ? `<td style="padding:8px 10px;font-size:12.5px;"><a href="/profile/${encodeURIComponent(u.code)}" target="_blank" rel="noopener" style="color:var(--coral);font-family:'JetBrains Mono',monospace;text-decoration:none;">${escapeHtml(u.code)} ↗</a></td>`
         : td('—');
       const onboard = u.role === 'recruiter' ? ctr('—') : (u.onboarded ? ctr('✓','color:var(--sage-soft);font-weight:700;') : ctr('✗','color:#e0857a;font-weight:700;'));
-      const skillCell = ctr(u.skills || 0, (u.skills||0) > 0 ? 'color:rgba(var(--fg-rgb),0.8);' : 'color:rgba(var(--fg-rgb),0.35);');
+      const skillCell = ctr(u.skills || 0, (u.skills||0) > 0 ? 'color:rgba(var(--fg-rgb),0.8);' : 'color:var(--fg-35);');
       const act = `${u.likes||0}·${u.tracked||0}·${u.chats||0}`;
-      const actCell = `<td style="padding:8px 10px;font-size:12px;font-family:'JetBrains Mono',monospace;text-align:center;color:${(u.likes||u.tracked||u.chats)?'rgba(var(--fg-rgb),0.75)':'rgba(var(--fg-rgb),0.3)'};">${act}</td>`;
+      const actCell = `<td style="padding:8px 10px;font-size:12px;font-family:'JetBrains Mono',monospace;text-align:center;color:${(u.likes||u.tracked||u.chats)?'rgba(var(--fg-rgb),0.75)':'var(--fg-3)'};">${act}</td>`;
       const status = (u.confirmed ? '' : 'unconfirmed') + (u.visible === false ? (u.confirmed?'hidden':' · hidden') : '');
-      return `<tr>${td(u.name,'color:var(--fg);font-weight:600;')}${td(u.email,"color:rgba(var(--fg-rgb),0.7);")}${td(u.role,roleColor(u.role))}${onboard}${skillCell}${actCell}${codeCell}${td(fdate(u.created_at),'color:rgba(var(--fg-rgb),0.7);white-space:nowrap;')}${td(fdate(u.last_seen),'color:rgba(var(--fg-rgb),0.55);white-space:nowrap;')}${td(status||'active','color:rgba(var(--fg-rgb),0.5);')}</tr>`;
+      return `<tr>${td(u.name,'color:var(--fg);font-weight:600;')}${td(u.email,"color:rgba(var(--fg-rgb),0.7);")}${td(u.role,roleColor(u.role))}${onboard}${skillCell}${actCell}${codeCell}${td(fdate(u.created_at),'color:rgba(var(--fg-rgb),0.7);white-space:nowrap;')}${td(fdate(u.last_seen),'color:rgba(var(--fg-rgb),0.55);white-space:nowrap;')}${td(status||'active','color:var(--fg-5);')}</tr>`;
     }).join('');
-    const head = ['Name','Email','Role','Onboard','Skills','L·S·C','Profile','Joined','Last seen','Status'].map(h=>`<th style="text-align:${['Name','Email','Role','Profile','Joined','Last seen','Status'].includes(h)?'left':'center'};padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(var(--fg-rgb),0.4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${h}</th>`).join('');
-    list.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div><div style="font-size:11px;color:rgba(var(--fg-rgb),0.4);margin-top:8px;">Onboard = created a seeker profile · Skills = # listed · L·S·C = jobs Liked · Saved/applied · Chats</div>`;
+    const head = ['Name','Email','Role','Onboard','Skills','L·S·C','Profile','Joined','Last seen','Status'].map(h=>`<th style="text-align:${['Name','Email','Role','Profile','Joined','Last seen','Status'].includes(h)?'left':'center'};padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--fg-4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${h}</th>`).join('');
+    list.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div><div style="font-size:11px;color:var(--fg-4);margin-top:8px;">Onboard = created a seeker profile · Skills = # listed · L·S·C = jobs Liked · Saved/applied · Chats</div>`;
   }
   function renderAdminLogin(c, API){
     c.innerHTML = `
@@ -7225,11 +7249,11 @@
   };
   function screenLabel(id){ return SCREEN_LABELS[id] || id || '(unknown)'; }
   function renderAdminHTML(d){
-    const stat = (label,val) => `<div style="background:var(--surface);border:1px solid var(--line-light);border-radius:14px;padding:18px 20px;"><div style="font-size:30px;font-family:'Fraunces',serif;color:var(--coral);line-height:1;">${val}</div><div style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.06em;color:rgba(var(--fg-rgb),0.5);margin-top:6px;">${label}</div></div>`;
+    const stat = (label,val) => `<div style="background:var(--surface);border:1px solid var(--line-light);border-radius:14px;padding:18px 20px;"><div style="font-size:30px;font-family:'Fraunces',serif;color:var(--coral);line-height:1;">${val}</div><div style="font-size:11.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--fg-5);margin-top:6px;">${label}</div></div>`;
     const cards = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:24px;">${stat('Unique visitors', d.unique_visitors||0)}${stat('Signups', d.signups||0)}${stat('Screen views', d.screen_views||0)}${stat('Profile views', d.profile_views||0)}${stat('Signed-in users', d.unique_users||0)}${stat('Total events', d.total||0)}${stat('Last 7 days', d.last_7d||0)}</div>`;
-    const panel = (title, inner) => `<div style="background:var(--surface);border:1px solid var(--line-light);border-radius:14px;padding:20px;margin-bottom:18px;"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:rgba(var(--fg-rgb),0.5);margin-bottom:14px;">${title}</div>${inner}</div>`;
+    const panel = (title, inner) => `<div style="background:var(--surface);border:1px solid var(--line-light);border-radius:14px;padding:20px;margin-bottom:18px;"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--fg-5);margin-bottom:14px;">${title}</div>${inner}</div>`;
     const maxScreen = Math.max(1, ...(d.top_screens||[]).map(s=>s.count));
-    const topScreens = (d.top_screens||[]).map(s=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;"><div title="${escapeHtml(s.screen)}" style="flex:0 0 190px;font-size:13px;color:rgba(var(--fg-rgb),0.8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(screenLabel(s.screen))}</div><div style="flex:1;background:var(--bg);border-radius:5px;overflow:hidden;"><div style="height:16px;width:${Math.round(s.count/maxScreen*100)}%;background:var(--coral);min-width:2px;"></div></div><div style="flex:0 0 46px;text-align:right;font-size:12.5px;color:rgba(var(--fg-rgb),0.72);">${s.count}</div></div>`).join('') || '<div style="color:rgba(var(--fg-rgb),0.4);">No data yet.</div>';
+    const topScreens = (d.top_screens||[]).map(s=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;"><div title="${escapeHtml(s.screen)}" style="flex:0 0 190px;font-size:13px;color:rgba(var(--fg-rgb),0.8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(screenLabel(s.screen))}</div><div style="flex:1;background:var(--bg);border-radius:5px;overflow:hidden;"><div style="height:16px;width:${Math.round(s.count/maxScreen*100)}%;background:var(--coral);min-width:2px;"></div></div><div style="flex:0 0 46px;text-align:right;font-size:12.5px;color:rgba(var(--fg-rgb),0.72);">${s.count}</div></div>`).join('') || '<div style="color:var(--fg-4);">No data yet.</div>';
     const maxDay = Math.max(1, ...(d.by_day||[]).map(x=>x.count));
     const byDay = (d.by_day||[]).map(x=>`<div title="${escapeHtml(x.day)}: ${x.count}" style="flex:1;min-width:5px;display:flex;flex-direction:column;justify-content:flex-end;"><div style="height:${Math.round(x.count/maxDay*120)}px;background:var(--sage);border-radius:3px 3px 0 0;min-height:2px;"></div></div>`).join('');
     const browserOf = ua => { ua = ua||''; if(/edg/i.test(ua)) return 'Edge'; if(/(chrome|crios)/i.test(ua)) return 'Chrome'; if(/(firefox|fxios)/i.test(ua)) return 'Firefox'; if(/safari/i.test(ua)) return 'Safari'; return ua ? ua.slice(0,16) : '—'; };
@@ -7237,16 +7261,16 @@
     const rows = (d.recent||[]).map(r=>{ let when=r.created_at; try{ when=new Date(r.created_at).toLocaleString(); }catch(e){}
       const loc = [r.city, r.country].filter(Boolean).join(', ');
       const detail = (r.detail && r.detail.indexOf('screen-')===0) ? screenLabel(r.detail) : r.detail;
-      return `<tr>${td(when,'color:rgba(var(--fg-rgb),0.7);white-space:nowrap;')}${td(r.type,"color:var(--coral);font-family:'JetBrains Mono',monospace;")}${td(detail,'color:rgba(var(--fg-rgb),0.7);')}${td(r.account||'anonymous','color:rgba(var(--fg-rgb),0.7);')}${td(loc,'color:rgba(var(--fg-rgb),0.7);')}${td(browserOf(r.ua),'color:rgba(var(--fg-rgb),0.7);')}${td(r.ip,"color:rgba(var(--fg-rgb),0.45);font-family:'JetBrains Mono',monospace;")}</tr>`;
-    }).join('') || '<tr><td colspan="7" style="padding:14px;color:rgba(var(--fg-rgb),0.4);">No recent activity.</td></tr>';
-    const head = ['Time','Event','Detail','Account','Location','Browser','IP'].map(h=>`<th style="text-align:left;padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:rgba(var(--fg-rgb),0.4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${h}</th>`).join('');
+      return `<tr>${td(when,'color:rgba(var(--fg-rgb),0.7);white-space:nowrap;')}${td(r.type,"color:var(--coral);font-family:'JetBrains Mono',monospace;")}${td(detail,'color:rgba(var(--fg-rgb),0.7);')}${td(r.account||'anonymous','color:rgba(var(--fg-rgb),0.7);')}${td(loc,'color:rgba(var(--fg-rgb),0.7);')}${td(browserOf(r.ua),'color:rgba(var(--fg-rgb),0.7);')}${td(r.ip,"color:var(--fg-45);font-family:'JetBrains Mono',monospace;")}</tr>`;
+    }).join('') || '<tr><td colspan="7" style="padding:14px;color:var(--fg-4);">No recent activity.</td></tr>';
+    const head = ['Time','Event','Detail','Account','Location','Browser','IP'].map(h=>`<th style="text-align:left;padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--fg-4);border-bottom:1px solid var(--line-light);white-space:nowrap;">${h}</th>`).join('');
     const recentTable = `<table style="width:100%;border-collapse:collapse;"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
     const maxRef = Math.max(1, ...(d.top_referrers||[]).map(r=>r.count));
-    const topRefs = (d.top_referrers||[]).map(r=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;"><div style="flex:0 0 170px;font-size:13px;color:rgba(var(--fg-rgb),0.8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(r.ref)}</div><div style="flex:1;background:var(--bg);border-radius:5px;overflow:hidden;"><div style="height:16px;width:${Math.round(r.count/maxRef*100)}%;background:var(--sage);min-width:2px;"></div></div><div style="flex:0 0 46px;text-align:right;font-size:12.5px;color:rgba(var(--fg-rgb),0.72);">${r.count}</div></div>`).join('') || '<div style="color:rgba(var(--fg-rgb),0.4);">No referrer data yet.</div>';
-    const usersPanel = panel('Users <span id="adminUsersCount" style="color:rgba(var(--fg-rgb),0.4);text-transform:none;letter-spacing:0;"></span>',
-      `<input id="adminUserSearch" placeholder="Search by name, email, or profile code…" style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--line-light);border-radius:10px;color:var(--fg);font-family:'Inter',sans-serif;font-size:13.5px;padding:10px 14px;margin-bottom:14px;"><div id="adminUsersList" style="color:rgba(var(--fg-rgb),0.5);">Loading…</div>`);
+    const topRefs = (d.top_referrers||[]).map(r=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;"><div style="flex:0 0 170px;font-size:13px;color:rgba(var(--fg-rgb),0.8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(r.ref)}</div><div style="flex:1;background:var(--bg);border-radius:5px;overflow:hidden;"><div style="height:16px;width:${Math.round(r.count/maxRef*100)}%;background:var(--sage);min-width:2px;"></div></div><div style="flex:0 0 46px;text-align:right;font-size:12.5px;color:rgba(var(--fg-rgb),0.72);">${r.count}</div></div>`).join('') || '<div style="color:var(--fg-4);">No referrer data yet.</div>';
+    const usersPanel = panel('Users <span id="adminUsersCount" style="color:var(--fg-4);text-transform:none;letter-spacing:0;"></span>',
+      `<input id="adminUserSearch" placeholder="Search by name, email, or profile code…" style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--line-light);border-radius:10px;color:var(--fg);font-family:'Inter',sans-serif;font-size:13.5px;padding:10px 14px;margin-bottom:14px;"><div id="adminUsersList" style="color:var(--fg-5);">Loading…</div>`);
     const jobsPanel = panel('Jobs salary analytics',
-      `<div id="jobsAnalyticsBox"><button class="ds-nav-btn" id="loadJobsAnalytics" type="button">Load salary snapshot</button><span style="font-size:12px;color:rgba(var(--fg-rgb),0.4);margin-left:10px;">Current medians across the full active feed — a few seconds.</span></div>`);
+      `<div id="jobsAnalyticsBox"><button class="ds-nav-btn" id="loadJobsAnalytics" type="button">Load salary snapshot</button><span style="font-size:12px;color:var(--fg-4);margin-left:10px;">Current medians across the full active feed — a few seconds.</span></div>`);
     const trendsPanel = panel('Salary trends over time',
       `<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
          <select id="trendsMonths" class="ds-nav-btn" style="cursor:pointer;">
@@ -7257,15 +7281,15 @@
          <button class="ds-nav-btn" id="loadJobsTrends" type="button">Load trends</button>
          <button class="ds-nav-btn" id="dlTrendsCsv" type="button" style="display:none;">⬇ Trends CSV</button>
          <button class="ds-nav-btn" id="dlDailyCsv" type="button" style="display:none;">⬇ Daily feed CSV</button>
-         <span style="font-size:12px;color:rgba(var(--fg-rgb),0.4);">Monthly medians by attribute (from post dates) + a durable daily snapshot that grows each day.</span>
+         <span style="font-size:12px;color:var(--fg-4);">Monthly medians by attribute (from post dates) + a durable daily snapshot that grows each day.</span>
        </div>
        <div id="jobsTrendsBox"></div>`);
-    const postingsPanel = panel(`Direct recruiter postings <span id="adminPostCount" style="color:rgba(var(--fg-rgb),0.4);text-transform:none;letter-spacing:0;"></span>`,
+    const postingsPanel = panel(`Direct recruiter postings <span id="adminPostCount" style="color:var(--fg-4);text-transform:none;letter-spacing:0;"></span>`,
       `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
          <input id="adminPostSearch" placeholder="Search by role, company, or recruiter…" style="flex:1;min-width:220px;box-sizing:border-box;background:var(--bg);border:1px solid var(--line-light);border-radius:10px;color:var(--fg);font-family:'Inter',sans-serif;font-size:13.5px;padding:10px 14px;">
          <button class="ds-nav-btn" id="adminPostRefresh" type="button">↻ Refresh</button>
        </div>
-       <div id="adminPostList" style="color:rgba(var(--fg-rgb),0.5);">Loading…</div>`);
+       <div id="adminPostList" style="color:var(--fg-5);">Loading…</div>`);
     const broadcastPanel = panel('Broadcast a message to users',
       `<div style="display:grid;gap:12px;max-width:620px;">
          <input id="bcTitle" placeholder="Title (optional) — e.g. New: salary filters are live" maxlength="120"
@@ -7297,9 +7321,9 @@
            <button class="ob-primary" id="bcSend" type="button" style="padding:9px 18px;font-size:13.5px;">Send broadcast</button>
            <span id="bcStatus" style="font-size:13px;color:rgba(var(--fg-rgb),0.7);"></span>
          </div>
-         <div style="font-size:11.5px;color:rgba(var(--fg-rgb),0.4);">In-app only — no email. Only confirmed accounts receive it. Delivery is a point-in-time send; users who join later won't see past broadcasts.</div>
+         <div style="font-size:11.5px;color:var(--fg-4);">In-app only — no email. Only confirmed accounts receive it. Delivery is a point-in-time send; users who join later won't see past broadcasts.</div>
        </div>`);
-    const feedbackPanel = panel('Feedback <span id="fbAdminCount" style="color:rgba(var(--fg-rgb),0.4);text-transform:none;letter-spacing:0;"></span>',
+    const feedbackPanel = panel('Feedback <span id="fbAdminCount" style="color:var(--fg-4);text-transform:none;letter-spacing:0;"></span>',
       `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
          <select id="fbAdminFilter" class="ds-nav-btn" style="cursor:pointer;">
            <option value="">All</option>
@@ -7309,7 +7333,7 @@
          </select>
          <button class="ds-nav-btn" id="fbAdminRefresh" type="button">↻ Refresh</button>
        </div>
-       <div id="fbAdminList" style="color:rgba(var(--fg-rgb),0.5);">Loading…</div>`);
+       <div id="fbAdminList" style="color:var(--fg-5);">Loading…</div>`);
     return cards
       + usersPanel
       + postingsPanel
@@ -8571,7 +8595,7 @@
     ib.onclick = () => expressInterest(p.id, ib);
     const listBlock = (title, arr) => (arr && arr.length) ? `<div style="margin-bottom:24px;"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--sage-soft);margin-bottom:10px;">${title}</div><ul style="font-size:14.5px;color:rgba(var(--fg-rgb),0.82);line-height:1.7;margin:0;padding-left:20px;">${arr.map(x=>`<li style="margin-bottom:6px;">${escapeHtml(x)}</li>`).join('')}</ul></div>` : '';
     const bodyEl = document.getElementById('pdBody');
-    bodyEl.innerHTML = (listBlock('Key responsibilities', p.responsibilities) + listBlock('Qualifications', p.qualifications)) || '<div style="color:rgba(var(--fg-rgb),0.5);">No further details provided.</div>';
+    bodyEl.innerHTML = (listBlock('Key responsibilities', p.responsibilities) + listBlock('Qualifications', p.qualifications)) || '<div style="color:var(--fg-5);">No further details provided.</div>';
     const modal = document.getElementById('postingDetailModal'); modal.style.display = 'block'; modal.scrollTop = 0; document.body.style.overflow = 'hidden';
     try{ const API = await gcAwaitAPI(); const prompts = await API.postings.getRequestedPrompts(p.id);
       if(prompts && prompts.length) bodyEl.innerHTML += `<div style="margin-top:8px;"><div style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--coral);margin-bottom:10px;">They'd love you to answer</div>${prompts.map(pr=>`<div style="font-size:14px;color:rgba(var(--fg-rgb),0.8);background:var(--surface);border:1px solid var(--line-light);border-radius:10px;padding:11px 14px;margin-bottom:8px;">${escapeHtml(pr)}</div>`).join('')}</div>`;
@@ -8688,7 +8712,7 @@
         <button class="jli-btn primary" type="button" onclick="GigCuteNavigate('/posting/${p.id}')">View</button>
         <button class="jli-btn" type="button" data-savepost="${escapeHtml(String(p.id))}" onclick="togglePostingSave('${p.id}', this)">${saved?GC_ICON.heartFill+'Saved':GC_ICON.heart+'Save'}</button>
         <button class="jli-btn pass" type="button" title="Not interested — hide this posting" onclick="dismissPosting('${p.id}')" style="font-size:11px;padding:5px 10px;">Remove</button>
-        ${liked ? `<div style="font-size:11px;color:var(--sage);font-family:'JetBrains Mono',monospace;text-align:right;margin-top:2px;">✓ Interest Shown</div>` : `<div style="font-size:10.5px;color:rgba(var(--fg-rgb),0.4);text-align:right;max-width:150px;">Posted directly by the hiring team</div>`}
+        ${liked ? `<div style="font-size:11px;color:var(--sage);font-family:'JetBrains Mono',monospace;text-align:right;margin-top:2px;">✓ Interest Shown</div>` : `<div style="font-size:10.5px;color:var(--fg-4);text-align:right;max-width:150px;">Posted directly by the hiring team</div>`}
       </div>
     </div>`;
   }
@@ -8721,7 +8745,7 @@
     const safeUrl = /^https?:\/\//i.test(j.url || '') ? j.url : '#';
     const rel = (j.__relevance != null) ? relChipHTML(j.__relevance) : '';
     return `<div class="job-list-item" data-jobkey="${escapeHtml(key)}">
-      <div class="job-logo" style="display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:18px;color:rgba(var(--fg-rgb),0.5);">${escapeHtml(initial)}</div>
+      <div class="job-logo" style="display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:18px;color:var(--fg-5);">${escapeHtml(initial)}</div>
       <div style="min-width:0;">
         ${rel}
         <div class="jli-company">${escapeHtml(j.company || '')}${loc ? ` · ${escapeHtml(loc)}` : ''}</div>
@@ -8734,7 +8758,7 @@
         <button class="jli-btn primary" type="button" onclick="GigCuteNavigate('/job/'+encodeURIComponent(this.closest('[data-jobkey]').getAttribute('data-jobkey')))">View</button>
         <button class="jli-btn" type="button" data-savejob="${escapeHtml(j.id||'')}" onclick="toggleSaveJob(this.closest('[data-jobkey]').getAttribute('data-jobkey'))">${isSaved(j)?GC_ICON.heartFill+'Saved':GC_ICON.heart+'Save'}</button>
         <button class="jli-btn pass" type="button" title="Not interested — hide this job" onclick="dismissJob(this.closest('[data-jobkey]').getAttribute('data-jobkey'))" style="font-size:11px;padding:5px 10px;">Remove</button>
-        ${isApplied(j) ? `<div style="font-size:11px;color:var(--sage);font-family:'JetBrains Mono',monospace;text-align:right;margin-top:2px;">✓ Marked Applied${__savedByJob[j.id] && __savedByJob[j.id].applied_at ? ' on '+fmtAppliedDate(__savedByJob[j.id].applied_at) : ''}</div>` : (posted ? `<div style="font-size:10.5px;color:rgba(var(--fg-rgb),0.35);text-align:right;">${posted}</div>` : '')}
+        ${isApplied(j) ? `<div style="font-size:11px;color:var(--sage);font-family:'JetBrains Mono',monospace;text-align:right;margin-top:2px;">✓ Marked Applied${__savedByJob[j.id] && __savedByJob[j.id].applied_at ? ' on '+fmtAppliedDate(__savedByJob[j.id].applied_at) : ''}</div>` : (posted ? `<div style="font-size:10.5px;color:var(--fg-35);text-align:right;">${posted}</div>` : '')}
       </div>
     </div>`;
   }
@@ -8787,7 +8811,7 @@
     directList.forEach(p => { p.__relevance = scoreJobForSeeker(postingToJobShape(p), relSig); });
     const directHtml = directList.map(dashPostingCard).join('');
     if(!__dash.items.length && !directHtml){
-      listEl.innerHTML = `<div style="text-align:center;padding:44px 20px;color:rgba(var(--fg-rgb),0.4);"><div style="font-family:'Fraunces',serif;font-size:18px;font-style:italic;margin-bottom:6px;">No roles found</div><div style="font-size:13px;">Try adjusting your search or filters.</div></div>`;
+      listEl.innerHTML = `<div style="text-align:center;padding:44px 20px;color:var(--fg-4);"><div style="font-family:'Fraunces',serif;font-size:18px;font-style:italic;margin-bottom:6px;">No roles found</div><div style="font-size:13px;">Try adjusting your search or filters.</div></div>`;
     } else {
       listEl.innerHTML = directHtml + __dash.items.map(dashJobCard).join('');
     }
@@ -8798,7 +8822,7 @@
   }
   async function loadDashJobs(reset){
     const listEl = document.getElementById('jobList');
-    if(reset){ __dash.offset = 0; __dash.items = []; if(listEl) listEl.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.4);padding:30px 0;">Loading roles…</div>'; }
+    if(reset){ __dash.offset = 0; __dash.items = []; if(listEl) listEl.innerHTML = '<div style="color:var(--fg-4);padding:30px 0;">Loading roles…</div>'; }
     const API = await gcAwaitAPI();
     // Pin active direct recruiter postings atop the board (best-effort; may be
     // empty for logged-out seekers depending on RLS).
@@ -9569,7 +9593,7 @@
   // split into mutual matches and one-sided interest (aggregated across postings).
   async function renderRecruiterOverview(){
     const el = document.getElementById('recruiterOverview'); if(!el) return;
-    el.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.4);padding:8px 0 20px;">Loading your activity…</div>';
+    el.innerHTML = '<div style="color:var(--fg-4);padding:8px 0 20px;">Loading your activity…</div>';
     const API = await gcAwaitAPI();
     let postings = [];
     try{ postings = await API.postings.mine(); }catch(e){}
@@ -9600,7 +9624,7 @@
         ? `<button class="jli-btn primary" type="button" onclick="recruiterMessageFor('${escapeHtml(c.postingId)}','${escapeHtml(c.seeker_id)}','${escapeHtml(name)}')">Message</button>`
         : `<button class="jli-btn primary" type="button" onclick="recruiterLikeBackFor('${escapeHtml(c.postingId)}','${escapeHtml(c.seeker_id)}')">Like back</button>`;
       return `<div style="display:flex; gap:12px; align-items:center; background:var(--bg); border:1px solid ${c.mutual?'var(--sage)':'var(--line-light)'}; border-radius:12px; padding:12px 14px;">
-        <div style="width:40px; height:40px; border-radius:10px; background:${c.photo_url?`url('${escapeHtml(c.photo_url)}') center/cover`:'var(--ink-soft)'}; border:1px solid var(--line-light); display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:16px; color:rgba(var(--fg-rgb),0.5); flex-shrink:0;">${c.photo_url?'':escapeHtml(initial)}</div>
+        <div style="width:40px; height:40px; border-radius:10px; background:${c.photo_url?`url('${escapeHtml(c.photo_url)}') center/cover`:'var(--ink-soft)'}; border:1px solid var(--line-light); display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:16px; color:var(--fg-5); flex-shrink:0;">${c.photo_url?'':escapeHtml(initial)}</div>
         <div style="flex:1; min-width:0;">
           <div style="font-weight:700; color:var(--fg); font-size:14px;">${escapeHtml(c.full_name || 'Candidate')}</div>
           <div style="font-size:12px; color:rgba(var(--fg-rgb),0.7); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Interested in ${escapeHtml(c.postingTitle || 'a role')}</div>
@@ -9614,7 +9638,7 @@
     const section = (title, items, empty) => `<div style="margin-bottom:24px;">
       <div style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--sage-soft); margin-bottom:10px;">${title}</div>
       ${items.length ? `<div style="display:flex; flex-direction:column; gap:8px;">${items.map(card).join('')}</div>`
-        : `<div style="font-size:13px; color:rgba(var(--fg-rgb),0.45); background:var(--surface); border:1px solid var(--line-light); border-radius:12px; padding:16px 18px;">${empty}</div>`}</div>`;
+        : `<div style="font-size:13px; color:var(--fg-45); background:var(--surface); border:1px solid var(--line-light); border-radius:12px; padding:16px 18px;">${empty}</div>`}</div>`;
 
     if(!active.length){
       el.innerHTML = statsRow; return;   // no active roles yet — postings section below prompts them to post
@@ -9634,7 +9658,7 @@
   async function renderRecruiterPostings(){
     const el = document.getElementById('recruiterPostings'); if(!el) return;
     const expEl = document.getElementById('recruiterExpired'), expWrap = document.getElementById('recruiterExpiredWrap');
-    el.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.4);padding:24px 0;">Loading…</div>';
+    el.innerHTML = '<div style="color:var(--fg-4);padding:24px 0;">Loading…</div>';
     const API = await gcAwaitAPI();
     let list = [];
     try{ list = await API.postings.mine(); }catch(e){ console.warn('postings.mine:', e && e.message); }
@@ -9645,7 +9669,7 @@
     const money = v => v ? ('$' + (v >= 1000 ? Math.round(v/1000) + 'k' : v)) : '';
     const statsArr = await Promise.all((list||[]).map(p => API.postings.stats(p.id).catch(()=>null)));
     const statsById = {}; (list||[]).forEach((p,i)=>{ statsById[p.id]=statsArr[i]; });
-    const stat = (n,label) => `<span style="display:inline-flex;align-items:baseline;gap:4px;"><b style="font-family:'Fraunces',serif;font-size:15px;color:var(--fg);">${n||0}</b><span style="font-size:11px;color:rgba(var(--fg-rgb),0.5);">${label}</span></span>`;
+    const stat = (n,label) => `<span style="display:inline-flex;align-items:baseline;gap:4px;"><b style="font-family:'Fraunces',serif;font-size:15px;color:var(--fg);">${n||0}</b><span style="font-size:11px;color:var(--fg-5);">${label}</span></span>`;
     const daysLeft = p => (p.status==='active' && p.expires_at) ? Math.max(0, Math.ceil((new Date(p.expires_at).getTime()-Date.now())/86400000)) : (p.days_remaining!=null ? p.days_remaining : 14);
     const card = (p, expiredKind) => {
       const sal = (p.salary_min||p.salary_max) ? `${money(p.salary_min)}${p.salary_max?'–'+money(p.salary_max):'+'}` : '';
@@ -9653,16 +9677,16 @@
       const st = statsById[p.id] || {};
       let statusHtml, actions;
       if(expiredKind){
-        statusHtml = `<span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:rgba(var(--fg-rgb),0.4);">expired</span>`;
+        statusHtml = `<span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--fg-4);">expired</span>`;
         actions = `<button class="jli-btn primary" type="button" onclick="repostPosting('${p.id}')">Repost</button>
                    <button class="jli-btn pass" type="button" onclick="deleteExpiredPosting('${p.id}')" style="font-size:11px;padding:5px 10px;">Delete</button>`;
       } else if(p.status === 'active'){
-        statusHtml = `<span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--sage);">active</span><span style="font-size:11px;color:rgba(var(--fg-rgb),0.5);">· ${daysLeft(p)}d left</span>`;
+        statusHtml = `<span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--sage);">active</span><span style="font-size:11px;color:var(--fg-5);">· ${daysLeft(p)}d left</span>`;
         actions = `<button class="jli-btn primary" type="button" onclick="openPostingManage('${p.id}')">Open</button>
                    <button class="jli-btn" type="button" onclick="openPostingForm('${p.id}')">Edit</button>
                    <button class="jli-btn" type="button" onclick="pausePosting('${p.id}')">Pause</button>`;
       } else {
-        statusHtml = `<span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:#e0b64a;">paused</span><span style="font-size:11px;color:rgba(var(--fg-rgb),0.5);">· ${daysLeft(p)}d left</span>`;
+        statusHtml = `<span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:#e0b64a;">paused</span><span style="font-size:11px;color:var(--fg-5);">· ${daysLeft(p)}d left</span>`;
         actions = `<button class="jli-btn primary" type="button" onclick="repostPosting('${p.id}')">Publish</button>
                    <button class="jli-btn" type="button" onclick="openPostingForm('${p.id}')">Edit</button>`;
       }
@@ -9736,7 +9760,7 @@
     const upgrade = window.GC_SHOW_UPGRADE
       ? ` · <a href="#" onclick="gcOpenUpgrade();return false;" style="color:var(--sage);text-decoration:none;">Need more?</a>` : '';
     el.innerHTML = `<span style="${near(L.used_active_postings,L.max_active_postings)}">${L.used_active_postings} / ${L.max_active_postings} active postings</span>`
-      + `<span style="color:rgba(var(--fg-rgb),0.3);"> · </span>`
+      + `<span style="color:var(--fg-3);"> · </span>`
       + `<span style="${near(L.used_invites_30d,L.max_invites_per_30d)}">${L.used_invites_30d} / ${L.max_invites_per_30d} invites (30d)</span>`
       + upgrade;
   }
@@ -9806,14 +9830,14 @@
   function pmAudience(a){
     const total = a ? ((a.liked_count||0)+(a.other_count||0)) : 0;
     if(!total) return `<section style="margin-bottom:26px;"><h2 class="pm-h2">Who’s looking${gcHelpBtn('audience')}</h2><div class="pm-empty">Not enough view activity yet — this fills in as signed-in seekers view your role.</div></section>`;
-    const dist = obj => { const e = Object.entries(obj||{}).sort((x,y)=>y[1]-x[1]); return e.length ? e.map(([k,v])=>`<div style="display:flex;justify-content:space-between;font-size:12.5px;color:rgba(var(--fg-rgb),0.72);margin-bottom:3px;"><span>${escapeHtml(k)}</span><span style="color:rgba(var(--fg-rgb),0.45);">${v}</span></div>`).join('') : '<div style="font-size:12px;color:rgba(var(--fg-rgb),0.35);">—</div>'; };
+    const dist = obj => { const e = Object.entries(obj||{}).sort((x,y)=>y[1]-x[1]); return e.length ? e.map(([k,v])=>`<div style="display:flex;justify-content:space-between;font-size:12.5px;color:rgba(var(--fg-rgb),0.72);margin-bottom:3px;"><span>${escapeHtml(k)}</span><span style="color:var(--fg-45);">${v}</span></div>`).join('') : '<div style="font-size:12px;color:var(--fg-35);">—</div>'; };
     const col = (title,count,ws,exp) => `<div style="flex:1;min-width:190px;background:var(--surface);border:1px solid var(--line-light);border-radius:12px;padding:14px 16px;">
-      <div style="font-weight:700;color:var(--fg);font-size:14px;">${title} <span style="color:rgba(var(--fg-rgb),0.4);font-weight:400;">· ${count}</span></div>
+      <div style="font-weight:700;color:var(--fg);font-size:14px;">${title} <span style="color:var(--fg-4);font-weight:400;">· ${count}</span></div>
       ${count>=3
         ? `<div style="margin-top:10px;"><div class="pm-sub">Work setup</div>${dist(ws)}</div><div style="margin-top:12px;"><div class="pm-sub">Experience</div>${dist(exp)}</div>`
-        : `<div style="font-size:12px;color:rgba(var(--fg-rgb),0.4);margin-top:8px;">Breakdown shows once at least 3 people are in this group (protects individual privacy).</div>`}
+        : `<div style="font-size:12px;color:var(--fg-4);margin-top:8px;">Breakdown shows once at least 3 people are in this group (protects individual privacy).</div>`}
     </div>`;
-    return `<section style="margin-bottom:26px;"><h2 class="pm-h2">Who’s looking <span style="font-size:12px;font-weight:400;color:rgba(var(--fg-rgb),0.4);">— signed-in viewers, aggregated</span>${gcHelpBtn('audience')}</h2>
+    return `<section style="margin-bottom:26px;"><h2 class="pm-h2">Who’s looking <span style="font-size:12px;font-weight:400;color:var(--fg-4);">— signed-in viewers, aggregated</span>${gcHelpBtn('audience')}</h2>
       <div style="display:flex;gap:12px;flex-wrap:wrap;">
         ${col('Interested', a.liked_count||0, a.work_setup&&a.work_setup.liked, a.experience&&a.experience.liked)}
         ${col('Viewed, didn’t like', a.other_count||0, a.work_setup&&a.work_setup.other, a.experience&&a.experience.other)}
@@ -9887,11 +9911,11 @@
     showScreen('screen-posting-manage');
     if(!__applyingRoute && location.pathname !== '/managepost/'+id){ window.history.pushState({}, '', '/managepost/'+encodeURIComponent(id)); __didInAppNav = true; }
     const el = document.getElementById('pmContent'); if(!el) return;
-    el.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.4);padding:40px 0;">Loading…</div>';
+    el.innerHTML = '<div style="color:var(--fg-4);padding:40px 0;">Loading…</div>';
     const API = await gcAwaitAPI();
     let p = __postingsById[id];
     if(!p){ try{ const mine = await API.postings.mine(); (mine||[]).forEach(x=>__postingsById[x.id]=x); p = __postingsById[id]; }catch(e){} }
-    if(!p){ el.innerHTML = '<div style="padding:40px 0;color:rgba(var(--fg-rgb),0.5);">Posting not found.</div>'; return; }
+    if(!p){ el.innerHTML = '<div style="padding:40px 0;color:var(--fg-5);">Posting not found.</div>'; return; }
     __pmPostingId = id;
     const [stats, cands, audience, recs, convos] = await Promise.all([
       API.postings.stats(id).catch(()=>null),
@@ -9934,12 +9958,12 @@
     const postingHtml = `<div style="background:var(--surface);border:1px solid var(--line-light);border-radius:16px;padding:20px 22px;margin-bottom:24px;">
       <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
         <div style="min-width:0;cursor:pointer;" onclick="pmToggleBox()">
-          <div style="font-family:'Fraunces',serif;font-size:20px;font-weight:600;color:var(--fg);">${escapeHtml(p.title||'Role')} <span id="pmChevron" style="font-size:12px;color:rgba(var(--fg-rgb),0.4);">▾</span></div>
-          <div style="font-size:12.5px;color:rgba(var(--fg-rgb),0.72);margin-top:3px;">${escapeHtml(meta)} · <span style="color:${p.status==='active'?'var(--sage)':'rgba(var(--fg-rgb),0.4)'};">${escapeHtml(p.status)}</span></div>
+          <div style="font-family:'Fraunces',serif;font-size:20px;font-weight:600;color:var(--fg);">${escapeHtml(p.title||'Role')} <span id="pmChevron" style="font-size:12px;color:var(--fg-4);">▾</span></div>
+          <div style="font-size:12.5px;color:rgba(var(--fg-rgb),0.72);margin-top:3px;">${escapeHtml(meta)} · <span style="color:${p.status==='active'?'var(--sage)':'var(--fg-4)'};">${escapeHtml(p.status)}</span></div>
         </div>
         <button class="jli-btn" type="button" onclick="openPostingForm('${id}')">Edit</button>
       </div>
-      <div id="pmBox">${listBlock('Key responsibilities',p.responsibilities)}${listBlock('Qualifications',p.qualifications)}${(!(p.responsibilities||[]).length && !(p.qualifications||[]).length)?'<div style="font-size:13px;color:rgba(var(--fg-rgb),0.4);margin-top:10px;">No description added — use Edit to add details.</div>':''}</div>
+      <div id="pmBox">${listBlock('Key responsibilities',p.responsibilities)}${listBlock('Qualifications',p.qualifications)}${(!(p.responsibilities||[]).length && !(p.qualifications||[]).length)?'<div style="font-size:13px;color:var(--fg-4);margin-top:10px;">No description added — use Edit to add details.</div>':''}</div>
     </div>`;
     const av = (photo,name) => `<div class="pm-cand-av" style="${photo?`background:url('${escapeHtml(photo)}') center/cover;`:''}">${photo?'':escapeHtml((String(name||'?').trim().charAt(0)||'?').toUpperCase())}</div>`;
     const candCard = c => `<div class="pm-cand">${av(c.photo_url,c.full_name)}
@@ -9962,14 +9986,14 @@
       return `<div class="pm-cand" style="cursor:pointer;" onclick="openConversationRoute('${escapeHtml(String(cv.id))}')">${av(info.photo,nm)}
         <div style="flex:1;min-width:0;">
           <div style="font-weight:700;color:var(--fg);font-size:14px;">${escapeHtml(nm)} <span style="color:var(--sage);font-size:11px;">· chatting</span></div>
-          <div style="font-size:12.5px;color:rgba(var(--fg-rgb),0.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(info.headline||'')}${t?` <span style="color:rgba(var(--fg-rgb),0.35);">· ${t}</span>`:''}</div>
+          <div style="font-size:12.5px;color:rgba(var(--fg-rgb),0.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(info.headline||'')}${t?` <span style="color:var(--fg-35);">· ${t}</span>`:''}</div>
         </div>
         <div class="pm-cand-actions" onclick="event.stopPropagation()">
           <button class="jli-btn primary" type="button" onclick="openConversationRoute('${escapeHtml(String(cv.id))}')">Open chat →</button>
         </div></div>`; };
-    const chattingHtml = chatConvs.length ? `<section style="margin-bottom:26px;"><h2 class="pm-h2">Currently chatting <span style="font-size:13px;font-weight:400;color:rgba(var(--fg-rgb),0.4);">· ${chatConvs.length}</span></h2>${chatConvs.map(chatCard).join('')}</section>` : '';
-    const chatMeter = chatUse ? `<span class="pm-tip" data-tip="Ongoing chats for this posting. End a chat to free a slot." style="font-size:12px;font-weight:400;font-family:'JetBrains Mono',monospace;color:${chatUse.used>=chatUse.max?'#e0857a':(chatUse.used>=chatUse.max-1?'#e0b64a':'rgba(var(--fg-rgb),0.4)')};float:right;">${chatUse.used} / ${chatUse.max} chats</span>` : '';
-    const interestedHtml = `<section style="margin-bottom:26px;"><h2 class="pm-h2">Interested candidates <span style="font-size:13px;font-weight:400;color:rgba(var(--fg-rgb),0.4);">· ${interestedCands.length}</span>${gcHelpBtn('interested')}${chatMeter}</h2>${interestedCands.length?interestedCands.map(candCard).join(''):'<div class="pm-empty">No candidates have shown interest yet.</div>'}</section>`;
+    const chattingHtml = chatConvs.length ? `<section style="margin-bottom:26px;"><h2 class="pm-h2">Currently chatting <span style="font-size:13px;font-weight:400;color:var(--fg-4);">· ${chatConvs.length}</span></h2>${chatConvs.map(chatCard).join('')}</section>` : '';
+    const chatMeter = chatUse ? `<span class="pm-tip" data-tip="Ongoing chats for this posting. End a chat to free a slot." style="font-size:12px;font-weight:400;font-family:'JetBrains Mono',monospace;color:${chatUse.used>=chatUse.max?'#e0857a':(chatUse.used>=chatUse.max-1?'#e0b64a':'var(--fg-4)')};float:right;">${chatUse.used} / ${chatUse.max} chats</span>` : '';
+    const interestedHtml = `<section style="margin-bottom:26px;"><h2 class="pm-h2">Interested candidates <span style="font-size:13px;font-weight:400;color:var(--fg-4);">· ${interestedCands.length}</span>${gcHelpBtn('interested')}${chatMeter}</h2>${interestedCands.length?interestedCands.map(candCard).join(''):'<div class="pm-empty">No candidates have shown interest yet.</div>'}</section>`;
     const recCard = r => { const skills=(r.skills||[]).slice(0,4).map(s=>`<span class="jli-tag">${escapeHtml(s)}</span>`).join('');
       return `<div class="pm-cand">${av(r.photo_url,r.name)}
         <div style="flex:1;min-width:0;">
@@ -9986,7 +10010,7 @@
           <button class="jli-btn pass pm-tip" type="button" data-tip="${inviteBy[r.seeker_id] ? 'Remove will also delete your invite' : 'Not a fit — remove'}" onclick="pmDismiss('${id}','${escapeHtml(r.seeker_id)}')" style="font-size:11px;padding:5px 10px;">Remove</button>
         </div></div>`; };
     const recsList = (recs || []).filter(r => !chattingSet.has(r.seeker_id));
-    const recsHtml = `<section><h2 class="pm-h2">Potential matches <span style="font-size:12px;font-weight:400;color:rgba(var(--fg-rgb),0.4);">— based on skills</span>${gcHelpBtn('matches')}</h2>${recsList.length?recsList.map(recCard).join(''):'<div class="pm-empty">No further recommendations right now.</div>'}</section>`;
+    const recsHtml = `<section><h2 class="pm-h2">Potential matches <span style="font-size:12px;font-weight:400;color:var(--fg-4);">— based on skills</span>${gcHelpBtn('matches')}</h2>${recsList.length?recsList.map(recCard).join(''):'<div class="pm-empty">No further recommendations right now.</div>'}</section>`;
     el.innerHTML = statsHtml + postingHtml + chattingHtml + interestedHtml + pmAudience(audience) + recsHtml;
   }
   window.openPostingManage = openPostingManage;
@@ -10180,7 +10204,7 @@
     setChatEndedUI(ended);
     let msgs = [];
     try{ msgs = await API.chat.listMessages(__chatConvId); }catch(e){ console.warn('messages:', e && e.message); }
-    if(!msgs || !msgs.length){ el.innerHTML = endNotice || '<div style="color:rgba(var(--fg-rgb),0.4); text-align:center; padding:24px; margin:auto;">Say hello 👋</div>'; return; }
+    if(!msgs || !msgs.length){ el.innerHTML = endNotice || '<div style="color:var(--fg-4); text-align:center; padding:24px; margin:auto;">Say hello 👋</div>'; return; }
     const peer = __chatPeerName || 'Them';
     let html = '', lastDay = '', lastSender = null;
     msgs.forEach(m => {
@@ -10252,7 +10276,7 @@
     showScreen('screen-messages');
     markMessagesSeen();   // opening Messages clears the new-message indicator
     const el = document.getElementById('conversationList'); if(!el) return;
-    el.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.4);padding:24px 12px;">Loading…</div>';
+    el.innerHTML = '<div style="color:var(--fg-4);padding:24px 12px;">Loading…</div>';
     const API = await gcAwaitAPI();
     let convos = [];
     try{ convos = await API.chat.myConversations(); }catch(e){ console.warn('convos:', e && e.message); }
@@ -10282,7 +10306,7 @@
     else { list = list.filter(c => !isArch(c)); if(__convFilter === 'unread') list = list.filter(c => convUnread(c, seenMap)); }
     if(!list.length){
       const msg = __convFilter === 'archived' ? 'No archived conversations' : __convFilter === 'unread' ? 'No unread messages' : 'No conversations yet';
-      el.innerHTML = `<div style="text-align:center; padding:34px 18px;"><div style="font-family:'Fraunces',serif; font-size:16px; font-style:italic; margin-bottom:6px; color:rgba(var(--fg-rgb),0.7);">${msg}</div>${__convFilter==='all'?'<div style="font-size:12.5px; color:rgba(var(--fg-rgb),0.5);">When you match, you can message here.</div>':''}</div>`;
+      el.innerHTML = `<div style="text-align:center; padding:34px 18px;"><div style="font-family:'Fraunces',serif; font-size:16px; font-style:italic; margin-bottom:6px; color:rgba(var(--fg-rgb),0.7);">${msg}</div>${__convFilter==='all'?'<div style="font-size:12.5px; color:var(--fg-5);">When you match, you can message here.</div>':''}</div>`;
       return;
     }
     el.innerHTML = list.map(c => {
@@ -10294,7 +10318,7 @@
         <div class="conv-main">
           <div class="conv-name">${escapeHtml(peer)}</div>
           <div class="conv-sub">${escapeHtml(sub)}</div>
-          ${c.ended_at ? `<div style="font-size:11px;color:rgba(var(--fg-rgb),0.4);font-family:'JetBrains Mono',monospace;margin-top:2px;">Ended · deletes in ${deletesInDays(c)}d</div>` : ''}
+          ${c.ended_at ? `<div style="font-size:11px;color:var(--fg-4);font-family:'JetBrains Mono',monospace;margin-top:2px;">Ended · deletes in ${deletesInDays(c)}d</div>` : ''}
         </div>
         <div class="conv-meta">
           <div class="conv-meta-top"><span class="conv-time">${escapeHtml(chatRelTime(c.last_message_at))}</span><button class="conv-more" type="button" data-more="${c.id}" aria-label="Conversation options">⋯</button></div>
@@ -10481,17 +10505,17 @@
   function closeCandidates(){ const m=document.getElementById('candidatesModal'); if(m) m.style.display='none'; document.body.style.overflow=''; }
   async function loadCandidates(){
     const el = document.getElementById('candidatesList'); if(!el) return;
-    el.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.4);padding:16px 0;">Loading…</div>';
+    el.innerHTML = '<div style="color:var(--fg-4);padding:16px 0;">Loading…</div>';
     const API = await gcAwaitAPI();
     let cands = [];
     try{ cands = await API.interest.seekersWhoLiked(__candPostingId); }catch(e){ console.warn('seekersWhoLiked:', e && e.message); }
-    if(!cands || !cands.length){ el.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.5); padding:16px 0;">No candidates have liked this role yet.</div>'; return; }
+    if(!cands || !cands.length){ el.innerHTML = '<div style="color:var(--fg-5); padding:16px 0;">No candidates have liked this role yet.</div>'; return; }
     let sigMap = {}; try{ sigMap = await API.interest.candidateSignals(cands.map(c=>c.seeker_id)); }catch(e){}
     el.innerHTML = cands.map(c => {
       const initial = (String(c.full_name||'?').trim().charAt(0)||'?').toUpperCase();
       const name = (c.full_name || 'Candidate').replace(/'/g, '');
       return `<div style="display:flex; gap:14px; align-items:center; background:var(--bg); border:1px solid var(--line-light); border-radius:12px; padding:14px 16px; margin-bottom:10px;">
-        <div style="width:44px; height:44px; border-radius:10px; background:${c.photo_url?`url('${escapeHtml(c.photo_url)}') center/cover`:'var(--ink-soft)'}; border:1px solid var(--line-light); display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:17px; color:rgba(var(--fg-rgb),0.5); flex-shrink:0;">${c.photo_url?'':escapeHtml(initial)}</div>
+        <div style="width:44px; height:44px; border-radius:10px; background:${c.photo_url?`url('${escapeHtml(c.photo_url)}') center/cover`:'var(--ink-soft)'}; border:1px solid var(--line-light); display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-size:17px; color:var(--fg-5); flex-shrink:0;">${c.photo_url?'':escapeHtml(initial)}</div>
         <div style="flex:1; min-width:0;">
           <div style="font-weight:700; color:var(--fg); font-size:14.5px;">${escapeHtml(c.full_name || 'Candidate')}${c.mutual?' <span style="color:var(--sage);font-size:11px;">· matched</span>':''}</div>
           <div style="font-size:12.5px; color:rgba(var(--fg-rgb),0.72); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(c.headline || '')}</div>
@@ -10629,7 +10653,7 @@
   window.showTracker = showTracker;
   async function renderTracker(){
     const el = document.getElementById('trackerList'); if(!el) return;
-    el.innerHTML = '<div style="color:rgba(var(--fg-rgb),0.4);padding:24px 0;">Loading…</div>';
+    el.innerHTML = '<div style="color:var(--fg-4);padding:24px 0;">Loading…</div>';
     const API = await gcAwaitAPI();
     let user=null; try{ user = await (API && API.enabled && API.auth.currentUser()); }catch(e){}
     if(!user){ el.innerHTML = `<div style="text-align:center; padding:44px 20px; background:var(--surface); border:1px solid var(--line-light); border-radius:16px;"><div style="font-size:14px; color:rgba(var(--fg-rgb),0.72); margin-bottom:14px;">Log in to save jobs and track your applications.</div><button class="lm-cta-btn" type="button" onclick="GigCuteNavigate('/login')" style="font-size:14px;padding:11px 20px;">Log in</button></div>`; return; }
@@ -10639,7 +10663,7 @@
     el.innerHTML = filtered.map(r => {
       const applied = r.status === 'applied', dismissed = r.status === 'dismissed';
       const safeUrl = /^https?:\/\//i.test(r.url||'') ? r.url : '#';
-      const badge = dismissed ? `<span style="color:rgba(var(--fg-rgb),0.4);">Removed</span>` : (applied ? `<span style="color:var(--sage);">Applied</span>` : `<span style="color:rgba(var(--fg-rgb),0.5);">Saved</span>`);
+      const badge = dismissed ? `<span style="color:var(--fg-4);">Removed</span>` : (applied ? `<span style="color:var(--sage);">Applied</span>` : `<span style="color:var(--fg-5);">Saved</span>`);
       const actions = dismissed
         ? `<button class="jli-btn primary" type="button" onclick="removeTracked('${r.id}')">Restore</button>`
         : `<a class="jli-btn primary" href="${escapeHtml(safeUrl)}" target="_blank" rel="noopener noreferrer nofollow" style="text-decoration:none; text-align:center;">Apply ↗</a>
