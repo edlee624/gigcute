@@ -4369,7 +4369,7 @@
       </div>
     </div>
 
-    <button class="ob-primary" id="sk2Next" type="button" disabled>Continue</button>
+    <button class="ob-primary" id="sk2Next" type="button">Continue</button>
 
     <div class="ob-divider">or</div>
     <div class="import-grid">
@@ -5717,7 +5717,10 @@
   });
 
   function updateSk2Continue(){
-    sk2Next.disabled = !resumeUploaded;
+    // Continue is always available — the résumé is optional (you can start from
+    // scratch, or just add a photo/LinkedIn and move on). sk2Next.onclick decides
+    // whether to parse a résumé or proceed to manual entry.
+    sk2Next.disabled = false;
   }
 
   let currentResumeFile = null;   // actual File, uploaded to Storage on finish
@@ -6332,8 +6335,20 @@
     }
   }
 
+  // Tracks the résumé File we've already parsed and whether we've advanced past
+  // step 2 at least once — so returning to step 2 (e.g. to add a photo) and
+  // hitting Continue again just moves forward instead of re-parsing or wiping the
+  // work history / prompts the user already filled in on step 3.
+  let __parsedResume = null, __sk2Advanced = false;
   sk2Next.onclick = async () => {
     const file = resumeFile.files[0];
+    // Only parse when there's a NEW/changed résumé. Otherwise (no résumé, or the
+    // same one already parsed) just proceed, preserving whatever they've entered.
+    if(!file || file === __parsedResume){
+      if(!__sk2Advanced){ prepareWorkAndPrompts('manual'); __sk2Advanced = true; }
+      showScreen('screen-seeker-work');
+      return;
+    }
     showScreen('screen-seeker-parsing');
     const stepEl = document.getElementById('parseStepText');
     const steps = parseStepsBySource.resume;
@@ -6356,6 +6371,7 @@
     await new Promise(r => setTimeout(r, 450));   // let the animation breathe
     clearInterval(anim);
     applyResumeParse(parsed, hadError);
+    __parsedResume = file; __sk2Advanced = true;
     showScreen('screen-seeker-work');
   };
 
