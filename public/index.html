@@ -4025,9 +4025,9 @@
 </div>
 
 <!-- ============ POSTING FORM ============ -->
-<div id="postingModal" style="display:none; position:fixed; inset:0; z-index:950; background:rgba(10,11,14,0.82); backdrop-filter:blur(3px); overflow-y:auto;">
-  <div style="max-width:640px; margin:34px auto; padding:0 16px 60px;">
-    <div style="background:var(--surface); border:1px solid var(--line-light); border-radius:16px; padding:26px 28px;">
+<div id="postingModal" style="display:none; position:fixed; inset:0; z-index:950; background:var(--bg); overflow-y:auto;">
+  <div style="max-width:780px; margin:0 auto; padding:30px 20px 72px;">
+    <div style="background:var(--surface); border:1px solid var(--line-light); border-radius:16px; padding:26px 30px;">
       <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px;">
         <div id="pfTitle" style="font-family:'Fraunces',serif; font-size:22px; font-weight:600; color:var(--fg);">Post a job</div>
         <button id="pfClose" type="button" class="ds-nav-btn">✕</button>
@@ -10347,7 +10347,9 @@
   { const b=document.getElementById('recruiterMsgsBtn'); if(b) b.onclick = () => navigate('/messages'); }
   { const b=document.getElementById('pmMsgsBtn'); if(b) b.onclick = () => navigate('/messages'); }
   { const b=document.getElementById('trackerMsgsBtn'); if(b) b.onclick = () => navigate('/messages'); }
-  { const m=document.getElementById('postingModal'); if(m) m.addEventListener('click', e => { if(e.target === m || e.target === m.firstElementChild) closePostingForm(); }); }
+  // Deliberately NO click-outside-to-close: the posting form is a full-screen page
+  // now, and dismissing it on a stray click discarded everything typed. It closes
+  // only via ✕, Publish, or Save as draft.
 
   // ===== MATCHING: seeker swipe · candidates · chat (Phase 2) =====
   let __chatConvId = null, __chatMyId = null, __chatPeerName = '', __convById = {};
