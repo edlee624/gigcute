@@ -16,13 +16,27 @@ from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 SB = "https://ztvirfxxyvvcrxcjstzi.supabase.co"
-ANON = "sb_publishable_G-5zb-7ncuxeOs_jMrjOOw_RDwQsHnc"
+ANON = "sb_publishable_G-5zb-7ncuxeOs_jMrjOOw_RDwQsHnc"   # public read-only key (safe to embed)
 REF = "ztvirfxxyvvcrxcjstzi"
 MGMT = f"https://api.supabase.com/v1/projects/{REF}/database/query"
-TOK = open(os.path.join(os.environ.get("TEMP", "/tmp"), "sbtok.txt"), encoding="utf-8").read().strip()
+
+def _load_token():
+    """Supabase Management-API PAT (writes to public.jobs). Portable across machines:
+    env var first, then sbtok.txt next to this script or in TEMP. NEVER hardcode it."""
+    t = os.environ.get("SUPABASE_ACCESS_TOKEN")
+    if t:
+        return t.strip()
+    here = os.path.dirname(os.path.abspath(__file__))
+    for p in (os.path.join(here, "sbtok.txt"), os.path.join(os.environ.get("TEMP", "/tmp"), "sbtok.txt")):
+        if os.path.exists(p):
+            return open(p, encoding="utf-8").read().strip()
+    sys.exit("ERROR: no Supabase token. Set env var SUPABASE_ACCESS_TOKEN=<your PAT>, "
+             "or put the PAT in a file named sbtok.txt next to backfill.py.")
+TOK = _load_token()
+
 UA = {"User-Agent": "Mozilla/5.0 (gigcute-backfill)"}
 WDH = {**UA, "content-type": "application/json", "accept": "application/json"}
-MAX_AGE_DAYS = 14
+MAX_AGE_DAYS = int(os.environ.get("JOB_MAX_AGE_DAYS", "7"))   # match the cron's intake window
 DESC_CAP = 16000
 NOW = time.time()
 WORKERS = 24
@@ -469,11 +483,14 @@ def mark(ids):
     q(f"update public.job_sources set last_ingested_at = now() where id in ({lst});")
 
 # ---- main ------------------------------------------------------------------
-def load_pending(limit=None):
+def load_companies(limit=None, all_mode=False):
+    """Companies to process. Default: only never-swept (last_ingested_at IS NULL).
+    all_mode=True: EVERY active company — a full local refresh of the whole board."""
     H = {"apikey": ANON, "authorization": f"Bearer {ANON}"}
+    pend_filter = "" if all_mode else "&last_ingested_at=is.null"
     recs, offset, PAGE = [], 0, 1000
     while True:
-        r = requests.get(f"{SB}/rest/v1/job_sources?select=id,platform,slug,company_name,datacenter,site&active=eq.true&last_ingested_at=is.null&order=id&limit={PAGE}&offset={offset}", headers=H, timeout=30)
+        r = requests.get(f"{SB}/rest/v1/job_sources?select=id,platform,slug,company_name,datacenter,site&active=eq.true{pend_filter}&order=id&limit={PAGE}&offset={offset}", headers=H, timeout=30)
         batch = r.json()
         if not batch: break
         recs += batch; offset += len(batch)
@@ -482,9 +499,15 @@ def load_pending(limit=None):
     return recs
 
 def main():
-    limit = int(sys.argv[1]) if len(sys.argv) > 1 else None
-    pend = load_pending(limit)
-    print(f"pending companies to backfill: {len(pend)}", flush=True)
+    # Usage: python backfill.py            -> only never-swept companies (pending)
+    #        python backfill.py 500        -> first 500 (test run)
+    #        python backfill.py --all      -> refresh EVERY company (full board refresh)
+    args = [a for a in sys.argv[1:]]
+    all_mode = "--all" in args
+    nums = [a for a in args if a.isdigit()]
+    limit = int(nums[0]) if nums else None
+    pend = load_companies(limit, all_mode=all_mode)
+    print(f"{'ALL companies (full refresh)' if all_mode else 'pending companies'} to backfill: {len(pend)}", flush=True)
     done = jobs = 0
     with ThreadPoolExecutor(max_workers=WORKERS) as ex:
         futs = [ex.submit(fetch, r) for r in pend]
