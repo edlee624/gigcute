@@ -11028,16 +11028,34 @@
     function initials(name){ return (name||'?').trim().split(/\s+/).map(x=>x[0]).join('').toUpperCase().slice(0,2); }
     function onDocClick(e){ if(!e.target.closest('.nav-account')) close(); }
     function onKey(e){ if(e.key === 'Escape') close(); }
+    // Is the account badge being shown in the recruiter context? `mode` is
+    // unreliable (never reliably 'recruiter', flipped by profile views), which
+    // made a recruiter's badge read "Job seeker" with seeker-only menu items.
+    // Trust the active screen first, then the stable __amRecruiter flag.
+    function gcRecruiterContext(){
+      try{
+        const id = (document.querySelector('.screen.active, .flow-screen.active') || {}).id || '';
+        if(/^screen-(recruiter|posting-manage|ats)/.test(id)) return true;
+        if(id === 'screen-app' || /^screen-(seeker|login|main|home)/.test(id)) return false;
+      }catch(e){}
+      return (mode === 'recruiter') || (typeof __amRecruiter !== 'undefined' && !!__amRecruiter);
+    }
     // Paint the account identity (dropdown + nav avatar) from the authoritative
     // source: the logged-in user on a real backend, the demo sample only when
     // there's no backend. Never let the demo "Maya Okafor" leak into a real session.
     async function paintIdentity(){
-      const isRec = (mode === 'recruiter');
+      const isRec = gcRecruiterContext();
       const API = window.GigCuteAPI;
       const backend = !!(API && API.enabled);
       let name = '', sub = '', photo = '';
       if(isRec){
-        name = companyState.name || 'Your company'; sub = 'Recruiter account';
+        // Recruiter badge: the person's name, labelled Recruiter (+ company).
+        if(backend){ try{ const u = await API.auth.currentUser(); if(u){ let me=null; try{ me=await API.profiles.me(); }catch(e){} name = (me && me.full_name) || u.email || ''; } }catch(e){} }
+        const coEl = document.getElementById('recruiterCoName');
+        const co = (coEl && coEl.textContent && coEl.textContent.trim())
+                 || (typeof __recruiterCompany !== 'undefined' && __recruiterCompany && __recruiterCompany.name) || '';
+        name = name || co || 'Your account';
+        sub = co ? ('Recruiter · ' + co) : 'Recruiter';
       } else if(backend){
         try{
           const u = await API.auth.currentUser();
@@ -11067,7 +11085,7 @@
     }
     window.__gcPaintNav = paintIdentity;
     function open(){
-      const isRec = (mode === 'recruiter');
+      const isRec = gcRecruiterContext();
       // context-specific items
       document.getElementById('ndViewProfile').style.display = isRec ? 'none' : '';
       document.getElementById('ndEditProfile').style.display = isRec ? 'none' : '';
