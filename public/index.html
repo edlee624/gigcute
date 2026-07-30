@@ -92,6 +92,53 @@
      CSS, so it flips the instant data-theme is set (no flash, no JS). */
   :root[data-theme="slate"] img.brand-img,
   :root[data-theme="slate"] img.hero-logo{ content:url("/logo-slate.png"); }
+  /* ===================== ATS pipeline (recruiter) ===================== */
+  .ats-wrap{ max-width:1240px; margin:0 auto; padding:20px 22px 70px; }
+  .ats-top{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
+  .ats-sel{ background:var(--surface); border:1px solid var(--line-light); border-radius:10px; color:var(--fg); font-family:'Inter',sans-serif; font-size:14px; font-weight:600; padding:9px 14px; cursor:pointer; max-width:340px; }
+  .ats-jobmeta{ font-size:12.5px; color:rgba(var(--fg-rgb),0.6); }
+  .ats-board{ display:flex; gap:14px; overflow-x:auto; padding-bottom:14px; align-items:flex-start; }
+  .ats-col{ flex:0 0 268px; background:var(--surface); border:1px solid var(--line-light); border-radius:14px; padding:12px; min-height:130px; transition:outline .12s; }
+  .ats-col.drop{ outline:2px dashed var(--coral); outline-offset:-3px; }
+  .ats-col-h{ display:flex; align-items:center; justify-content:space-between; margin-bottom:11px; padding:0 3px; }
+  .ats-col-h .nm{ font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--fg); }
+  .ats-col-h .ct{ font-size:11.5px; color:rgba(var(--fg-rgb),0.5); font-family:'JetBrains Mono',monospace; background:var(--bg); border-radius:20px; padding:1px 8px; }
+  .ats-card{ background:var(--bg); border:1px solid var(--line-light); border-radius:11px; padding:11px 12px; margin-bottom:9px; cursor:grab; }
+  .ats-card:hover{ border-color:var(--sage); }
+  .ats-card.dragging{ opacity:0.45; }
+  .ats-card .nm{ font-size:14px; font-weight:600; color:var(--fg); }
+  .ats-card .hl{ font-size:12px; color:rgba(var(--fg-rgb),0.62); margin-top:2px; line-height:1.35; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ats-card .mt{ display:flex; align-items:center; gap:10px; margin-top:9px; font-size:11px; color:rgba(var(--fg-rgb),0.5); font-family:'JetBrains Mono',monospace; }
+  .ats-card .src{ text-transform:uppercase; letter-spacing:0.04em; }
+  .ats-card .sc{ color:var(--sage); }
+  .ats-empty{ font-size:12.5px; color:rgba(var(--fg-rgb),0.4); padding:10px 4px; }
+  /* candidate drawer */
+  .ats-scrim{ position:fixed; inset:0; background:rgba(10,11,14,0.55); z-index:955; display:none; }
+  .ats-scrim.open{ display:block; }
+  .ats-drawer{ position:fixed; top:0; right:0; bottom:0; width:min(500px,94vw); background:var(--bg); border-left:1px solid var(--line-light); box-shadow:-24px 0 60px rgba(0,0,0,0.3); z-index:956; transform:translateX(100%); transition:transform .22s ease; overflow-y:auto; }
+  .ats-drawer.open{ transform:none; }
+  .ats-dh{ padding:20px 22px 16px; border-bottom:1px solid var(--line-light); }
+  .ats-dh .close{ float:right; background:none; border:none; color:rgba(var(--fg-rgb),0.6); font-size:20px; cursor:pointer; line-height:1; }
+  .ats-dh .nm{ font-family:'Fraunces',serif; font-size:24px; font-weight:600; color:var(--fg); }
+  .ats-dh .hl{ font-size:13.5px; color:rgba(var(--fg-rgb),0.66); margin-top:3px; }
+  .ats-dh .meta{ display:flex; gap:12px; margin-top:9px; font-size:12px; color:rgba(var(--fg-rgb),0.5); flex-wrap:wrap; }
+  .ats-acts{ display:flex; gap:8px; flex-wrap:wrap; padding:14px 22px; border-bottom:1px solid var(--line-light); }
+  .ats-btn{ font-family:'Inter',sans-serif; font-size:13px; font-weight:600; border-radius:9px; padding:8px 13px; cursor:pointer; border:1px solid var(--line-light); background:var(--surface); color:var(--fg); }
+  .ats-btn.primary{ background:var(--sage); border-color:var(--sage); color:var(--ink); }
+  .ats-btn.danger{ border-color:var(--danger); color:var(--danger); }
+  .ats-sec{ padding:16px 22px; border-bottom:1px solid var(--line-2, var(--line-light)); }
+  .ats-sec .lbl{ font-size:10.5px; font-family:'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:0.08em; color:rgba(var(--fg-rgb),0.45); margin-bottom:10px; }
+  .ats-chip{ display:inline-block; font-size:12px; border:1px solid var(--line-light); border-radius:20px; padding:4px 11px; margin:0 6px 6px 0; color:rgba(var(--fg-rgb),0.8); }
+  .ats-sq{ margin-bottom:10px; }
+  .ats-sq .q{ font-size:12.5px; color:rgba(var(--fg-rgb),0.6); }
+  .ats-sq .a{ font-size:13.5px; color:var(--fg); margin-top:2px; }
+  .ats-sq .ko{ display:inline-block; font-size:10px; font-weight:700; border-radius:5px; padding:1px 6px; margin-left:6px; }
+  .ats-sq .ko.pass{ background:rgba(61,90,76,0.2); color:var(--sage-light); } .ats-sq .ko.fail{ background:rgba(217,56,43,0.16); color:#E06055; }
+  .ats-tl{ position:relative; padding-left:16px; }
+  .ats-tl .ev{ position:relative; padding:0 0 13px 0; font-size:12.5px; color:rgba(var(--fg-rgb),0.75); }
+  .ats-tl .ev::before{ content:''; position:absolute; left:-16px; top:4px; width:7px; height:7px; border-radius:50%; background:var(--sage); }
+  .ats-tl .ev .w{ color:rgba(var(--fg-rgb),0.45); font-size:11px; }
+  .ats-note-in{ width:100%; box-sizing:border-box; background:var(--surface); border:1px solid var(--line-light); border-radius:9px; color:var(--fg); font-family:'Inter',sans-serif; font-size:13px; padding:9px 11px; resize:vertical; }
   /* Theme picker in Settings */
   .theme-opt{ display:flex; align-items:center; gap:9px; justify-content:center; font-family:'Inter',sans-serif; font-size:13.5px; font-weight:600; color:var(--fg); background:var(--bg); border:1px solid var(--line-light); border-radius:10px; padding:11px 12px; cursor:pointer; }
   .theme-opt .tsw{ width:16px; height:16px; border-radius:5px; flex:0 0 auto; box-shadow:inset 0 0 0 1px rgba(var(--fg-rgb),0.18); }
@@ -3939,6 +3986,7 @@
       <div class="wordmark"><img src="/logo.png" class="brand-img" alt="GigCute" style="height:26px;"></div>
       <div style="display:flex; align-items:center; gap:8px;">
         <span id="recruiterCoName" style="font-size:13px; color:rgba(var(--fg-rgb),0.72);"></span>
+        <button class="ds-nav-btn primary" id="recruiterPipelineBtn" type="button" onclick="if(window.openATS)window.openATS()">Pipeline</button>
         <button class="ds-nav-btn" id="recruiterTourBtn" type="button" onclick="if(window.openRecruiterTour)window.openRecruiterTour()">How it works</button>
         <button class="ds-nav-btn nav-msg" id="recruiterMsgsBtn" type="button"><svg class="msg-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Messages</button>
         <button class="ds-nav-btn" id="recruiterLogout" type="button">Log out</button>
@@ -4022,6 +4070,30 @@
     </div>
   </div>
 </div>
+
+<!-- ============ ATS PIPELINE (recruiter) ============ -->
+<div class="screen" id="screen-ats">
+  <div class="ds-nav">
+    <div class="wordmark" style="cursor:pointer;" onclick="if(window.showRecruiterApp)showRecruiterApp()"><img src="/logo.png" class="brand-img" alt="GigCute" style="height:26px;"></div>
+    <div class="ds-nav-right">
+      <button class="ds-nav-btn" type="button" onclick="if(window.showRecruiterApp)showRecruiterApp()">← Postings</button>
+    </div>
+  </div>
+  <div class="ats-wrap">
+    <div style="margin-bottom:14px;">
+      <h1 style="font-family:'Fraunces',serif; font-size:28px; font-weight:600; margin:0 0 2px;">Hiring <em style="color:var(--sage);font-style:italic;">pipeline</em></h1>
+      <p style="color:rgba(var(--fg-rgb),0.68); font-size:13.5px; margin:0;">Move candidates through your stages. Drag a card, or open one for the full picture.</p>
+    </div>
+    <div class="ats-top">
+      <select id="atsJobSel" class="ats-sel" aria-label="Choose a job"></select>
+      <span id="atsJobMeta" class="ats-jobmeta"></span>
+    </div>
+    <div id="atsBoard" class="ats-board"><div class="ats-empty">Loading…</div></div>
+  </div>
+</div>
+<!-- candidate drawer -->
+<div id="atsScrim" class="ats-scrim"></div>
+<aside id="atsDrawer" class="ats-drawer" aria-label="Candidate detail"></aside>
 
 <!-- ============ MESSAGES (shared) ============ -->
 <div class="screen" id="screen-messages">
@@ -10103,6 +10175,164 @@
     }catch(e){ fail(gcIsLimitError(e) ? e.message : ((e && e.message) || 'Could not save the posting.')); }
   }
   window.openPostingForm = openPostingForm; window.showRecruiterApp = showRecruiterApp;
+
+  // ===================== ATS PIPELINE (recruiter) =====================
+  let __atsJob = null, __atsPipeline = null, __atsDrawerApp = null, __atsDrawerData = null;
+  async function openATS(postingId){
+    showScreen('screen-ats');
+    const sel = document.getElementById('atsJobSel');
+    let jobs = [];
+    try{ const API = await gcAwaitAPI(); jobs = await API.ats.jobs(); }catch(e){ jobs = []; }
+    if(!jobs.length){
+      document.getElementById('atsBoard').innerHTML = '<div class="ats-empty">No postings yet. Create a job to start building a pipeline.</div>';
+      sel.innerHTML = ''; return;
+    }
+    sel.innerHTML = jobs.map(j => `<option value="${j.id}">${escapeHtml(j.title || 'Untitled role')} — ${j.active||0} active${j.hired?` · ${j.hired} hired`:''}</option>`).join('');
+    const pick = (postingId && jobs.some(j=>j.id===postingId)) ? postingId : jobs[0].id;
+    sel.value = pick;
+    sel.onchange = () => atsRenderBoard(sel.value);
+    atsRenderBoard(pick);
+  }
+  window.openATS = openATS;
+
+  async function atsRenderBoard(postingId){
+    const board = document.getElementById('atsBoard');
+    board.innerHTML = '<div class="ats-empty">Loading…</div>';
+    let p = null;
+    try{ const API = await gcAwaitAPI(); p = await API.ats.pipeline(postingId); }
+    catch(e){ board.innerHTML = '<div class="ats-empty">Could not load this pipeline.</div>'; return; }
+    if(!p){ board.innerHTML = '<div class="ats-empty">Not authorized for this posting.</div>'; return; }
+    __atsPipeline = p; __atsJob = postingId;
+    const apps = p.applications || [];
+    const byStage = {};
+    apps.forEach(a => { (byStage[a.stage_id] = byStage[a.stage_id] || []).push(a); });
+    document.getElementById('atsJobMeta').textContent = `${apps.length} candidate${apps.length!==1?'s':''} in pipeline`;
+    board.innerHTML = (p.stages || []).map(s => {
+      const list = byStage[s.id] || [];
+      const cards = list.map(atsCardHTML).join('') || '<div class="ats-empty">—</div>';
+      return `<div class="ats-col" data-stage="${s.id}"><div class="ats-col-h"><span class="nm">${escapeHtml(s.name)}</span><span class="ct">${list.length}</span></div>${cards}</div>`;
+    }).join('');
+    atsWireDnD();
+  }
+  function atsCardHTML(a){
+    const c = a.candidate || {};
+    const days = (a.days_in_stage != null) ? `${a.days_in_stage}d in stage` : '';
+    return `<div class="ats-card" draggable="true" data-app="${a.id}">
+      <div class="nm">${escapeHtml(c.name || 'Candidate')}</div>
+      ${c.headline ? `<div class="hl">${escapeHtml(c.headline)}</div>` : ''}
+      <div class="mt"><span class="src">${escapeHtml(a.source||'')}</span>${days?`<span>· ${days}</span>`:''}${a.scorecards?`<span class="sc">★ ${a.scorecards}</span>`:''}</div>
+    </div>`;
+  }
+  function atsWireDnD(){
+    const board = document.getElementById('atsBoard');
+    board.querySelectorAll('.ats-card').forEach(card => {
+      card.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', card.getAttribute('data-app')); e.dataTransfer.effectAllowed='move'; card.classList.add('dragging'); });
+      card.addEventListener('dragend', () => { card.classList.remove('dragging'); board.querySelectorAll('.ats-col').forEach(c=>c.classList.remove('drop')); });
+      card.addEventListener('click', () => atsOpenCandidate(card.getAttribute('data-app')));
+    });
+    board.querySelectorAll('.ats-col').forEach(col => {
+      col.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect='move'; col.classList.add('drop'); });
+      col.addEventListener('dragleave', () => col.classList.remove('drop'));
+      col.addEventListener('drop', async e => {
+        e.preventDefault(); col.classList.remove('drop');
+        const app = e.dataTransfer.getData('text/plain'); const stage = col.getAttribute('data-stage');
+        if(!app || !stage) return;
+        try{ const API = await gcAwaitAPI(); await API.ats.moveStage(app, stage); atsRenderBoard(__atsJob); }
+        catch(err){ showToast((err && err.message) || 'Could not move candidate.'); }
+      });
+    });
+  }
+
+  function atsCloseDrawer(){ document.getElementById('atsDrawer').classList.remove('open'); document.getElementById('atsScrim').classList.remove('open'); __atsDrawerApp=null; __atsDrawerData=null; }
+  window.atsCloseDrawer = atsCloseDrawer;
+  { const s=document.getElementById('atsScrim'); if(s) s.onclick = atsCloseDrawer; }
+
+  async function atsOpenCandidate(appId){
+    const dr = document.getElementById('atsDrawer'), scrim = document.getElementById('atsScrim');
+    dr.classList.add('open'); scrim.classList.add('open');
+    dr.innerHTML = '<div class="ats-dh"><button class="close" onclick="atsCloseDrawer()">✕</button><div class="ats-empty">Loading…</div></div>';
+    let d = null;
+    try{ const API = await gcAwaitAPI(); d = await API.ats.candidate(appId); }catch(e){}
+    if(!d){ dr.innerHTML = '<div class="ats-dh"><button class="close" onclick="atsCloseDrawer()">✕</button><div class="ats-empty">Could not load candidate.</div></div>'; return; }
+    __atsDrawerApp = appId; __atsDrawerData = d;
+    atsRenderDrawer(d);
+  }
+  function atsRenderDrawer(d){
+    const dr = document.getElementById('atsDrawer');
+    const c = d.candidate || {}, app = d.application || {};
+    const stages = (__atsPipeline && __atsPipeline.stages) || [];
+    const idx = stages.findIndex(s => s.id === app.stage_id);
+    const nextStage = (idx >= 0 && idx < stages.length-1) ? stages[idx+1] : null;
+    const rejected = app.status === 'rejected';
+    const meta = [ c.exp_years ? `${c.exp_years} yrs` : '', c.work_setup || '', app.source ? ('Source: '+app.source) : '' ].filter(Boolean);
+    const screening = (d.screening||[]).map(s => `<div class="ats-sq"><div class="q">${escapeHtml(s.q||'')}${s.essential?`<span class="ats-sq"></span>`:''}${(s.meets===false)?'<span class="ko fail">knockout</span>':(s.meets===true?'<span class="ko pass">meets</span>':'')}</div><div class="a">${escapeHtml(s.a||'—')}</div></div>`).join('') || '<div class="ats-empty">No screening answers.</div>';
+    const skills = (c.skills||[]).slice(0,12).map(s => `<span class="ats-chip">${escapeHtml(s)}</span>`).join('') || '<div class="ats-empty">No skills listed.</div>';
+    const activity = (d.activities||[]).map(a => {
+      let label = a.type; if(a.type==='stage_change') label = `Moved ${a.from?escapeHtml(a.from)+' → ':''}${escapeHtml(a.to||'')}`; else if(a.type==='note') label = 'Note: '+escapeHtml(a.body||''); else if(a.type==='created') label = escapeHtml(a.body||'Added'); else if(a.type==='scorecard') label = 'Scorecard: '+escapeHtml(a.body||''); else if(a.type==='rejected') label='Rejected'+(a.body?': '+escapeHtml(a.body):''); else if(a.type==='hired') label='Hired'; else label = escapeHtml(a.body||a.type);
+      let when=a.at; try{ when=new Date(a.at).toLocaleDateString(); }catch(e){}
+      return `<div class="ev">${label}<div class="w">${escapeHtml(a.actor||'')}${a.actor?' · ':''}${when}</div></div>`;
+    }).join('') || '<div class="ats-empty">No activity yet.</div>';
+    const scorecards = (d.scorecards||[]).map(s => `<div class="ats-sq"><div class="a">${escapeHtml((s.overall||'').replace('_',' '))} — <span style="color:rgba(var(--fg-rgb),0.6)">${escapeHtml(s.interviewer||'')}</span></div>${s.summary?`<div class="q">${escapeHtml(s.summary)}</div>`:''}</div>`).join('');
+    dr.innerHTML = `
+      <div class="ats-dh"><button class="close" onclick="atsCloseDrawer()">✕</button>
+        <div class="nm">${escapeHtml(c.name || 'Candidate')}</div>
+        <div class="hl">${escapeHtml(c.headline || '')}</div>
+        <div class="meta">${meta.map(m=>`<span>${escapeHtml(m)}</span>`).join('')}${c.code?`<a href="/profile/${encodeURIComponent(c.code)}" target="_blank" style="color:var(--sage);font-weight:600;">View profile ↗</a>`:''}</div>
+        ${rejected?`<div style="margin-top:8px;font-size:12px;color:#E06055;">Rejected${app.rejected_reason?': '+escapeHtml(app.rejected_reason):''}</div>`:''}
+      </div>
+      <div class="ats-acts">
+        ${(!rejected && nextStage)?`<button class="ats-btn primary" onclick="atsAdvance()">Advance to ${escapeHtml(nextStage.name)} →</button>`:''}
+        ${!rejected?`<button class="ats-btn danger" onclick="atsReject()">Reject</button>`:`<button class="ats-btn" onclick="atsReactivate()">Reopen</button>`}
+        <button class="ats-btn" onclick="atsMessage()">Message</button>
+      </div>
+      <div class="ats-sec"><div class="lbl">Screening</div>${screening}</div>
+      <div class="ats-sec"><div class="lbl">Skills</div>${skills}</div>
+      <div class="ats-sec"><div class="lbl">Scorecards</div>
+        ${scorecards || '<div class="ats-empty" style="margin-bottom:8px;">None yet.</div>'}
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+          ${['strong_yes','yes','mixed','no','strong_no'].map(v=>`<button class="ats-btn" style="font-size:11.5px;padding:6px 9px;" onclick="atsScore('${v}')">${v.replace('_',' ')}</button>`).join('')}
+        </div>
+      </div>
+      <div class="ats-sec"><div class="lbl">Add a note</div>
+        <textarea id="atsNoteBox" class="ats-note-in" rows="2" placeholder="Leave a note for the hiring team…"></textarea>
+        <button class="ats-btn" style="margin-top:8px;" onclick="atsAddNote()">Add note</button>
+      </div>
+      <div class="ats-sec" style="border-bottom:none;"><div class="lbl">Activity</div><div class="ats-tl">${activity}</div></div>`;
+  }
+  async function atsAdvance(){
+    const stages = (__atsPipeline && __atsPipeline.stages) || []; const app = __atsDrawerData && __atsDrawerData.application;
+    if(!app) return; const idx = stages.findIndex(s=>s.id===app.stage_id);
+    if(idx<0 || idx>=stages.length-1){ showToast('Already at the final stage.'); return; }
+    try{ const API = await gcAwaitAPI(); await API.ats.moveStage(__atsDrawerApp, stages[idx+1].id); await atsOpenCandidate(__atsDrawerApp); atsRenderBoard(__atsJob); }
+    catch(e){ showToast((e&&e.message)||'Could not advance.'); }
+  }
+  async function atsReject(){
+    const reason = prompt('Reject this candidate — reason (optional, saved to the timeline):', '');
+    if(reason === null) return;
+    try{ const API = await gcAwaitAPI(); await API.ats.setStatus(__atsDrawerApp, 'rejected', reason||null); showToast('Candidate rejected.'); atsCloseDrawer(); atsRenderBoard(__atsJob); }
+    catch(e){ showToast((e&&e.message)||'Could not reject.'); }
+  }
+  async function atsReactivate(){
+    try{ const API = await gcAwaitAPI(); await API.ats.setStatus(__atsDrawerApp, 'active', null); await atsOpenCandidate(__atsDrawerApp); atsRenderBoard(__atsJob); }
+    catch(e){ showToast((e&&e.message)||'Could not reopen.'); }
+  }
+  async function atsAddNote(){
+    const box = document.getElementById('atsNoteBox'); const body = (box&&box.value||'').trim();
+    if(!body){ return; }
+    try{ const API = await gcAwaitAPI(); await API.ats.addNote(__atsDrawerApp, body); await atsOpenCandidate(__atsDrawerApp); }
+    catch(e){ showToast((e&&e.message)||'Could not add note.'); }
+  }
+  async function atsScore(verdict){
+    const app = __atsDrawerData && __atsDrawerData.application;
+    try{ const API = await gcAwaitAPI(); await API.ats.addScorecard(__atsDrawerApp, { stageId: app && app.stage_id, overall: verdict }); showToast('Scorecard saved.'); await atsOpenCandidate(__atsDrawerApp); atsRenderBoard(__atsJob); }
+    catch(e){ showToast((e&&e.message)||'Could not save scorecard.'); }
+  }
+  function atsMessage(){
+    const c = __atsDrawerData && __atsDrawerData.candidate;
+    if(c && c.id && typeof recruiterMessageFor === 'function'){ atsCloseDrawer(); recruiterMessageFor(c.id); }
+    else showToast('Messaging opens from the candidate’s profile.');
+  }
+  window.atsAdvance=atsAdvance; window.atsReject=atsReject; window.atsReactivate=atsReactivate; window.atsAddNote=atsAddNote; window.atsScore=atsScore; window.atsMessage=atsMessage; window.atsOpenCandidate=atsOpenCandidate;
   // wiring
   { const b=document.getElementById('recruitStartBtn'); if(b) b.onclick = () => showScreen('screen-recruiter-1'); }
   { const b=document.getElementById('recruitLoginBtn'); if(b) b.onclick = () => { setLoginMode(true); showScreen('screen-login-seeker'); }; }

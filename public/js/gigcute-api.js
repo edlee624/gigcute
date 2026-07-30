@@ -1331,11 +1331,52 @@ const billing = {
   },
 };
 
+// ---- ATS (Phase 1: recruiter hiring pipeline) -----------------------------
+// All calls hit is_company_member()-gated RPCs; reads return null for
+// non-members, mutations throw. Candidates are GigCute seekers.
+const ats = {
+  async jobs() {
+    const { data, error } = await requireClient().rpc('ats_jobs');
+    if (error) throw error;
+    return data || [];
+  },
+  async pipeline(postingId) {
+    const { data, error } = await requireClient().rpc('ats_pipeline', { p_posting: postingId });
+    if (error) throw error;
+    return data;
+  },
+  async moveStage(applicationId, stageId) {
+    const { data, error } = await requireClient().rpc('ats_move_stage', { p_app: applicationId, p_stage: stageId });
+    if (error) throw error;
+    return data;
+  },
+  async setStatus(applicationId, status, reason) {
+    const { data, error } = await requireClient().rpc('ats_set_status', { p_app: applicationId, p_status: status, p_reason: reason || null });
+    if (error) throw error;
+    return data;
+  },
+  async addNote(applicationId, body) {
+    const { data, error } = await requireClient().rpc('ats_add_note', { p_app: applicationId, p_body: body });
+    if (error) throw error;
+    return data;
+  },
+  async addScorecard(applicationId, { stageId = null, overall, summary = null, ratings = {} } = {}) {
+    const { data, error } = await requireClient().rpc('ats_add_scorecard', { p_app: applicationId, p_stage: stageId, p_overall: overall, p_summary: summary, p_ratings: ratings });
+    if (error) throw error;
+    return data;
+  },
+  async candidate(applicationId) {
+    const { data, error } = await requireClient().rpc('ats_candidate', { p_app: applicationId });
+    if (error) throw error;
+    return data;
+  },
+};
+
 window.GigCuteAPI = {
   enabled,
   supabase,
   prefs,
-  auth, profiles, seeker, companies, postings, interest, invites, connections, eeo, reference, reports, admin, verification, chat, support, feedback, events, jobs, tracker, notifications, limits, billing, safety,
+  auth, profiles, seeker, companies, postings, interest, invites, connections, eeo, reference, reports, admin, verification, chat, support, feedback, events, jobs, tracker, notifications, limits, billing, safety, ats,
   isFreeEmailDomain,
 };
 
