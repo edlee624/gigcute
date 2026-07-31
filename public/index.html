@@ -10290,7 +10290,7 @@
       let when=a.at; try{ when=new Date(a.at).toLocaleDateString(); }catch(e){}
       return `<div class="ev">${label}<div class="w">${escapeHtml(a.actor||'')}${a.actor?' · ':''}${when}</div></div>`;
     }).join('') || '<div class="ats-empty">No activity yet.</div>';
-    const scorecards = (d.scorecards||[]).map(s => `<div class="ats-sq"><div class="a">${escapeHtml((s.overall||'').replace('_',' '))} — <span style="color:rgba(var(--fg-rgb),0.6)">${escapeHtml(s.interviewer||'')}</span></div>${s.summary?`<div class="q">${escapeHtml(s.summary)}</div>`:''}</div>`).join('');
+    const scorecards = (d.scorecards||[]).map(s => `<div class="ats-sq"><div class="a">${escapeHtml((s.overall||'').replace('_',' '))} — <span style="color:rgba(var(--fg-rgb),0.6)">${escapeHtml(s.interviewer||'')}</span>${s.stage?` · <span style="color:rgba(var(--fg-rgb),0.5)">${escapeHtml(s.stage)}</span>`:''}</div>${s.summary?`<div class="q">${escapeHtml(s.summary)}</div>`:''}${(s.ratings && Object.keys(s.ratings).length)?`<div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap;">${Object.entries(s.ratings).map(([k,v])=>`<span class="ats-chip" style="font-size:11px;padding:2px 8px;">${escapeHtml(k)}: ${escapeHtml(String(v))}</span>`).join('')}</div>`:''}</div>`).join('');
     dr.innerHTML = `
       <div class="ats-dh"><button class="close" onclick="atsCloseDrawer()">✕</button>
         <div class="nm">${escapeHtml(c.name || 'Candidate')}</div>
