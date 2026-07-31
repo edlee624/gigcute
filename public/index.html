@@ -125,6 +125,7 @@
   .ats-acts{ display:flex; gap:8px; flex-wrap:wrap; padding:14px 22px; border-bottom:1px solid var(--line-light); }
   .ats-btn{ font-family:'Inter',sans-serif; font-size:13px; font-weight:600; border-radius:9px; padding:8px 13px; cursor:pointer; border:1px solid var(--line-light); background:var(--surface); color:var(--fg); }
   .ats-btn.primary{ background:var(--sage); border-color:var(--sage); color:var(--ink); }
+  .ats-btn.on{ border-color:var(--sage); color:var(--sage); background:rgba(61,90,76,0.14); font-weight:700; }
   .ats-btn.danger{ border-color:var(--danger); color:var(--danger); }
   .ats-sec{ padding:16px 22px; border-bottom:1px solid var(--line-2, var(--line-light)); }
   .ats-sec .lbl{ font-size:10.5px; font-family:'JetBrains Mono',monospace; text-transform:uppercase; letter-spacing:0.08em; color:rgba(var(--fg-rgb),0.45); margin-bottom:10px; }
@@ -4086,6 +4087,7 @@
     </div>
     <div class="ats-top">
       <select id="atsJobSel" class="ats-sel" aria-label="Choose a job"></select>
+      <button class="ds-nav-btn" id="atsRefreshBtn" type="button" onclick="if(window.atsRefresh)atsRefresh()" title="Refresh the board">↻</button>
       <span id="atsJobMeta" class="ats-jobmeta"></span>
     </div>
     <div id="atsBoard" class="ats-board"><div class="ats-empty">Loading…</div></div>
@@ -9757,6 +9759,8 @@
     const money = v => v ? ('$' + (v >= 1000 ? Math.round(v/1000) + 'k' : v)) : '';
     const statsArr = await Promise.all((list||[]).map(p => API.postings.stats(p.id).catch(()=>null)));
     const statsById = {}; (list||[]).forEach((p,i)=>{ statsById[p.id]=statsArr[i]; });
+    // Live pipeline counts per posting (best-effort; ATS may be empty).
+    let atsById = {}; try{ const aj = await API.ats.jobs(); (aj||[]).forEach(j => { atsById[j.id] = j; }); }catch(e){}
     const stat = (n,label) => `<span style="display:inline-flex;align-items:baseline;gap:4px;"><b style="font-family:'Fraunces',serif;font-size:15px;color:var(--fg);">${n||0}</b><span style="font-size:11px;color:var(--fg-5);">${label}</span></span>`;
     const daysLeft = p => (p.status==='active' && p.expires_at) ? Math.max(0, Math.ceil((new Date(p.expires_at).getTime()-Date.now())/86400000)) : (p.days_remaining!=null ? p.days_remaining : 14);
     const card = (p, expiredKind) => {
@@ -9771,11 +9775,13 @@
       } else if(p.status === 'active'){
         statusHtml = `<span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--sage);">active</span><span style="font-size:11px;color:var(--fg-5);">· ${daysLeft(p)}d left</span>`;
         actions = `<button class="jli-btn primary" type="button" onclick="openPostingManage('${p.id}')">Open</button>
+                   <button class="jli-btn" type="button" onclick="openATS('${p.id}')">Pipeline</button>
                    <button class="jli-btn" type="button" onclick="openPostingForm('${p.id}')">Edit</button>
                    <button class="jli-btn" type="button" onclick="pausePosting('${p.id}')">Pause</button>`;
       } else {
         statusHtml = `<span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:#e0b64a;">paused</span><span style="font-size:11px;color:var(--fg-5);">· ${daysLeft(p)}d left</span>`;
         actions = `<button class="jli-btn primary" type="button" onclick="repostPosting('${p.id}')">Publish</button>
+                   <button class="jli-btn" type="button" onclick="openATS('${p.id}')">Pipeline</button>
                    <button class="jli-btn" type="button" onclick="openPostingForm('${p.id}')">Edit</button>`;
       }
       const clickAttrs = expiredKind ? 'style="' : `onclick="openPostingManage('${p.id}')" style="cursor:pointer;`;
@@ -9783,7 +9789,7 @@
         <div style="min-width:0;">
           <div style="font-family:'Fraunces',serif;font-size:17px;font-weight:600;color:var(--fg);">${escapeHtml(p.title||'Untitled role')}</div>
           <div style="font-size:12.5px;color:rgba(var(--fg-rgb),0.72);margin-top:3px;">${escapeHtml([loc,sal].filter(Boolean).join(' · '))}</div>
-          <div style="display:flex;gap:16px;margin-top:10px;align-items:center;flex-wrap:wrap;">${stat(st.views,'viewed')}${stat(st.interested,'interested')}<span style="display:inline-flex;align-items:baseline;gap:5px;">${statusHtml}</span></div>
+          <div style="display:flex;gap:16px;margin-top:10px;align-items:center;flex-wrap:wrap;">${stat(st.views,'viewed')}${stat(st.interested,'interested')}${stat((atsById[p.id]||{}).active,'in pipeline')}<span style="display:inline-flex;align-items:baseline;gap:5px;">${statusHtml}</span></div>
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;" onclick="event.stopPropagation()">${actions}</div>
       </div>`;
@@ -10194,6 +10200,8 @@
     atsRenderBoard(pick);
   }
   window.openATS = openATS;
+  async function atsRefresh(){ if(__atsJob) await atsRenderBoard(__atsJob); }
+  window.atsRefresh = atsRefresh;
 
   async function atsRenderBoard(postingId){
     const board = document.getElementById('atsBoard');
@@ -10206,7 +10214,17 @@
     const apps = p.applications || [];
     const byStage = {};
     apps.forEach(a => { (byStage[a.stage_id] = byStage[a.stage_id] || []).push(a); });
-    document.getElementById('atsJobMeta').textContent = `${apps.length} candidate${apps.length!==1?'s':''} in pipeline`;
+    const active = apps.filter(a=>a.status==='active').length;
+    const hired = apps.filter(a=>a.status==='hired').length;
+    const interviewPlus = apps.filter(a=>{ const st=(p.stages||[]).find(x=>x.id===a.stage_id); return st && ['interview','offer','hired'].includes(st.category); }).length;
+    const status = (p.posting && p.posting.status) || '';
+    const conv = apps.length ? Math.round(interviewPlus/apps.length*100) : 0;
+    const meta = document.getElementById('atsJobMeta');
+    if(!apps.length){
+      meta.innerHTML = `No candidates yet — they land here when someone shows interest, or when you invite/source them.${status?` · <span style="text-transform:uppercase;letter-spacing:0.04em;">${escapeHtml(status)}</span>`:''}`;
+    } else {
+      meta.innerHTML = `<b style="color:var(--fg);">${apps.length}</b> in pipeline · ${active} active · ${hired} hired · ${conv}% reached interview+${status?` · <span style="text-transform:uppercase;letter-spacing:0.04em;">${escapeHtml(status)}</span>`:''}`;
+    }
     board.innerHTML = (p.stages || []).map(s => {
       const list = byStage[s.id] || [];
       const cards = list.map(atsCardHTML).join('') || '<div class="ats-empty">—</div>';
@@ -10282,15 +10300,24 @@
       </div>
       <div class="ats-acts">
         ${(!rejected && nextStage)?`<button class="ats-btn primary" onclick="atsAdvance()">Advance to ${escapeHtml(nextStage.name)} →</button>`:''}
+        ${!rejected?`<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:rgba(var(--fg-rgb),0.6);">Stage <select id="atsStageSel" class="ats-sel" style="font-size:12.5px;padding:6px 10px;" onchange="atsMoveTo(this.value)">${stages.map(s=>`<option value="${s.id}" ${s.id===app.stage_id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}</select></label>`:''}
         ${!rejected?`<button class="ats-btn danger" onclick="atsReject()">Reject</button>`:`<button class="ats-btn" onclick="atsReactivate()">Reopen</button>`}
         <button class="ats-btn" onclick="atsMessage()">Message</button>
       </div>
       <div class="ats-sec"><div class="lbl">Screening</div>${screening}</div>
       <div class="ats-sec"><div class="lbl">Skills</div>${skills}</div>
       <div class="ats-sec"><div class="lbl">Scorecards</div>
-        ${scorecards || '<div class="ats-empty" style="margin-bottom:8px;">None yet.</div>'}
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
-          ${['strong_yes','yes','mixed','no','strong_no'].map(v=>`<button class="ats-btn" style="font-size:11.5px;padding:6px 9px;" onclick="atsScore('${v}')">${v.replace('_',' ')}</button>`).join('')}
+        ${scorecards || '<div class="ats-empty" style="margin-bottom:10px;">None yet.</div>'}
+        <div id="atsScoreForm">
+          <div class="lbl" style="margin-bottom:6px;">Your rating</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">
+            ${['strong_yes','yes','mixed','no','strong_no'].map(v=>`<button type="button" class="ats-btn ats-verdict" data-v="${v}" style="font-size:11.5px;padding:6px 9px;" onclick="atsPickVerdict(this)">${v.replace('_',' ')}</button>`).join('')}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+            ${['Skills','Communication','Culture fit'].map(attr=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><span style="font-size:12.5px;color:rgba(var(--fg-rgb),0.7);">${attr}</span><span class="ats-attr" data-attr="${attr}" style="display:flex;gap:4px;">${['yes','mixed','no'].map(r=>`<button type="button" class="ats-btn ats-rate" data-r="${r}" style="font-size:11px;padding:4px 9px;" onclick="atsPickRate(this)">${r}</button>`).join('')}</span></div>`).join('')}
+          </div>
+          <textarea id="atsScoreSummary" class="ats-note-in" rows="2" placeholder="Summary — what stood out, concerns…"></textarea>
+          <button class="ats-btn primary" style="margin-top:8px;" onclick="atsSubmitScorecard()">Submit scorecard</button>
         </div>
       </div>
       <div class="ats-sec"><div class="lbl">Add a note</div>
@@ -10306,12 +10333,31 @@
     try{ const API = await gcAwaitAPI(); await API.ats.moveStage(__atsDrawerApp, stages[idx+1].id); await atsOpenCandidate(__atsDrawerApp); atsRenderBoard(__atsJob); }
     catch(e){ showToast((e&&e.message)||'Could not advance.'); }
   }
-  async function atsReject(){
-    const reason = prompt('Reject this candidate — reason (optional, saved to the timeline):', '');
-    if(reason === null) return;
-    try{ const API = await gcAwaitAPI(); await API.ats.setStatus(__atsDrawerApp, 'rejected', reason||null); showToast('Candidate rejected.'); atsCloseDrawer(); atsRenderBoard(__atsJob); }
+  function atsReject(){
+    const dr = document.getElementById('atsDrawer');
+    const existing = document.getElementById('atsRejectPanel');
+    if(existing){ existing.remove(); return; }   // toggle
+    const reasons = ['Not enough experience','Skills mismatch','Compensation misalignment','Position filled','Not responsive','Other reason'];
+    const panel = document.createElement('div');
+    panel.id = 'atsRejectPanel'; panel.className = 'ats-sec';
+    panel.style.background = 'rgba(217,56,43,0.06)';
+    panel.innerHTML = `<div class="lbl" style="color:#E06055;">Reject — pick a reason</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">${reasons.map(r=>`<button type="button" class="ats-btn" style="font-size:11.5px;padding:6px 9px;" onclick="atsDoReject('${r.replace(/'/g,"\\'")}')">${r}</button>`).join('')}</div>`;
+    const acts = dr.querySelector('.ats-acts');
+    if(acts) acts.parentNode.insertBefore(panel, acts.nextSibling);
+  }
+  async function atsDoReject(reason){
+    if(reason === 'Other reason'){ const r = prompt('Reason (optional, saved to the timeline):', ''); if(r === null) return; reason = r || 'Rejected'; }
+    try{ const API = await gcAwaitAPI(); await API.ats.setStatus(__atsDrawerApp, 'rejected', reason || null); showToast('Candidate rejected.'); atsCloseDrawer(); atsRenderBoard(__atsJob); }
     catch(e){ showToast((e&&e.message)||'Could not reject.'); }
   }
+  async function atsMoveTo(stageId){
+    if(!stageId) return;
+    try{ const API = await gcAwaitAPI(); await API.ats.moveStage(__atsDrawerApp, stageId); await atsOpenCandidate(__atsDrawerApp); atsRenderBoard(__atsJob); }
+    catch(e){ showToast((e&&e.message)||'Could not move candidate.'); }
+  }
+  function atsPickVerdict(btn){ btn.parentElement.querySelectorAll('.ats-verdict').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); }
+  function atsPickRate(btn){ btn.parentElement.querySelectorAll('.ats-rate').forEach(b=>b.classList.remove('on')); btn.classList.add('on'); }
   async function atsReactivate(){
     try{ const API = await gcAwaitAPI(); await API.ats.setStatus(__atsDrawerApp, 'active', null); await atsOpenCandidate(__atsDrawerApp); atsRenderBoard(__atsJob); }
     catch(e){ showToast((e&&e.message)||'Could not reopen.'); }
@@ -10322,9 +10368,16 @@
     try{ const API = await gcAwaitAPI(); await API.ats.addNote(__atsDrawerApp, body); await atsOpenCandidate(__atsDrawerApp); }
     catch(e){ showToast((e&&e.message)||'Could not add note.'); }
   }
-  async function atsScore(verdict){
+  async function atsSubmitScorecard(){
+    const form = document.getElementById('atsScoreForm'); if(!form) return;
+    const v = form.querySelector('.ats-verdict.on');
+    if(!v){ showToast('Pick an overall rating first.'); return; }
+    const overall = v.getAttribute('data-v');
+    const ratings = {};
+    form.querySelectorAll('.ats-attr').forEach(a => { const on = a.querySelector('.ats-rate.on'); if(on) ratings[a.getAttribute('data-attr')] = on.getAttribute('data-r'); });
+    const summary = (document.getElementById('atsScoreSummary') || {}).value || '';
     const app = __atsDrawerData && __atsDrawerData.application;
-    try{ const API = await gcAwaitAPI(); await API.ats.addScorecard(__atsDrawerApp, { stageId: app && app.stage_id, overall: verdict }); showToast('Scorecard saved.'); await atsOpenCandidate(__atsDrawerApp); atsRenderBoard(__atsJob); }
+    try{ const API = await gcAwaitAPI(); await API.ats.addScorecard(__atsDrawerApp, { stageId: app && app.stage_id, overall, summary, ratings }); showToast('Scorecard saved.'); await atsOpenCandidate(__atsDrawerApp); atsRenderBoard(__atsJob); }
     catch(e){ showToast((e&&e.message)||'Could not save scorecard.'); }
   }
   function atsMessage(){
@@ -10332,7 +10385,7 @@
     if(c && c.id && typeof recruiterMessageFor === 'function'){ atsCloseDrawer(); recruiterMessageFor(c.id); }
     else showToast('Messaging opens from the candidate’s profile.');
   }
-  window.atsAdvance=atsAdvance; window.atsReject=atsReject; window.atsReactivate=atsReactivate; window.atsAddNote=atsAddNote; window.atsScore=atsScore; window.atsMessage=atsMessage; window.atsOpenCandidate=atsOpenCandidate;
+  window.atsAdvance=atsAdvance; window.atsReject=atsReject; window.atsDoReject=atsDoReject; window.atsReactivate=atsReactivate; window.atsAddNote=atsAddNote; window.atsMoveTo=atsMoveTo; window.atsPickVerdict=atsPickVerdict; window.atsPickRate=atsPickRate; window.atsSubmitScorecard=atsSubmitScorecard; window.atsMessage=atsMessage; window.atsOpenCandidate=atsOpenCandidate;
   // wiring
   { const b=document.getElementById('recruitStartBtn'); if(b) b.onclick = () => showScreen('screen-recruiter-1'); }
   { const b=document.getElementById('recruitLoginBtn'); if(b) b.onclick = () => { setLoginMode(true); showScreen('screen-login-seeker'); }; }
