@@ -1400,6 +1400,28 @@ const ats = {
     if (error) throw error;
     return data;
   },
+
+  // ---- HR reporting (Phase 2). All company-scoped, aggregate-only. ----
+  // opts: { companyId, from, to } — from/to are ISO timestamps or null (all time).
+  async _report(fn, opts = {}, extra = {}) {
+    const { companyId = null, from = null, to = null } = opts;
+    const args = Object.assign({ p_company: companyId, p_from: from, p_to: to }, extra);
+    const { data, error } = await requireClient().rpc(fn, args);
+    if (error) throw error;
+    return data;
+  },
+  reportOverview(opts)   { return this._report('ats_report_overview', opts); },
+  reportFunnel(opts, postingId = null) { return this._report('ats_report_funnel', opts, { p_posting: postingId }); },
+  reportVelocity(opts)   { return this._report('ats_report_velocity', opts); },
+  reportSources(opts)    { return this._report('ats_report_sources', opts); },
+  reportRecruiters(opts) { return this._report('ats_report_recruiters', opts); },
+  reportJobs(opts)       { return this._report('ats_report_jobs', opts); },
+  async reportDiversity(opts = {}) {
+    const { companyId = null } = opts;
+    const { data, error } = await requireClient().rpc('ats_report_diversity', { p_company: companyId, p_min_cell: 5 });
+    if (error) throw error;
+    return data;
+  },
 };
 
 // ---- Team (org seats: admin provisions recruiters) ------------------------
