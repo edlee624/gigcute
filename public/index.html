@@ -8953,7 +8953,7 @@
         if(__dash.sort === 'match'){
           res = await loadMatchSorted(API, PAGE, reset);
         } else {
-          res = await API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, country:__dash.country, postedWithin:__dash.postedWithin, sort:__dash.sort });
+          res = await API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, metroStates:__dash.metroStates, country:__dash.country, postedWithin:__dash.postedWithin, sort:__dash.sort });
         }
       } else {
         res = filterSampleJobs(PAGE);
@@ -8980,17 +8980,20 @@
   // Metro areas ≈ 75 mi from center. Jobs store location as free text (no coords),
   // so a metro is a token list matched against job.location (OR), plus a center
   // lat/lng used only to auto-pick the nearest metro from the browser's location.
+  // Each metro carries its US state(s) so the board can anchor on the structured
+  // us_state column (migration 0084) and drop cross-state false positives
+  // ("Austin, MN" out of Austin-TX) while city tokens still target within-state.
   const METROS = {
-    nyc:     { label:'New York Metro Area', lat:40.71, lng:-74.00, tokens:['New York','Brooklyn','Queens','Bronx','Manhattan','Staten Island','Long Island','Newark','Jersey City','Hoboken','New Jersey','Stamford','White Plains','Yonkers','Westchester',' NY',' NJ',' CT'] },
-    sf:      { label:'San Francisco Bay Area', lat:37.77, lng:-122.42, tokens:['San Francisco','Oakland','Berkeley','San Jose','Palo Alto','Mountain View','Sunnyvale','Santa Clara','Menlo Park','Redwood City','South San Francisco','Bay Area','Cupertino','Fremont','Alameda'] },
-    la:      { label:'Los Angeles Metro', lat:34.05, lng:-118.24, tokens:['Los Angeles','Santa Monica','Pasadena','Long Beach','Burbank','Glendale','Culver City','Anaheim','Irvine','Torrance','El Segundo','Hollywood'] },
-    boston:  { label:'Boston Metro', lat:42.36, lng:-71.06, tokens:['Boston','Cambridge','Somerville','Waltham','Burlington','Newton','Quincy','Brookline','Watertown','Lexington','Woburn','Massachusetts',' MA'] },
-    seattle: { label:'Seattle Metro', lat:47.61, lng:-122.33, tokens:['Seattle','Bellevue','Redmond','Kirkland','Tacoma','Everett','Renton',' WA'] },
-    chicago: { label:'Chicago Metro', lat:41.88, lng:-87.63, tokens:['Chicago','Evanston','Naperville','Schaumburg','Oak Brook','Illinois',' IL'] },
-    dc:      { label:'Washington, DC Metro', lat:38.90, lng:-77.04, tokens:['Washington, D','Arlington','Alexandria','Bethesda','Rockville','McLean','Reston','Tysons','Silver Spring','Fairfax',' DC',' VA',' MD'] },
-    austin:  { label:'Austin Metro', lat:30.27, lng:-97.74, tokens:['Austin','Round Rock','Cedar Park','Georgetown','Pflugerville'] },
-    denver:  { label:'Denver Metro', lat:39.74, lng:-104.99, tokens:['Denver','Boulder','Aurora','Lakewood','Broomfield','Centennial','Colorado',' CO'] },
-    atlanta: { label:'Atlanta Metro', lat:33.75, lng:-84.39, tokens:['Atlanta','Alpharetta','Marietta','Sandy Springs','Roswell','Decatur','Georgia',' GA'] },
+    nyc:     { label:'New York Metro Area', lat:40.71, lng:-74.00, states:['NY','NJ','CT'], tokens:['New York','Brooklyn','Queens','Bronx','Manhattan','Staten Island','Long Island','Newark','Jersey City','Hoboken','New Jersey','Stamford','White Plains','Yonkers','Westchester',' NY',' NJ',' CT'] },
+    sf:      { label:'San Francisco Bay Area', lat:37.77, lng:-122.42, states:['CA'], tokens:['San Francisco','Oakland','Berkeley','San Jose','Palo Alto','Mountain View','Sunnyvale','Santa Clara','Menlo Park','Redwood City','South San Francisco','Bay Area','Cupertino','Fremont','Alameda'] },
+    la:      { label:'Los Angeles Metro', lat:34.05, lng:-118.24, states:['CA'], tokens:['Los Angeles','Santa Monica','Pasadena','Long Beach','Burbank','Glendale','Culver City','Anaheim','Irvine','Torrance','El Segundo','Hollywood'] },
+    boston:  { label:'Boston Metro', lat:42.36, lng:-71.06, states:['MA','NH'], tokens:['Boston','Cambridge','Somerville','Waltham','Burlington','Newton','Quincy','Brookline','Watertown','Lexington','Woburn','Massachusetts',' MA'] },
+    seattle: { label:'Seattle Metro', lat:47.61, lng:-122.33, states:['WA'], tokens:['Seattle','Bellevue','Redmond','Kirkland','Tacoma','Everett','Renton',' WA'] },
+    chicago: { label:'Chicago Metro', lat:41.88, lng:-87.63, states:['IL'], tokens:['Chicago','Evanston','Naperville','Schaumburg','Oak Brook','Illinois',' IL'] },
+    dc:      { label:'Washington, DC Metro', lat:38.90, lng:-77.04, states:['DC','VA','MD'], tokens:['Washington, D','Arlington','Alexandria','Bethesda','Rockville','McLean','Reston','Tysons','Silver Spring','Fairfax',' DC',' VA',' MD'] },
+    austin:  { label:'Austin Metro', lat:30.27, lng:-97.74, states:['TX'], tokens:['Austin','Round Rock','Cedar Park','Georgetown','Pflugerville'] },
+    denver:  { label:'Denver Metro', lat:39.74, lng:-104.99, states:['CO'], tokens:['Denver','Boulder','Aurora','Lakewood','Broomfield','Centennial','Colorado',' CO'] },
+    atlanta: { label:'Atlanta Metro', lat:33.75, lng:-84.39, states:['GA'], tokens:['Atlanta','Alpharetta','Marietta','Sandy Springs','Roswell','Decatur','Georgia',' GA'] },
   };
   // Country tokens matched against the free-text job location. US is handled as
   // "not any foreign token" (see FOREIGN_TOKENS) since the feed is US-dominant and
@@ -9089,21 +9092,21 @@
     const hasStructured = (__dash.employmentType && __dash.employmentType.length) || __dash.minSalary ||
       (__dash.locationTokens && __dash.locationTokens.length) || (__dash.keywordGroups && __dash.keywordGroups.length) || __dash.country || __dash.postedWithin;
     if(hasStructured){
-      return API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, country:__dash.country, postedWithin:__dash.postedWithin, sort:'newest' });
+      return API.jobs.list({ limit:PAGE, offset:__dash.offset, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, metroStates:__dash.metroStates, country:__dash.country, postedWithin:__dash.postedWithin, sort:'newest' });
     }
     if(!reset) return { jobs: [], total: __dash.total };   // match view is a single ranked page
     const kw = (typeof seekerJobKeywords === 'function') ? seekerJobKeywords() : { targetTitles:[] };
     // A typed query means "search for THIS", not "match my profile" — the ranker
     // takes titles, not free text, so hand those to the normal filtered search.
     if(__dash.q || !(kw.targetTitles || []).length){
-      return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, country:__dash.country, postedWithin:__dash.postedWithin, sort:'newest' });
+      return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, metroStates:__dash.metroStates, country:__dash.country, postedWithin:__dash.postedWithin, sort:'newest' });
     }
     let ranked = [];
     try{ ranked = await API.jobs.matchForSeeker({ titles: kw.targetTitles, skills: kw.skills, salMin: kw.salMin, remote: __dash.remote || null, limit: 50 }); }
     catch(e){ console.warn('[gigcute] match:', e && e.message); ranked = []; }
     // Resilience: if the ranker returns nothing, fall back to newest so Best match
     // still shows roles instead of an empty board.
-    if(!ranked.length){ return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, postedWithin:__dash.postedWithin, sort:'newest' }); }
+    if(!ranked.length){ return API.jobs.list({ limit:PAGE, offset:0, q:__dash.q, remote:__dash.remote || null, minSalary:__dash.minSalary || null, employmentType:__dash.employmentType, keywordGroups:__dash.keywordGroups, locationTokens:__dash.locationTokens, locationOrRemote:__dash.locationOrRemote, metroStates:__dash.metroStates, country:__dash.country, postedWithin:__dash.postedWithin, sort:'newest' }); }
     const ms = __dash.minSalary || 0, empTypes = __dash.employmentType || [], groups = __dash.keywordGroups || [];
     const locToks = (__dash.locationTokens || []).map(t => t.toLowerCase());
     ranked = ranked.filter(j => {
@@ -9150,6 +9153,10 @@
     if(locText) tokens.push(locText);
     __dash.locationTokens = tokens;
     __dash.locationOrRemote = tokens.length > 0;
+    // A metro also anchors on the structured us_state column, so city tokens can't
+    // pull in a same-named city from another state. (Free-text city input can't be
+    // state-anchored, so it keeps token-only matching.)
+    __dash.metroStates = (metroVal && metroVal !== '__remote' && METROS[metroVal]) ? (METROS[metroVal].states || null) : null;
     // Work setup is multi-select: only filter to remote when Remote is chosen and
     // no on-site setup (Hybrid / In-office) is also chosen. "Remote only" forces it.
     const setupVals = [...document.querySelectorAll('#advFilterPanel .adv-chip[data-filter="setup"].active')].map(c => c.dataset.value);
@@ -9725,6 +9732,10 @@
   async function goRecruiterAfterAuth(){
     const API = await gcAwaitAPI();
     if(!API || !API.enabled){ showScreen('screen-recruiter-company'); return; }
+    // Must be signed in — a deep-link to /hiring while logged out used to land on
+    // company setup and then crash on save (no session). Send them to login instead.
+    let user = null; try{ user = await API.auth.currentUser(); }catch(e){}
+    if(!user){ if(typeof setLoginMode === 'function') setLoginMode(true); showScreen('screen-login-seeker'); return; }
     // Accept any pending team invites first (turns them into memberships).
     try{ if(API.team && API.team.claimInvites) await API.team.claimInvites(); }catch(e){}
     let co = null; try{ co = await API.companies.myStatus(); }catch(e){}

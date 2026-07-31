@@ -293,6 +293,7 @@ const companies = {
   async create(company) {
     const c = requireClient();
     const { data: u } = await c.auth.getUser();
+    if (!u || !u.user) throw new Error('Your session has expired — please log in again.');
     const { data, error } = await c.from('companies')
       .insert({ ...company, owner_id: u.user.id }).select().single();
     if (error) throw error;
@@ -1070,7 +1071,7 @@ function parseSearch(q) {
 const jobs = {
   // List active jobs, newest first, with optional text search + remote filter.
   // Returns { jobs:[...], total }. total is the full match count (for paging).
-  async list({ limit = 20, offset = 0, q = '', remote = null, minSalary = null, employmentType = null, location = null, keywords = null, keywordGroups = null, locationTokens = null, locationOrRemote = false, country = null, postedWithin = null, sort = 'newest' } = {}) {
+  async list({ limit = 20, offset = 0, q = '', remote = null, minSalary = null, employmentType = null, location = null, keywords = null, keywordGroups = null, locationTokens = null, locationOrRemote = false, metroStates = null, country = null, postedWithin = null, sort = 'newest' } = {}) {
     const clean = s => String(s || '').replace(/[(),%]/g, ' ').trim();
     let query = requireClient()
       .from('jobs')
@@ -1149,6 +1150,14 @@ const jobs = {
       const ors = locToks.map(t => `location.ilike.%${t}%`);
       if (locationOrRemote) ors.push('remote.eq.true');
       query = query.or(ors.join(','));
+    }
+    // Metro state anchor: on top of the city-token match above (AND'd), require the
+    // structured us_state to be one of the metro's states — or unknown, or remote —
+    // so "Austin, MN" can't sneak into the Austin-TX metro. Only applied for metro
+    // presets (which carry states); free-text city input has no state to anchor on.
+    const mStates = (metroStates || []).map(s => String(s).toUpperCase().replace(/[^A-Z]/g, '')).filter(Boolean);
+    if (mStates.length) {
+      query = query.or(`us_state.in.(${mStates.join(',')}),us_state.is.null,remote.eq.true`);
     }
     // keyword GROUPS (e.g. departments, seniority): OR within a group, AND across
     // groups. Falls back to treating a flat `keywords` array as one AND'd group.
