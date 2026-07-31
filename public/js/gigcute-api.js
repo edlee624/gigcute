@@ -1378,11 +1378,47 @@ const ats = {
   },
 };
 
+// ---- Team (org seats: admin provisions recruiters) ------------------------
+// company_team is member-readable; the mutations are is_company_admin-gated.
+const team = {
+  async get(companyId) {
+    const { data, error } = await requireClient().rpc('company_team', { p_company: companyId || null });
+    if (error) throw error;
+    return data;
+  },
+  async invite(companyId, email, role) {
+    const { data, error } = await requireClient().rpc('company_invite_member', { p_company: companyId, p_email: email, p_role: role || 'recruiter' });
+    if (error) throw error;
+    return data;
+  },
+  async setRole(companyId, profileId, role) {
+    const { data, error } = await requireClient().rpc('company_set_role', { p_company: companyId, p_profile: profileId, p_role: role });
+    if (error) throw error;
+    return data;
+  },
+  async remove(companyId, profileId) {
+    const { data, error } = await requireClient().rpc('company_remove_member', { p_company: companyId, p_profile: profileId });
+    if (error) throw error;
+    return data;
+  },
+  async revokeInvite(inviteId) {
+    const { data, error } = await requireClient().rpc('company_revoke_invite', { p_invite: inviteId });
+    if (error) throw error;
+    return data;
+  },
+  // Accept any pending invites for the signed-in user's email (call on login).
+  async claimInvites() {
+    const { data, error } = await requireClient().rpc('company_claim_invites');
+    if (error) throw error;
+    return data;
+  },
+};
+
 window.GigCuteAPI = {
   enabled,
   supabase,
   prefs,
-  auth, profiles, seeker, companies, postings, interest, invites, connections, eeo, reference, reports, admin, verification, chat, support, feedback, events, jobs, tracker, notifications, limits, billing, safety, ats,
+  auth, profiles, seeker, companies, postings, interest, invites, connections, eeo, reference, reports, admin, verification, chat, support, feedback, events, jobs, tracker, notifications, limits, billing, safety, ats, team,
   isFreeEmailDomain,
 };
 
