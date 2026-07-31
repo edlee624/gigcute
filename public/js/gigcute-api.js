@@ -1085,10 +1085,16 @@ const jobs = {
     // right call — we can't claim an undated job is recent.
     const days = parseInt(postedWithin, 10);
     if (days > 0) query = query.gte('posted_at', new Date(Date.now() - days * 86400000).toISOString());
-    // Country filter over free-text location. 'include' = matches any country token;
-    // 'exclude' (used for United States, a US-dominant feed) = contains NO foreign
-    // token, so "New York, NY" / "Austin, TX" / "United States" all count as US.
-    if (country && country.tokens && country.tokens.length) {
+    // Country filter. Preferred path: the structured `country` column (ISO2),
+    // derived from the free-text location by parse_country() (migration 0083) — far
+    // more accurate than token matching. For the US we also surface remote roles
+    // whose country couldn't be parsed (generic "Remote" postings). Legacy token
+    // path ({mode,tokens}) kept for callers that still pass it.
+    if (country && country.code) {
+      const c = String(country.code).toUpperCase();
+      if (c === 'US') query = query.or('country.eq.US,and(country.is.null,remote.eq.true)');
+      else query = query.eq('country', c);
+    } else if (country && country.tokens && country.tokens.length) {
       const toks = country.tokens.map(clean).filter(Boolean);
       if (country.mode === 'exclude') query = query.or('location.is.null,and(' + toks.map(t => `location.not.ilike.%${t}%`).join(',') + ')');
       else query = query.or(toks.map(t => `location.ilike.%${t}%`).join(','));

@@ -4815,21 +4815,21 @@
                   </select>
                   <input type="text" id="jobLocationInput" aria-label="Filter by city or state" placeholder="Or a city / state — e.g. Austin, TX">
                   <select id="jobCountry" aria-label="Filter by country" class="loc-dist" style="width:auto;min-width:160px;">
+                    <option value="us" selected>United States</option>
                     <option value="">Any country</option>
-                    <option value="us">United States</option>
+                    <option value="gb">United Kingdom</option>
                     <option value="ca">Canada</option>
-                    <option value="uk">United Kingdom</option>
                     <option value="in">India</option>
                     <option value="de">Germany</option>
-                    <option value="sg">Singapore</option>
-                    <option value="es">Spain</option>
                     <option value="fr">France</option>
+                    <option value="au">Australia</option>
+                    <option value="es">Spain</option>
                     <option value="nl">Netherlands</option>
                     <option value="ie">Ireland</option>
                     <option value="pl">Poland</option>
-                    <option value="au">Australia</option>
                     <option value="br">Brazil</option>
                     <option value="mx">Mexico</option>
+                    <option value="sg">Singapore</option>
                     <option value="jp">Japan</option>
                     <option value="ph">Philippines</option>
                     <option value="pt">Portugal</option>
@@ -8736,7 +8736,7 @@
   // Renders the real ingested jobs inside the /search candidate-dashboard shell
   // (sidebar + rich search/filter chrome), un-gated. Recruiter/matching-only bits
   // (Top matches, invites, department/experience/equity/distance filters) are hidden.
-  let __dash = { q:'', remote:false, minSalary:null, employmentType:null, location:'', keywords:[], postedWithin:null, sort:'newest', offset:0, total:0, items:[], loading:false };
+  let __dash = { q:'', remote:false, minSalary:null, employmentType:null, location:'', keywords:[], country:{ code:'US' }, postedWithin:null, sort:'newest', offset:0, total:0, items:[], loading:false };
   let __dashTimer = null;
   function mapEmpType(v){ return v==='Full-time'?'full_time':v==='Contract'?'contract':v==='Part-time'?'part_time':null; }
   function deptMap(v){ return ({Engineering:'engineer',Product:'product',Design:'design',Data:'data',Marketing:'marketing',Finance:'financ',Legal:'legal',People:'people'})[v] || String(v).toLowerCase(); }
@@ -8985,14 +8985,32 @@
     pt: ['portugal','lisbon','lisboa','porto'],
   };
   const FOREIGN_TOKENS = [...new Set(Object.values(COUNTRY_TOKENS).flat())];
+  // Map the country <select> value to a structured filter for the API, which now
+  // filters on the parse_country()-derived `country` column (ISO2). Falls back to
+  // nothing for "Any country".
   function dashCountry(code){
-    if(code === 'us') return { mode:'exclude', tokens: FOREIGN_TOKENS };
-    if(code && COUNTRY_TOKENS[code]) return { mode:'include', tokens: COUNTRY_TOKENS[code] };
+    if(code) return { code: String(code).toUpperCase() };
     return null;
   }
-  function countryMatch(loc, country){
+  // Client-side re-filter of already-fetched rows. Structured path uses the job's
+  // `country` column; the legacy token path ({mode,tokens}) is kept for the seeker
+  // desires matcher, which still passes a location string + a token country.
+  function countryMatch(jobOrLoc, country){
     if(!country) return true;
-    const s = String(loc || '').toLowerCase();
+    if(country.code){
+      // Live rows are objects carrying the structured `country` column.
+      if(jobOrLoc && typeof jobOrLoc === 'object'){
+        const jc = jobOrLoc.country || null;
+        if(country.code === 'US') return jc === 'US' || (!jc && !!jobOrLoc.remote);
+        return jc === country.code;
+      }
+      // Only a location string (e.g. SAMPLE_JOBS demo data) — token heuristic.
+      const s = String(jobOrLoc || '').toLowerCase();
+      if(country.code === 'US') return !FOREIGN_TOKENS.some(t => s.includes(t));
+      const toks = COUNTRY_TOKENS[country.code.toLowerCase()] || [];
+      return toks.some(t => s.includes(t));
+    }
+    const s = String((jobOrLoc && jobOrLoc.location) || jobOrLoc || '').toLowerCase();
     return country.mode === 'exclude' ? !country.tokens.some(t => s.includes(t)) : country.tokens.some(t => s.includes(t));
   }
   function nearestMetro(lat, lng){
@@ -9566,7 +9584,7 @@
     renderDashboard();          // hydrate the sidebar (async; sidebar only)
     hideDashRecruiterBits();
     wireDashControls();
-    __dash = { q:'', remote:false, minSalary:null, employmentType:[], keywordGroups:[], locationTokens:[], locationOrRemote:false, country:null, postedWithin:null, sort:'newest', offset:0, total:0, items:[], loading:false };
+    __dash = { q:'', remote:false, minSalary:null, employmentType:[], keywordGroups:[], locationTokens:[], locationOrRemote:false, country:{ code:'US' }, postedWithin:null, sort:'newest', offset:0, total:0, items:[], loading:false };
     await loadSavedSet();     // so cards show the correct Save state
     loadPostingSets();        // client-side saved/dismissed state for direct postings
     // Which direct postings the seeker already showed interest in → "Interest Shown".

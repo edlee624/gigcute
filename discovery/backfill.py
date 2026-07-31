@@ -175,7 +175,8 @@ def _loc(d):
     if isinstance(d, dict):
         for k in ("fullLocation", "name", "label"):
             if d.get(k): return d[k]
-        parts = [d.get("city"), d.get("region") or d.get("state"), d.get("country") or d.get("countryCode")]
+        parts = [d.get("city"), d.get("region") or d.get("state") or d.get("province"),
+                 d.get("country") or d.get("countryCode")]
         return ", ".join(x for x in parts if x) or None
     return None
 
@@ -282,7 +283,9 @@ def bamboohr(slug, name):
         if not recent(posted): continue
         d = htmltext(jo.get("description")); a, b = salary(d)
         url = jo.get("jobOpeningShareUrl") or f"https://{slug}.bamboohr.com/careers/{jid}"
-        loc = j.get("atsLocation") or _loc(jo.get("location") or j.get("location"))
+        # atsLocation can be a dict ({country,state,province,city}, often all-null) —
+        # flatten via _loc so an empty dict falls through instead of being str()'d.
+        loc = _loc(j.get("atsLocation")) or _loc(jo.get("location") or j.get("location"))
         dep = j.get("departmentLabel") or jo.get("departmentLabel")
         out.append(row(source="bamboohr", external_id=f"bamboo:{slug}:{jid}", title=jo.get("jobOpeningName") or j.get("jobOpeningName") or "Untitled",
             company=name or slug, location=loc,
