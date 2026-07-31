@@ -10394,6 +10394,9 @@
     let d = null;
     try{ const API = await gcAwaitAPI(); d = await API.ats.candidate(appId); }catch(e){}
     if(!d){ dr.innerHTML = '<div class="ats-dh"><button class="close" onclick="atsCloseDrawer()">✕</button><div class="ats-empty">Could not load candidate.</div></div>'; return; }
+    // Interviews + team (for the interviewer picker) — best-effort alongside.
+    try{ const API = await gcAwaitAPI(); d._interviews = await API.ats.interviews(appId); }catch(e){ d._interviews = []; }
+    if(__atsCan.schedule){ try{ const API = await gcAwaitAPI(); const t = await API.team.get(); d._team = (t && t.members) || []; }catch(e){ d._team = []; } }
     __atsDrawerApp = appId; __atsDrawerData = d;
     atsRenderDrawer(d);
   }
@@ -10405,6 +10408,22 @@
     const nextStage = (idx >= 0 && idx < stages.length-1) ? stages[idx+1] : null;
     const rejected = app.status === 'rejected';
     const canManage = !!(__atsCan && __atsCan.manage_pipeline);   // gate move/reject; scorecards+notes stay open to all
+    const canSchedule = !!(__atsCan && __atsCan.schedule);
+    const ivs = (d._interviews||[]).map(iv => {
+      let when = iv.scheduled_at; try{ when = new Date(iv.scheduled_at).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(e){}
+      return `<div class="ats-sq"><div class="a">${escapeHtml(when)} · ${iv.duration_min||45}m${iv.interviewer?` · ${escapeHtml(iv.interviewer)}`:''}${iv.stage?` · <span style="color:rgba(var(--fg-rgb),0.5)">${escapeHtml(iv.stage)}</span>`:''}</div>${iv.location?`<div class="q">${escapeHtml(iv.location)}</div>`:''}${iv.notes?`<div class="q">${escapeHtml(iv.notes)}</div>`:''}${canSchedule?`<button class="ats-btn" style="font-size:11px;padding:4px 9px;margin-top:6px;" onclick="atsCancelInterview('${iv.id}')">Cancel</button>`:''}</div>`;
+    }).join('') || '<div class="ats-empty" style="margin-bottom:8px;">None scheduled.</div>';
+    const teamOpts = (d._team||[]).map(m => `<option value="${m.profile_id}">${escapeHtml(m.name||m.email||'Member')}</option>`).join('');
+    const scheduleForm = canSchedule ? `<div id="atsIvForm" style="display:grid;gap:8px;margin-top:10px;">
+        <input type="datetime-local" id="ivWhen" class="ats-note-in">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <select id="ivDur" class="ats-sel" style="font-size:12.5px;padding:8px 10px;"><option value="30">30 min</option><option value="45" selected>45 min</option><option value="60">60 min</option><option value="90">90 min</option></select>
+          <select id="ivInterviewer" class="ats-sel" style="font-size:12.5px;padding:8px 10px;flex:1;min-width:150px;"><option value="">Interviewer…</option>${teamOpts}</select>
+        </div>
+        <input id="ivLocation" class="ats-note-in" placeholder="Location or video link">
+        <input id="ivNotes" class="ats-note-in" placeholder="Notes for the interviewer (optional)">
+        <button class="ats-btn primary" onclick="atsScheduleInterview()">Schedule interview</button>
+      </div>` : '';
     const meta = [ c.exp_years ? `${c.exp_years} yrs` : '', c.work_setup || '', app.source ? ('Source: '+app.source) : '' ].filter(Boolean);
     const screening = (d.screening||[]).map(s => `<div class="ats-sq"><div class="q">${escapeHtml(s.q||'')}${s.essential?`<span class="ats-sq"></span>`:''}${(s.meets===false)?'<span class="ko fail">knockout</span>':(s.meets===true?'<span class="ko pass">meets</span>':'')}</div><div class="a">${escapeHtml(s.a||'—')}</div></div>`).join('') || '<div class="ats-empty">No screening answers.</div>';
     const skills = (c.skills||[]).slice(0,12).map(s => `<span class="ats-chip">${escapeHtml(s)}</span>`).join('') || '<div class="ats-empty">No skills listed.</div>';
@@ -10427,6 +10446,7 @@
         ${canManage ? (!rejected?`<button class="ats-btn danger" onclick="atsReject()">Reject</button>`:`<button class="ats-btn" onclick="atsReactivate()">Reopen</button>`) : ''}
         <button class="ats-btn" onclick="atsMessage()">Message</button>
       </div>
+      <div class="ats-sec"><div class="lbl">Interviews</div>${ivs}${scheduleForm}</div>
       <div class="ats-sec"><div class="lbl">Screening</div>${screening}</div>
       <div class="ats-sec"><div class="lbl">Skills</div>${skills}</div>
       <div class="ats-sec"><div class="lbl">Scorecards</div>
@@ -10508,7 +10528,20 @@
     if(c && c.id && typeof recruiterMessageFor === 'function'){ atsCloseDrawer(); recruiterMessageFor(c.id); }
     else showToast('Messaging opens from the candidate’s profile.');
   }
-  window.atsAdvance=atsAdvance; window.atsReject=atsReject; window.atsDoReject=atsDoReject; window.atsReactivate=atsReactivate; window.atsAddNote=atsAddNote; window.atsMoveTo=atsMoveTo; window.atsPickVerdict=atsPickVerdict; window.atsPickRate=atsPickRate; window.atsSubmitScorecard=atsSubmitScorecard; window.atsMessage=atsMessage; window.atsOpenCandidate=atsOpenCandidate;
+  async function atsScheduleInterview(){
+    const whenEl = document.getElementById('ivWhen'); const raw = whenEl && whenEl.value;
+    if(!raw){ showToast('Pick a date and time.'); return; }
+    let iso; try{ iso = new Date(raw).toISOString(); }catch(e){ showToast('Invalid date.'); return; }
+    const dur = parseInt((document.getElementById('ivDur')||{}).value||'45',10);
+    const interviewer = (document.getElementById('ivInterviewer')||{}).value || null;
+    const loc = (document.getElementById('ivLocation')||{}).value || null;
+    const notes = (document.getElementById('ivNotes')||{}).value || null;
+    const app = __atsDrawerData && __atsDrawerData.application;
+    try{ const API = await gcAwaitAPI(); await API.ats.scheduleInterview(__atsDrawerApp, { stageId: app && app.stage_id, when: iso, duration: dur, interviewerId: interviewer, location: loc, notes }); showToast('Interview scheduled.'); await atsOpenCandidate(__atsDrawerApp); }
+    catch(e){ showToast((e&&e.message)||'Could not schedule interview.'); }
+  }
+  async function atsCancelInterview(id){ if(!confirm('Cancel this interview?')) return; try{ const API=await gcAwaitAPI(); await API.ats.cancelInterview(id); showToast('Interview canceled.'); await atsOpenCandidate(__atsDrawerApp); }catch(e){ showToast((e&&e.message)||'Could not cancel.'); } }
+  window.atsAdvance=atsAdvance; window.atsReject=atsReject; window.atsDoReject=atsDoReject; window.atsReactivate=atsReactivate; window.atsAddNote=atsAddNote; window.atsMoveTo=atsMoveTo; window.atsPickVerdict=atsPickVerdict; window.atsPickRate=atsPickRate; window.atsSubmitScorecard=atsSubmitScorecard; window.atsMessage=atsMessage; window.atsOpenCandidate=atsOpenCandidate; window.atsScheduleInterview=atsScheduleInterview; window.atsCancelInterview=atsCancelInterview;
   // wiring
   { const b=document.getElementById('recruitStartBtn'); if(b) b.onclick = () => showScreen('screen-recruiter-1'); }
   { const b=document.getElementById('recruitLoginBtn'); if(b) b.onclick = () => { setLoginMode(true); showScreen('screen-login-seeker'); }; }

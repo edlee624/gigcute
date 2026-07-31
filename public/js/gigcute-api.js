@@ -1376,6 +1376,21 @@ const ats = {
     if (error) throw error;
     return data;
   },
+  async interviews(applicationId) {
+    const { data, error } = await requireClient().rpc('ats_interviews', { p_app: applicationId });
+    if (error) throw error;
+    return data || [];
+  },
+  async scheduleInterview(applicationId, { stageId = null, when, duration = 45, interviewerId = null, location = null, notes = null } = {}) {
+    const { data, error } = await requireClient().rpc('ats_schedule_interview', { p_app: applicationId, p_stage: stageId, p_when: when, p_duration: duration, p_interviewer: interviewerId, p_location: location, p_notes: notes });
+    if (error) throw error;
+    return data;
+  },
+  async cancelInterview(interviewId) {
+    const { data, error } = await requireClient().rpc('ats_cancel_interview', { p_id: interviewId });
+    if (error) throw error;
+    return data;
+  },
 };
 
 // ---- Team (org seats: admin provisions recruiters) ------------------------
