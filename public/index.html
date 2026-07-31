@@ -4169,6 +4169,7 @@
           <option value="90" selected>Last 90 days</option>
           <option value="365">Last 12 months</option>
         </select>
+        <button class="ds-nav-btn" id="repExportAll" type="button" onclick="if(window.repExport)repExport('all')" title="Download the whole report as CSV" disabled style="opacity:0.45;pointer-events:none;">⬇ Export CSV</button>
         <button class="ds-nav-btn" type="button" onclick="if(window.loadReports)loadReports()" title="Refresh">↻</button>
       </div>
     </div>
@@ -7193,7 +7194,13 @@
     });
   }
   // ---- CSV export helper: rows = array of arrays (first row = header) ----
-  function csvCell(v){ v = (v==null?'':String(v)); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; }
+  // Values can carry user-supplied text (job titles, candidate names), so neutralize
+  // spreadsheet formula injection — without mangling real numbers like -12.5.
+  function csvCell(v){
+    v = (v==null?'':String(v));
+    if(/^[=+@\t\r]/.test(v) || (/^-/.test(v) && !/^-?\d/.test(v))) v = "'" + v;
+    return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v;
+  }
   function downloadCSV(filename, rows){
     const csv = rows.map(r => r.map(csvCell).join(',')).join('\r\n');
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -10423,8 +10430,11 @@
       <div style="font-family:'Fraunces',serif;font-size:26px;font-weight:600;line-height:1;">${repNum(value)}</div>
       ${sub?`<div style="font-size:11.5px;color:rgba(var(--fg-rgb),0.45);margin-top:5px;">${sub}</div>`:''}</div>`;
   }
-  function repSection(title, inner){
-    return `<div style="margin-top:22px;"><div style="font-weight:600;font-size:15px;margin-bottom:10px;font-family:'Fraunces',serif;">${title}</div>${inner}</div>`;
+  function repSection(title, inner, key){
+    const btn = key ? `<button class="ds-nav-btn" type="button" onclick="repExport('${key}')" style="font-size:11px;padding:4px 10px;flex:none;" title="Download as CSV">⬇ CSV</button>` : '';
+    return `<div style="margin-top:22px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;">
+        <div style="font-weight:600;font-size:15px;font-family:'Fraunces',serif;">${title}</div>${btn}</div>${inner}</div>`;
   }
   function repFunnelHtml(rows){
     if(!rows || !rows.length) return '<div class="ats-empty" style="padding:20px;">No candidates in this window yet.</div>';
@@ -10448,8 +10458,86 @@
     const body = rows.map(cells => `<tr>${cells.map((c,i)=>`<td style="text-align:${i?'right':'left'};font-size:13px;padding:9px 10px;border-top:1px solid var(--line-light);${i?'':'font-weight:600;'}">${c}</td>`).join('')}</tr>`).join('');
     return `<div style="background:var(--surface);border:1px solid var(--line-light);border-radius:14px;padding:6px 10px;overflow-x:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
   }
+  // ---- CSV export: builds rows from whatever the dashboard last loaded -------
+  let __repData = null;
+  const REP_SRC_LABEL = { applied:'Applied', sourced:'Sourced', referral:'Referral', import:'Imported' };
+  const REP_ROLE_LABEL = { admin:'Admin', recruiter:'Recruiter', coordinator:'Coordinator', interviewer:'Interviewer', hiring_manager:'Hiring manager' };
+  const REP_STATUS_LABEL = { active:'Open', closed:'Closed', draft:'Draft', paused:'Paused', filled:'Filled' };
+  function repRangeLabel(){
+    const d = __repData && __repData.days;
+    return !d ? 'all-time' : ('last-' + d + 'd');
+  }
+  // Each builder returns [title, rows] with rows[0] = header.
+  function repBuild(kind){
+    const d = __repData; if(!d) return null;
+    const ov = d.ov||{}, ve = d.ve||{}, tth = ve.time_to_hire||{};
+    switch(kind){
+      case 'overview': return ['Overview', [
+        ['Metric','Value'],
+        ['Open requisitions', ov.open_reqs], ['Total requisitions', ov.total_reqs],
+        ['Active candidates', ov.active_candidates], ['Total candidates (all time)', ov.total_candidates],
+        ['New candidates (window)', ov.new_candidates],
+        ['Hires (window)', ov.hires], ['Rejections (window)', ov.rejects],
+        ['Hired (all time)', ov.hired_total], ['Rejected (all time)', ov.rejected_total],
+        ['Avg time to hire (days)', ov.avg_time_to_hire_days],
+        ['Fastest hire (days)', tth.fastest_days], ['Slowest hire (days)', tth.slowest_days],
+        ['Interviews scheduled (window)', ov.interviews_scheduled], ['Interviews upcoming', ov.interviews_upcoming],
+        ['Team size', ov.team_size],
+      ]];
+      case 'funnel': return ['Pipeline funnel', [
+        ['Stage','Candidates reached','% of top of funnel','% of previous stage'],
+        ...(d.fn||[]).map(r => [r.label, r.count, r.pct_of_top, r.pct_of_prev])]];
+      case 'jobs': return ['Requisitions', [
+        ['Job','Department','Status','Candidates','Active','Reached interview','Hired','Days open'],
+        ...(d.jobs||[]).map(j => [j.title||'', j.department||'', REP_STATUS_LABEL[j.status]||j.status, j.candidates, j.active, j.reached_interview, j.hired, j.days_open])]];
+      case 'sources': return ['Candidate sources', [
+        ['Source','Total','Active','Hired','Rejected','Hire rate %'],
+        ...(d.src||[]).map(s => [REP_SRC_LABEL[s.source]||s.source, s.total, s.active, s.hired, s.rejected, s.hire_rate])]];
+      case 'dwell': return ['Average days in stage', [
+        ['Stage','Avg days','Candidates'],
+        ...((ve.stage_dwell)||[]).map(x => [x.label, x.avg_days, x.n])]];
+      case 'recruiters': return ['Team activity', [
+        ['Member','Role','Stage moves','Notes','Scorecards','Interviews','Hires'],
+        ...(d.rec||[]).map(r => [r.name, REP_ROLE_LABEL[r.role]||r.role, r.moves, r.notes, r.scorecards, r.interviews, r.hires])]];
+      case 'diversity': {
+        const cats = (d.div && d.div.categories) || {};
+        const CATL = { gender:'Gender', ethnicity:'Ethnicity', veteran:'Veteran status', disability:'Disability' };
+        const rows = [['Category','Response','Count']];
+        Object.keys(cats).forEach(c => (cats[c]||[]).forEach(x => rows.push([CATL[c]||c, x.value, x.n])));
+        return ['Diversity (aggregate, small cells suppressed)', rows];
+      }
+      default: return null;
+    }
+  }
+  function repExport(kind){
+    if(!__repData){ showToast('Nothing to export yet.'); return; }
+    const stamp = new Date().toISOString().slice(0,10);
+    if(kind === 'all'){
+      const order = ['overview','funnel','jobs','sources','dwell','recruiters','diversity'];
+      const rows = [['GigCute hiring report'], ['Generated', stamp], ['Period', __repData.days ? ('last ' + __repData.days + ' days') : 'all time'], []];
+      order.forEach(k => {
+        const built = repBuild(k);
+        if(!built || built[1].length <= 1) return;
+        rows.push([built[0]]); built[1].forEach(r => rows.push(r)); rows.push([]);
+      });
+      downloadCSV(`gigcute-hiring-report-${repRangeLabel()}-${stamp}.csv`, rows);
+      showToast('Report exported.');
+      return;
+    }
+    const built = repBuild(kind);
+    if(!built || built[1].length <= 1){ showToast('Nothing to export in this section.'); return; }
+    downloadCSV(`gigcute-${kind}-${repRangeLabel()}-${stamp}.csv`, built[1]);
+    showToast('Exported.');
+  }
+  window.repExport = repExport;
+
+  function repSetExportEnabled(on){
+    const b = document.getElementById('repExportAll');
+    if(b){ b.disabled = !on; b.style.opacity = on ? '' : '0.45'; b.style.pointerEvents = on ? '' : 'none'; }
+  }
   async function loadReports(){
     const body = document.getElementById('repBody');
+    __repData = null; repSetExportEnabled(false);
     body.innerHTML = '<div class="ats-empty">Loading…</div>';
     let API; try{ API = await gcAwaitAPI(); }catch(e){ body.innerHTML='<div class="ats-empty">Could not load reports.</div>'; return; }
     const w = repWindow();
@@ -10461,7 +10549,9 @@
       ]);
     }catch(e){ body.innerHTML = '<div class="ats-empty">Could not load reports. '+escapeHtml((e&&e.message)||'')+'</div>'; return; }
     try{ div = await API.ats.reportDiversity(w); }catch(e){ div = null; }
-    if(!ov || !ov.company_id){ body.innerHTML = '<div class="ats-empty">No company is linked to your account yet — post a job to start tracking your pipeline.</div>'; return; }
+    if(!ov || !ov.company_id){ __repData = null; repSetExportEnabled(false); body.innerHTML = '<div class="ats-empty">No company is linked to your account yet — post a job to start tracking your pipeline.</div>'; return; }
+    __repData = { ov, fn, ve, src, rec, jobs, div, days: parseInt((document.getElementById('repRange')||{}).value || '0', 10) };
+    repSetExportEnabled(true);
 
     const tth = (ve && ve.time_to_hire) || {};
     const kpis = repCard('Open reqs', ov.open_reqs, `${repNum(ov.total_reqs)} total`)
@@ -10479,7 +10569,7 @@
     let dwellHtml = '';
     const dwell = (ve && ve.stage_dwell) || [];
     if(dwell.length){ dwellHtml = repSection('Average days in each stage',
-      repTable(['Stage','Avg days','Candidates'], dwell.map(d=>[escapeHtml(d.label), repNum(d.avg_days), d.n]))); }
+      repTable(['Stage','Avg days','Candidates'], dwell.map(d=>[escapeHtml(d.label), repNum(d.avg_days), d.n])), 'dwell'); }
 
     let divHtml = '';
     if(div && div.categories && Object.keys(div.categories).length){
@@ -10488,7 +10578,10 @@
         const rows = (div.categories[cat]||[]).map(x=>[escapeHtml(x.value), x.n]);
         return `<div style="flex:1 1 240px;min-width:220px;">${repSection(CATL[cat]||cat, repTable(['Response','Count'], rows))}</div>`;
       }).join('');
-      divHtml = `<div style="margin-top:22px;"><div style="font-weight:600;font-size:15px;margin-bottom:2px;font-family:'Fraunces',serif;">Diversity (voluntary EEO)</div>
+      divHtml = `<div style="margin-top:22px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div style="font-weight:600;font-size:15px;margin-bottom:2px;font-family:'Fraunces',serif;">Diversity (voluntary EEO)</div>
+          <button class="ds-nav-btn" type="button" onclick="repExport('diversity')" style="font-size:11px;padding:4px 10px;flex:none;" title="Download as CSV">⬇ CSV</button></div>
         <div style="font-size:11.5px;color:rgba(var(--fg-rgb),0.45);margin-bottom:8px;">Aggregate only — cells under ${div.min_cell} are suppressed to protect anonymity. Never linked to individual candidates or screening.</div>
         <div style="display:flex;gap:18px;flex-wrap:wrap;">${blocks}</div></div>`;
     } else if (div && div.categories) {
@@ -10498,11 +10591,11 @@
 
     body.innerHTML =
       `<div style="display:flex;gap:12px;flex-wrap:wrap;">${kpis}</div>`
-      + repSection('Pipeline funnel — candidates reaching each stage', repFunnelHtml(fn))
-      + repSection('Requisitions', repTable(['Job','Status','Candidates','Active','Reached interview','Hired','Days open'], jobRows))
-      + repSection('Candidate sources', repTable(['Source','Total','Active','Hired','Hire rate'], srcRows))
+      + repSection('Pipeline funnel — candidates reaching each stage', repFunnelHtml(fn), 'funnel')
+      + repSection('Requisitions', repTable(['Job','Status','Candidates','Active','Reached interview','Hired','Days open'], jobRows), 'jobs')
+      + repSection('Candidate sources', repTable(['Source','Total','Active','Hired','Hire rate'], srcRows), 'sources')
       + dwellHtml
-      + repSection('Team activity', repTable(['Member','Moves','Notes','Scorecards','Interviews','Hires'], recRows))
+      + repSection('Team activity', repTable(['Member','Moves','Notes','Scorecards','Interviews','Hires'], recRows), 'recruiters')
       + divHtml;
   }
   window.loadReports = loadReports;
