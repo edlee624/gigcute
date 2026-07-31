@@ -10202,19 +10202,32 @@
 
   // ===================== ATS PIPELINE (recruiter) =====================
   let __atsJob = null, __atsPipeline = null, __atsDrawerApp = null, __atsDrawerData = null;
+  // The pipeline is a real routed page: /pipeline (or /pipeline/<jobId>). openATS
+  // pushes a history entry so browser Back returns to the recruiter dashboard
+  // (not the login page); switching jobs just replaces the URL, no history pile-up.
+  function atsSetUrl(jobId, replace){
+    if(__applyingRoute) return;                 // don't push while applying a route/popstate
+    const p = jobId ? ('/pipeline/' + encodeURIComponent(jobId)) : '/pipeline';
+    if(location.pathname === p) return;
+    if(replace){ window.history.replaceState({}, '', p); }
+    else { window.history.pushState({}, '', p); __didInAppNav = true; }
+  }
   async function openATS(postingId){
     showScreen('screen-ats');
     const sel = document.getElementById('atsJobSel');
     let jobs = [];
     try{ const API = await gcAwaitAPI(); jobs = await API.ats.jobs(); }catch(e){ jobs = []; }
     if(!jobs.length){
+      atsSetUrl(null);
       document.getElementById('atsBoard').innerHTML = '<div class="ats-empty">No postings yet. Create a job to start building a pipeline.</div>';
+      document.getElementById('atsJobMeta').textContent = '';
       sel.innerHTML = ''; return;
     }
     sel.innerHTML = jobs.map(j => `<option value="${j.id}">${escapeHtml(j.title || 'Untitled role')} — ${j.active||0} active${j.hired?` · ${j.hired} hired`:''}</option>`).join('');
     const pick = (postingId && jobs.some(j=>j.id===postingId)) ? postingId : jobs[0].id;
     sel.value = pick;
-    sel.onchange = () => atsRenderBoard(sel.value);
+    atsSetUrl(pick);
+    sel.onchange = () => { atsSetUrl(sel.value, true); atsRenderBoard(sel.value); };
     atsRenderBoard(pick);
   }
   window.openATS = openATS;
@@ -11023,7 +11036,10 @@
       const om = path.match(/^\/posting\/([^/]+)\/?$/);
       const mm = path.match(/^\/messages\/([^/]+)\/?$/);
       const gm = path.match(/^\/managepost\/([^/]+)\/?$/);
+      const plm = path.match(/^\/pipeline\/([^/]+)\/?$/);
       if(pm){ showProfilePage(decodeURIComponent(pm[1])); }
+      else if(plm){ openATS(decodeURIComponent(plm[1])); }
+      else if(path === '/pipeline'){ openATS(); }
       else if(jm){ openJobDetail(decodeURIComponent(jm[1])); }
       else if(om){ openPostingDetail(decodeURIComponent(om[1])); }
       else if(mm){ openMessagesWith(decodeURIComponent(mm[1])); }
