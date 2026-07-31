@@ -3936,18 +3936,39 @@
   </div>
 </div>
 
+<!-- ============ RECRUITER: GATEWAY (independent vs company) ============ -->
+<div class="screen flow-screen" id="screen-recruiter-gateway">
+  <div class="ob-shell">
+    <div class="ob-top"><div class="ob-back" onclick="gcGoBack('/recruit')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div></div>
+    <div class="ob-eyebrow sage">GigCute-Recruit</div>
+    <h1 class="ob-h1">How will you use <em>GigCute</em>?</h1>
+    <p class="ob-sub">Pick the setup that fits. You can change plans later.</p>
+    <div style="display:grid;gap:14px;margin-top:10px;">
+      <button type="button" onclick="navigate('/join/independent')" style="text-align:left;background:var(--surface);border:1px solid var(--line-light);border-radius:14px;padding:18px 20px;cursor:pointer;color:var(--fg);font-family:'Inter',sans-serif;width:100%;">
+        <div style="font-family:'Fraunces',serif;font-size:18px;font-weight:600;margin-bottom:4px;">I'm an independent recruiter</div>
+        <div style="font-size:13.5px;color:rgba(var(--fg-rgb),0.7);line-height:1.5;">Freelance or solo. Any email works — get a personal workspace, post roles, and source from the talent pool. Self-serve, start free.</div>
+      </button>
+      <button type="button" onclick="navigate('/join/company')" style="text-align:left;background:var(--surface);border:1px solid var(--line-light);border-radius:14px;padding:18px 20px;cursor:pointer;color:var(--fg);font-family:'Inter',sans-serif;width:100%;">
+        <div style="font-family:'Fraunces',serif;font-size:18px;font-weight:600;margin-bottom:4px;">I'm hiring for a company or team</div>
+        <div style="font-size:13.5px;color:rgba(var(--fg-rgb),0.7);line-height:1.5;">Set up your company, invite recruiters with roles, and run hiring as a team. Corporate email required.</div>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ RECRUITER: SIGN UP ============ -->
 <div class="screen flow-screen" id="screen-recruiter-1">
   <div class="ob-shell">
-    <div class="ob-top"><div class="ob-back" data-back="screen-recruit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div></div>
-    <div class="ob-eyebrow sage">Recruiter · Step 1 of 2</div>
-    <h1 class="ob-h1">Let's set up your <em>hiring</em> account.</h1>
-    <p class="ob-sub">Create your account, then add your company. You'll post your first role next.</p>
+    <div class="ob-top"><div class="ob-back" onclick="gcGoBack('/join')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></div></div>
+    <div class="ob-eyebrow sage" id="rc1Eyebrow">Recruiter · Step 1 of 2</div>
+    <h1 class="ob-h1" id="rc1Heading">Let's set up your <em>hiring</em> account.</h1>
+    <p class="ob-sub" id="rc1Sub">Create your account, then add your company. You'll post your first role next.</p>
     <div class="field-row" style="display:flex;gap:12px;">
       <div class="field" style="flex:1;min-width:0;"><label for="rc-first">First name</label><input type="text" id="rc-first" placeholder="First name" autocomplete="given-name"></div>
       <div class="field" style="flex:1;min-width:0;"><label for="rc-last">Last name</label><input type="text" id="rc-last" placeholder="Last name" autocomplete="family-name"></div>
     </div>
-    <div class="field"><label for="rc-email">Work email</label><input type="email" id="rc-email" placeholder="you@company.com" autocomplete="email"><div class="email-typo-hint" id="rc-email-hint"></div></div>
+    <div class="field" id="rc-workspace-field" style="display:none;"><label for="rc-workspace">Workspace name</label><input type="text" id="rc-workspace" placeholder="e.g. Jordan's Recruiting" autocomplete="organization"></div>
+    <div class="field"><label for="rc-email" id="rc-email-label">Work email</label><input type="email" id="rc-email" placeholder="you@company.com" autocomplete="email"><div class="email-typo-hint" id="rc-email-hint"></div></div>
     <div class="field password-field">
       <label for="rc-password">Create a password</label>
       <input type="password" id="rc-password" placeholder="At least 8 characters" autocomplete="new-password">
@@ -9644,6 +9665,21 @@
   let __editingPostingId = null;
   let __postLoginRecruiter = false;
 
+  // 'company' (corporate email + company setup) | 'independent' (any email + solo workspace)
+  let __signupType = 'company';
+  function setRecruiterSignupMode(mode){
+    __signupType = (mode === 'independent') ? 'independent' : 'company';
+    const ind = __signupType === 'independent';
+    const setTxt = (id, t) => { const el = document.getElementById(id); if(el) el.textContent = t; };
+    const setHtml = (id, h) => { const el = document.getElementById(id); if(el) el.innerHTML = h; };
+    setTxt('rc-email-label', ind ? 'Your email' : 'Work email');
+    const em = document.getElementById('rc-email'); if(em) em.placeholder = ind ? 'you@email.com' : 'you@company.com';
+    const ws = document.getElementById('rc-workspace-field'); if(ws) ws.style.display = ind ? '' : 'none';
+    setTxt('rc1Eyebrow', ind ? 'Independent recruiter' : 'Recruiter · Step 1 of 2');
+    setHtml('rc1Heading', ind ? 'Set up your <em>recruiter</em> workspace.' : "Let's set up your <em>hiring</em> account.");
+    setTxt('rc1Sub', ind ? 'Any email works. We’ll create your personal workspace and take you straight to posting.' : 'Create your account, then add your company. You’ll post your first role next.');
+  }
+  window.setRecruiterSignupMode = setRecruiterSignupMode;
   async function recruiterSignup(){
     const err = document.getElementById('rc1Error');
     const fail = m => { err.textContent = m; err.style.display = 'block'; };
@@ -9653,25 +9689,31 @@
     const email = document.getElementById('rc-email').value.trim();
     const pw = document.getElementById('rc-password').value;
     if(!first || !last) return fail('Please enter your name.');
-    if(!/^[^@]+@[^@]+\.[^@]+$/.test(email)) return fail('Enter a valid work email.');
+    if(!/^[^@]+@[^@]+\.[^@]+$/.test(email)) return fail('Enter a valid email address.');
     if((pw || '').length < 8) return fail('Password must be at least 8 characters.');
     if(!document.getElementById('rc1Terms').checked) return fail('Please accept the Terms to continue.');
     const API = await gcAwaitAPI();
     if(!API || !API.enabled) return fail('Backend not configured.');
-    // Recruiter accounts require a corporate email. Pre-check for a friendly
-    // message; the handle_new_user trigger enforces the same rule server-side,
-    // so if this probe errors (network etc.) we let signUp be the judge.
+    // Company accounts require a corporate email (independent recruiters don't).
+    // Pre-check for a friendly message; the handle_new_user trigger enforces it too.
+    if(__signupType !== 'independent'){
+      try{
+        if(!(await API.auth.isBusinessEmail(email)))
+          return fail('Please use your corporate email address — personal addresses (Gmail, Outlook, iCloud…) need the “independent recruiter” signup instead.');
+      }catch(e){}
+    }
     try{
-      if(!(await API.auth.isBusinessEmail(email)))
-        return fail('Please use your corporate email address — personal addresses (Gmail, Outlook, iCloud…) can’t be used for recruiter accounts.');
-    }catch(e){}
-    try{
-      await API.auth.signUp({ email, password: pw, role: 'recruiter', fullName: `${first} ${last}` });
+      await API.auth.signUp({ email, password: pw, role: 'recruiter', fullName: `${first} ${last}`, accountType: __signupType });
       let authed = false;
       try{ await API.auth.signIn({ email, password: pw }); authed = true; }catch(e){}   // works if "Confirm email" is off
       if(authed){
-        // Invited teammates auto-join their company on signup; goRecruiterAfterAuth
-        // routes them straight to it. Brand-new recruiters fall through to company setup.
+        // Independent recruiters get a solo workspace and land on the dashboard;
+        // invited teammates auto-join their company; new company recruiters fall
+        // through to company setup. goRecruiterAfterAuth routes all three.
+        if(__signupType === 'independent'){
+          const wsName = (document.getElementById('rc-workspace').value.trim()) || `${first} ${last}`.trim() || 'My workspace';
+          try{ await API.companies.create({ name: wsName, plan: 'solo' }); }catch(e){}
+        }
         goRecruiterAfterAuth();
       } else if(typeof showSuccess === 'function'){
         // Email confirmation required — finish after they confirm + log in.
@@ -10554,7 +10596,7 @@
   async function atsCancelInterview(id){ if(!confirm('Cancel this interview?')) return; try{ const API=await gcAwaitAPI(); await API.ats.cancelInterview(id); showToast('Interview canceled.'); await atsOpenCandidate(__atsDrawerApp); }catch(e){ showToast((e&&e.message)||'Could not cancel.'); } }
   window.atsAdvance=atsAdvance; window.atsReject=atsReject; window.atsDoReject=atsDoReject; window.atsReactivate=atsReactivate; window.atsAddNote=atsAddNote; window.atsMoveTo=atsMoveTo; window.atsPickVerdict=atsPickVerdict; window.atsPickRate=atsPickRate; window.atsSubmitScorecard=atsSubmitScorecard; window.atsMessage=atsMessage; window.atsOpenCandidate=atsOpenCandidate; window.atsScheduleInterview=atsScheduleInterview; window.atsCancelInterview=atsCancelInterview;
   // wiring
-  { const b=document.getElementById('recruitStartBtn'); if(b) b.onclick = () => showScreen('screen-recruiter-1'); }
+  { const b=document.getElementById('recruitStartBtn'); if(b) b.onclick = () => navigate('/join'); }
   { const b=document.getElementById('recruitLoginBtn'); if(b) b.onclick = () => { setLoginMode(true); showScreen('screen-login-seeker'); }; }
   { const b=document.getElementById('rc1Next'); if(b) b.onclick = recruiterSignup; }
   { const b=document.getElementById('coSaveBtn'); if(b) b.onclick = recruiterSaveCompany; }
@@ -11187,6 +11229,9 @@
       else if(path === '/home'){ showSeekerHome(); }
       else if(path === '/jobs' || path === '/search'){ if(!boardIsVisible()) showJobsDashboard(); }
       else if(path === '/recruit'){ showScreen('screen-recruit'); }
+      else if(path === '/join'){ showScreen('screen-recruiter-gateway'); }
+      else if(path === '/join/independent'){ setRecruiterSignupMode('independent'); showScreen('screen-recruiter-1'); }
+      else if(path === '/join/company'){ setRecruiterSignupMode('company'); showScreen('screen-recruiter-1'); }
       else if(path === '/post' || path === '/hiring'){ goRecruiterAfterAuth(); }
       else if(path === '/messages'){ showMessages(); }
       else if(path === '/tracker'){ showTracker(); }

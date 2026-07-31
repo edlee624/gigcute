@@ -40,10 +40,10 @@ if (supabase) {
 const auth = {
   // role: 'seeker' | 'recruiter'. full_name flows into the profiles row via the
   // handle_new_user trigger.
-  async signUp({ email, password, role, fullName }) {
+  async signUp({ email, password, role, fullName, accountType }) {
     const { data, error } = await requireClient().auth.signUp({
       email, password,
-      options: { data: { role, full_name: fullName || '' } },
+      options: { data: { role, full_name: fullName || '', account_type: accountType || 'company' } },
     });
     if (error) throw error;
     return data;
