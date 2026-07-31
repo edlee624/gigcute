@@ -1412,6 +1412,12 @@ const team = {
     if (error) throw error;
     return data;
   },
+  // The caller's role + capabilities for their company (UI gates off this).
+  async myCaps(companyId) {
+    const { data, error } = await requireClient().rpc('company_my_caps', { p_company: companyId || null });
+    if (error) throw error;
+    return data;
+  },
 };
 
 window.GigCuteAPI = {

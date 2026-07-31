@@ -9730,7 +9730,7 @@
     let co = null; try{ co = await API.companies.myStatus(); }catch(e){}
     // Not an owner? Maybe an invited teammate — resolve the company via membership.
     if(!co){ try{ const t = await API.team.get(); if(t && t.company){ co = t.company; } }catch(e){} }
-    if(co){ __recruiterCompany = co; showRecruiterApp(); } else showScreen('screen-recruiter-company');
+    if(co){ __recruiterCompany = co; try{ window.__gcCaps = await API.team.myCaps(co.id); }catch(e){ window.__gcCaps = null; } showRecruiterApp(); } else showScreen('screen-recruiter-company');
   }
   // Dashboard overview: stats + candidates who liked any of the recruiter's roles,
   // split into mutual matches and one-sided interest (aggregated across postings).
@@ -9814,6 +9814,9 @@
     const statsById = {}; (list||[]).forEach((p,i)=>{ statsById[p.id]=statsArr[i]; });
     // Live pipeline counts per posting (best-effort; ATS may be empty).
     let atsById = {}; try{ const aj = await API.ats.jobs(); (aj||[]).forEach(j => { atsById[j.id] = j; }); }catch(e){}
+    // Job management (post/edit/pause/delete) is gated to manage_jobs roles.
+    const canJobs = !window.__gcCaps || !!window.__gcCaps.manage_jobs;
+    { const nb = document.getElementById('newPostingBtn'); if(nb) nb.style.display = canJobs ? '' : 'none'; }
     const stat = (n,label) => `<span style="display:inline-flex;align-items:baseline;gap:4px;"><b style="font-family:'Fraunces',serif;font-size:15px;color:var(--fg);">${n||0}</b><span style="font-size:11px;color:var(--fg-5);">${label}</span></span>`;
     const daysLeft = p => (p.status==='active' && p.expires_at) ? Math.max(0, Math.ceil((new Date(p.expires_at).getTime()-Date.now())/86400000)) : (p.days_remaining!=null ? p.days_remaining : 14);
     const card = (p, expiredKind) => {
@@ -9823,19 +9826,19 @@
       let statusHtml, actions;
       if(expiredKind){
         statusHtml = `<span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--fg-4);">expired</span>`;
-        actions = `<button class="jli-btn primary" type="button" onclick="repostPosting('${p.id}')">Repost</button>
-                   <button class="jli-btn pass" type="button" onclick="deleteExpiredPosting('${p.id}')" style="font-size:11px;padding:5px 10px;">Delete</button>`;
+        actions = canJobs ? `<button class="jli-btn primary" type="button" onclick="repostPosting('${p.id}')">Repost</button>
+                   <button class="jli-btn pass" type="button" onclick="deleteExpiredPosting('${p.id}')" style="font-size:11px;padding:5px 10px;">Delete</button>` : '';
       } else if(p.status === 'active'){
         statusHtml = `<span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:var(--sage);">active</span><span style="font-size:11px;color:var(--fg-5);">· ${daysLeft(p)}d left</span>`;
         actions = `<button class="jli-btn primary" type="button" onclick="openPostingManage('${p.id}')">Open</button>
                    <button class="jli-btn" type="button" onclick="openATS('${p.id}')">Pipeline</button>
-                   <button class="jli-btn" type="button" onclick="openPostingForm('${p.id}')">Edit</button>
-                   <button class="jli-btn" type="button" onclick="pausePosting('${p.id}')">Pause</button>`;
+                   ${canJobs?`<button class="jli-btn" type="button" onclick="openPostingForm('${p.id}')">Edit</button>
+                   <button class="jli-btn" type="button" onclick="pausePosting('${p.id}')">Pause</button>`:''}`;
       } else {
         statusHtml = `<span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:0.06em;color:#e0b64a;">paused</span><span style="font-size:11px;color:var(--fg-5);">· ${daysLeft(p)}d left</span>`;
-        actions = `<button class="jli-btn primary" type="button" onclick="repostPosting('${p.id}')">Publish</button>
+        actions = `${canJobs?`<button class="jli-btn primary" type="button" onclick="repostPosting('${p.id}')">Publish</button>`:''}
                    <button class="jli-btn" type="button" onclick="openATS('${p.id}')">Pipeline</button>
-                   <button class="jli-btn" type="button" onclick="openPostingForm('${p.id}')">Edit</button>`;
+                   ${canJobs?`<button class="jli-btn" type="button" onclick="openPostingForm('${p.id}')">Edit</button>`:''}`;
       }
       const clickAttrs = expiredKind ? 'style="' : `onclick="openPostingManage('${p.id}')" style="cursor:pointer;`;
       return `<div class="rec-posting" ${clickAttrs}background:var(--surface);border:1px solid var(--line-light);border-radius:14px;padding:18px 20px;margin-bottom:12px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;">
@@ -10236,7 +10239,7 @@
   window.openPostingForm = openPostingForm; window.showRecruiterApp = showRecruiterApp;
 
   // ===================== ATS PIPELINE (recruiter) =====================
-  let __atsJob = null, __atsPipeline = null, __atsDrawerApp = null, __atsDrawerData = null;
+  let __atsJob = null, __atsPipeline = null, __atsDrawerApp = null, __atsDrawerData = null, __atsCan = {};
   // The pipeline is a real routed page: /pipeline (or /pipeline/<jobId>). openATS
   // pushes a history entry so browser Back returns to the recruiter dashboard
   // (not the login page); switching jobs just replaces the URL, no history pile-up.
@@ -10325,7 +10328,7 @@
     try{ const API = await gcAwaitAPI(); p = await API.ats.pipeline(postingId); }
     catch(e){ board.innerHTML = '<div class="ats-empty">Could not load this pipeline.</div>'; return; }
     if(!p){ board.innerHTML = '<div class="ats-empty">Not authorized for this posting.</div>'; return; }
-    __atsPipeline = p; __atsJob = postingId;
+    __atsPipeline = p; __atsJob = postingId; __atsCan = p.can || {};
     const apps = p.applications || [];
     const byStage = {};
     apps.forEach(a => { (byStage[a.stage_id] = byStage[a.stage_id] || []).push(a); });
@@ -10350,7 +10353,7 @@
   function atsCardHTML(a){
     const c = a.candidate || {};
     const days = (a.days_in_stage != null) ? `${a.days_in_stage}d in stage` : '';
-    return `<div class="ats-card" draggable="true" data-app="${a.id}">
+    return `<div class="ats-card" draggable="${__atsCan.manage_pipeline ? 'true' : 'false'}" data-app="${a.id}">
       <div class="nm">${escapeHtml(c.name || 'Candidate')}</div>
       ${c.headline ? `<div class="hl">${escapeHtml(c.headline)}</div>` : ''}
       <div class="mt"><span class="src">${escapeHtml(a.source||'')}</span>${days?`<span>· ${days}</span>`:''}${a.scorecards?`<span class="sc">★ ${a.scorecards}</span>`:''}</div>
@@ -10358,11 +10361,15 @@
   }
   function atsWireDnD(){
     const board = document.getElementById('atsBoard');
+    const canMove = !!__atsCan.manage_pipeline;   // interviewers/others can view but not move
     board.querySelectorAll('.ats-card').forEach(card => {
-      card.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', card.getAttribute('data-app')); e.dataTransfer.effectAllowed='move'; card.classList.add('dragging'); });
-      card.addEventListener('dragend', () => { card.classList.remove('dragging'); board.querySelectorAll('.ats-col').forEach(c=>c.classList.remove('drop')); });
+      if(canMove){
+        card.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', card.getAttribute('data-app')); e.dataTransfer.effectAllowed='move'; card.classList.add('dragging'); });
+        card.addEventListener('dragend', () => { card.classList.remove('dragging'); board.querySelectorAll('.ats-col').forEach(c=>c.classList.remove('drop')); });
+      }
       card.addEventListener('click', () => atsOpenCandidate(card.getAttribute('data-app')));
     });
+    if(!canMove) return;   // no drop targets for read-only roles
     board.querySelectorAll('.ats-col').forEach(col => {
       col.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect='move'; col.classList.add('drop'); });
       col.addEventListener('dragleave', () => col.classList.remove('drop'));
@@ -10397,6 +10404,7 @@
     const idx = stages.findIndex(s => s.id === app.stage_id);
     const nextStage = (idx >= 0 && idx < stages.length-1) ? stages[idx+1] : null;
     const rejected = app.status === 'rejected';
+    const canManage = !!(__atsCan && __atsCan.manage_pipeline);   // gate move/reject; scorecards+notes stay open to all
     const meta = [ c.exp_years ? `${c.exp_years} yrs` : '', c.work_setup || '', app.source ? ('Source: '+app.source) : '' ].filter(Boolean);
     const screening = (d.screening||[]).map(s => `<div class="ats-sq"><div class="q">${escapeHtml(s.q||'')}${s.essential?`<span class="ats-sq"></span>`:''}${(s.meets===false)?'<span class="ko fail">knockout</span>':(s.meets===true?'<span class="ko pass">meets</span>':'')}</div><div class="a">${escapeHtml(s.a||'—')}</div></div>`).join('') || '<div class="ats-empty">No screening answers.</div>';
     const skills = (c.skills||[]).slice(0,12).map(s => `<span class="ats-chip">${escapeHtml(s)}</span>`).join('') || '<div class="ats-empty">No skills listed.</div>';
@@ -10414,9 +10422,9 @@
         ${rejected?`<div style="margin-top:8px;font-size:12px;color:#E06055;">Rejected${app.rejected_reason?': '+escapeHtml(app.rejected_reason):''}</div>`:''}
       </div>
       <div class="ats-acts">
-        ${(!rejected && nextStage)?`<button class="ats-btn primary" onclick="atsAdvance()">Advance to ${escapeHtml(nextStage.name)} →</button>`:''}
-        ${!rejected?`<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:rgba(var(--fg-rgb),0.6);">Stage <select id="atsStageSel" class="ats-sel" style="font-size:12.5px;padding:6px 10px;" onchange="atsMoveTo(this.value)">${stages.map(s=>`<option value="${s.id}" ${s.id===app.stage_id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}</select></label>`:''}
-        ${!rejected?`<button class="ats-btn danger" onclick="atsReject()">Reject</button>`:`<button class="ats-btn" onclick="atsReactivate()">Reopen</button>`}
+        ${(canManage && !rejected && nextStage)?`<button class="ats-btn primary" onclick="atsAdvance()">Advance to ${escapeHtml(nextStage.name)} →</button>`:''}
+        ${(canManage && !rejected)?`<label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:rgba(var(--fg-rgb),0.6);">Stage <select id="atsStageSel" class="ats-sel" style="font-size:12.5px;padding:6px 10px;" onchange="atsMoveTo(this.value)">${stages.map(s=>`<option value="${s.id}" ${s.id===app.stage_id?'selected':''}>${escapeHtml(s.name)}</option>`).join('')}</select></label>`:''}
+        ${canManage ? (!rejected?`<button class="ats-btn danger" onclick="atsReject()">Reject</button>`:`<button class="ats-btn" onclick="atsReactivate()">Reopen</button>`) : ''}
         <button class="ats-btn" onclick="atsMessage()">Message</button>
       </div>
       <div class="ats-sec"><div class="lbl">Screening</div>${screening}</div>
