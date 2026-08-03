@@ -1390,8 +1390,8 @@ const ats = {
     if (error) throw error;
     return data || [];
   },
-  async scheduleInterview(applicationId, { stageId = null, when, duration = 45, interviewerId = null, location = null, notes = null } = {}) {
-    const { data, error } = await requireClient().rpc('ats_schedule_interview', { p_app: applicationId, p_stage: stageId, p_when: when, p_duration: duration, p_interviewer: interviewerId, p_location: location, p_notes: notes });
+  async scheduleInterview(applicationId, { stageId = null, when, duration = 45, interviewerId = null, location = null, notes = null, provider = null, joinUrl = null } = {}) {
+    const { data, error } = await requireClient().rpc('ats_schedule_interview', { p_app: applicationId, p_stage: stageId, p_when: when, p_duration: duration, p_interviewer: interviewerId, p_location: location, p_notes: notes, p_provider: provider || null, p_join_url: joinUrl });
     if (error) throw error;
     return data;
   },
@@ -1421,6 +1421,41 @@ const ats = {
     const { data, error } = await requireClient().rpc('ats_report_diversity', { p_company: companyId, p_min_cell: 5 });
     if (error) throw error;
     return data;
+  },
+};
+
+// ---- Integrations (Calendly / Google Meet / Teams / Zoom) -----------------
+// Tokens never reach the client: integration_tokens is RLS-unreachable and the
+// RPCs only ever return connection status + the shareable link.
+const integrations = {
+  async list() {
+    const { data, error } = await requireClient().rpc('integrations_list');
+    if (error) throw error;
+    return data || [];
+  },
+  async saveLink(provider, link, displayName) {
+    const { data, error } = await requireClient().rpc('integration_save_link', {
+      p_provider: provider, p_link: link, p_display_name: displayName || null });
+    if (error) throw error;
+    return data;
+  },
+  async disconnect(provider) {
+    const { data, error } = await requireClient().rpc('integration_disconnect', { p_provider: provider });
+    if (error) throw error;
+    return data;
+  },
+  // Kicks off the Calendly OAuth dance. Returns the URL to send the browser to.
+  async connectCalendly() {
+    const c = requireClient();
+    const { data: s } = await c.auth.getSession();
+    const token = s && s.session && s.session.access_token;
+    if (!token) throw new Error('Your session has expired — please log in again.');
+    const res = await fetch(`${cfg.SUPABASE_URL}/functions/v1/calendly-oauth?action=start`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok || !body.authorize_url) throw new Error(body.error || 'Calendly is not set up on this deployment yet.');
+    return body.authorize_url;
   },
 };
 
@@ -1470,7 +1505,7 @@ window.GigCuteAPI = {
   enabled,
   supabase,
   prefs,
-  auth, profiles, seeker, companies, postings, interest, invites, connections, eeo, reference, reports, admin, verification, chat, support, feedback, events, jobs, tracker, notifications, limits, billing, safety, ats, team,
+  auth, profiles, seeker, companies, postings, interest, invites, connections, eeo, reference, reports, admin, verification, chat, support, feedback, events, jobs, tracker, notifications, limits, billing, safety, ats, team, integrations,
   isFreeEmailDomain,
 };
 

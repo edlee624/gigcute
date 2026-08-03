@@ -4011,6 +4011,7 @@
         <button class="ds-nav-btn primary" id="recruiterPipelineBtn" type="button" onclick="if(window.openATS)window.openATS()">Pipeline</button>
         <button class="ds-nav-btn" id="recruiterReportsBtn" type="button" onclick="if(window.openReports)window.openReports()">Reports</button>
         <button class="ds-nav-btn" id="recruiterTeamBtn" type="button" onclick="if(window.openTeam)window.openTeam()">Team</button>
+        <button class="ds-nav-btn" id="recruiterIntegBtn" type="button" onclick="if(window.openIntegrations)window.openIntegrations()">Integrations</button>
         <button class="ds-nav-btn" id="recruiterTourBtn" type="button" onclick="if(window.openRecruiterTour)window.openRecruiterTour()">How it works</button>
         <button class="ds-nav-btn nav-msg" id="recruiterMsgsBtn" type="button"><svg class="msg-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Messages</button>
         <button class="ds-nav-btn" id="recruiterLogout" type="button">Log out</button>
@@ -4145,6 +4146,23 @@
       <div style="font-size:11.5px;color:rgba(var(--fg-rgb),0.45);margin-top:10px;">Existing GigCute users are added right away. Others get a pending invite and join automatically when they sign up with that email.</div>
     </div>
     <div id="teamList"><div class="ats-empty">Loading…</div></div>
+  </div>
+</div>
+
+<!-- ============ INTEGRATIONS (scheduling + conferencing) ============ -->
+<div class="screen" id="screen-integrations">
+  <div class="ds-nav">
+    <div class="wordmark" style="cursor:pointer;" onclick="if(window.showRecruiterApp)showRecruiterApp()"><img src="/logo.png" class="brand-img" alt="GigCute" style="height:26px;"></div>
+    <div class="ds-nav-right">
+      <button class="ds-nav-btn" type="button" onclick="if(window.showRecruiterApp)showRecruiterApp()">← Postings</button>
+    </div>
+  </div>
+  <div class="ats-wrap" style="max-width:820px;">
+    <div style="margin-bottom:18px;">
+      <h1 style="font-family:'Fraunces',serif; font-size:28px; font-weight:600; margin:0 0 2px;">Scheduling <em style="color:var(--sage);font-style:italic;">integrations</em></h1>
+      <p style="color:rgba(var(--fg-rgb),0.68); font-size:13.5px; margin:0;">Connect the tools you already interview with. Your links are used when you schedule, and shared with candidates.</p>
+    </div>
+    <div id="integList"><div class="ats-empty">Loading…</div></div>
   </div>
 </div>
 
@@ -10410,6 +10428,90 @@
   async function teamRevoke(id){ try{ const API=await gcAwaitAPI(); await API.team.revokeInvite(id); showToast('Invite revoked.'); openTeam(); }catch(e){ showToast((e&&e.message)||'Could not revoke.'); } }
   window.teamInvite=teamInvite; window.teamSetRole=teamSetRole; window.teamRemove=teamRemove; window.teamRevoke=teamRevoke;
 
+  // ---- Scheduling / conferencing integrations -------------------------------
+  const INTEG_PROVIDERS = [
+    { id:'calendly',    name:'Calendly',         blurb:'Let candidates pick a slot from your real availability.', ph:'https://calendly.com/you/30min',            host:'calendly.com',        oauth:true,
+      help:'Your booking page — open Calendly and copy the link under your event type.' },
+    { id:'google_meet', name:'Google Meet',      blurb:'Your Meet room for interviews.',                          ph:'https://meet.google.com/abc-defg-hij',       host:'meet.google.com',     oauth:false,
+      help:'Start or open a Meet, then copy the meeting link.' },
+    { id:'teams',       name:'Microsoft Teams',  blurb:'Your Teams meeting link.',                                ph:'https://teams.microsoft.com/l/meetup-join/…', host:'teams.microsoft.com', oauth:false,
+      help:'In Teams, create a meeting and copy the join link.' },
+    { id:'zoom',        name:'Zoom',             blurb:'Your personal Zoom room.',                                ph:'https://zoom.us/j/1234567890',                host:'zoom.us',             oauth:false,
+      help:'Zoom → Meetings → Personal Room → copy the invite link.' },
+  ];
+  const INTEG_NAME = { calendly:'Calendly', google_meet:'Google Meet', teams:'Microsoft Teams', zoom:'Zoom' };
+  let __integByProvider = {};
+  async function openIntegrations(){
+    showScreen('screen-integrations');
+    if(!__applyingRoute && location.pathname !== '/integrations'){ window.history.pushState({}, '', '/integrations'); __didInAppNav = true; }
+    loadIntegrations();
+    // Surface the result of a returning OAuth redirect.
+    const q = new URLSearchParams(location.search);
+    if(q.get('calendly') === 'connected') showToast('Calendly connected.');
+    else if(q.get('calendly') === 'error') showToast('Could not connect Calendly — please try again.');
+  }
+  window.openIntegrations = openIntegrations;
+
+  async function loadIntegrations(){
+    const el = document.getElementById('integList');
+    el.innerHTML = '<div class="ats-empty">Loading…</div>';
+    let rows = [];
+    try{ const API = await gcAwaitAPI(); rows = await API.integrations.list(); }
+    catch(e){ el.innerHTML = '<div class="ats-empty">Could not load your integrations.</div>'; return; }
+    __integByProvider = {};
+    (rows||[]).forEach(r => { __integByProvider[r.provider] = r; });
+    el.innerHTML = INTEG_PROVIDERS.map(renderIntegCard).join('');
+  }
+  function renderIntegCard(p){
+    const cur = __integByProvider[p.id];
+    const connected = !!(cur && cur.link);
+    const viaOauth = cur && cur.mode === 'oauth';
+    const badge = connected
+      ? `<span class="ats-chip" style="color:var(--sage);border-color:var(--sage);font-size:10.5px;padding:2px 8px;">${viaOauth?'Account connected':'Link saved'}</span>`
+      : `<span class="ats-chip" style="font-size:10.5px;padding:2px 8px;color:rgba(var(--fg-rgb),0.5);">Not set up</span>`;
+    const oauthBtn = p.oauth && !viaOauth
+      ? `<button class="ats-btn primary" type="button" onclick="integConnectCalendly()" style="font-size:12px;padding:7px 14px;">Connect account</button>` : '';
+    const linkRow = `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:12px;">
+        <div style="flex:1;min-width:220px;">
+          <label for="integ-${p.id}" style="display:block;font-size:12px;color:rgba(var(--fg-rgb),0.6);margin-bottom:4px;">${escapeHtml(p.help)}</label>
+          <input type="url" id="integ-${p.id}" value="${escapeHtml((cur&&cur.link)||'')}" placeholder="${escapeHtml(p.ph)}" spellcheck="false"
+            style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--line-light);border-radius:10px;color:var(--fg);font-family:'Inter',sans-serif;font-size:13.5px;padding:9px 12px;">
+        </div>
+        <button class="ats-btn primary" type="button" onclick="integSave('${p.id}')" style="padding:9px 16px;font-size:12.5px;">Save</button>
+        ${connected?`<button class="ats-btn" type="button" onclick="integDisconnect('${p.id}','${escapeHtml(p.name)}')" style="padding:9px 14px;font-size:12.5px;">Remove</button>`:''}
+      </div>`;
+    return `<div style="background:var(--surface);border:1px solid var(--line-light);border-radius:14px;padding:18px 20px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+        <div style="min-width:0;">
+          <div style="font-weight:600;font-size:15px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${escapeHtml(p.name)} ${badge}</div>
+          <div style="font-size:12.5px;color:rgba(var(--fg-rgb),0.6);margin-top:3px;">${escapeHtml(p.blurb)}</div>
+        </div>${oauthBtn}
+      </div>${linkRow}
+      <div style="font-size:11px;color:rgba(var(--fg-rgb),0.4);margin-top:8px;">Must be an https:// ${escapeHtml(p.host)} address.</div>
+    </div>`;
+  }
+  async function integSave(provider){
+    const input = document.getElementById('integ-'+provider);
+    const val = (input && input.value || '').trim();
+    if(!val){ showToast('Paste your link first.'); return; }
+    try{ const API = await gcAwaitAPI(); await API.integrations.saveLink(provider, val);
+      showToast('Saved.'); loadIntegrations(); }
+    catch(e){ showToast((e&&e.message)||'Could not save that link.'); }
+  }
+  async function integDisconnect(provider, name){
+    if(!confirm('Remove your '+(name||'')+' link from GigCute?')) return;
+    try{ const API = await gcAwaitAPI(); await API.integrations.disconnect(provider);
+      showToast('Removed.'); loadIntegrations(); }
+    catch(e){ showToast((e&&e.message)||'Could not remove.'); }
+  }
+  async function integConnectCalendly(){
+    try{ const API = await gcAwaitAPI(); const url = await API.integrations.connectCalendly();
+      window.location.href = url; }
+    catch(e){ showToast((e&&e.message)||'Could not start the Calendly connection.'); }
+  }
+  window.integSave=integSave; window.integDisconnect=integDisconnect;
+  window.integConnectCalendly=integConnectCalendly; window.loadIntegrations=loadIntegrations;
+
   // ---- HR reports -----------------------------------------------------------
   async function openReports(){
     showScreen('screen-reports');
@@ -10675,7 +10777,8 @@
     if(!d){ dr.innerHTML = '<div class="ats-dh"><button class="close" onclick="atsCloseDrawer()">✕</button><div class="ats-empty">Could not load candidate.</div></div>'; return; }
     // Interviews + team (for the interviewer picker) — best-effort alongside.
     try{ const API = await gcAwaitAPI(); d._interviews = await API.ats.interviews(appId); }catch(e){ d._interviews = []; }
-    if(__atsCan.schedule){ try{ const API = await gcAwaitAPI(); const t = await API.team.get(); d._team = (t && t.members) || []; }catch(e){ d._team = []; } }
+    if(__atsCan.schedule){ try{ const API = await gcAwaitAPI(); const t = await API.team.get(); d._team = (t && t.members) || []; }catch(e){ d._team = []; }
+      try{ const API = await gcAwaitAPI(); d._integrations = await API.integrations.list(); }catch(e){ d._integrations = []; } }
     __atsDrawerApp = appId; __atsDrawerData = d;
     atsRenderDrawer(d);
   }
@@ -10690,7 +10793,9 @@
     const canSchedule = !!(__atsCan && __atsCan.schedule);
     const ivs = (d._interviews||[]).map(iv => {
       let when = iv.scheduled_at; try{ when = new Date(iv.scheduled_at).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }catch(e){}
-      return `<div class="ats-sq"><div class="a">${escapeHtml(when)} · ${iv.duration_min||45}m${iv.interviewer?` · ${escapeHtml(iv.interviewer)}`:''}${iv.stage?` · <span style="color:rgba(var(--fg-rgb),0.5)">${escapeHtml(iv.stage)}</span>`:''}</div>${iv.location?`<div class="q">${escapeHtml(iv.location)}</div>`:''}${iv.notes?`<div class="q">${escapeHtml(iv.notes)}</div>`:''}${canSchedule?`<button class="ats-btn" style="font-size:11px;padding:4px 9px;margin-top:6px;" onclick="atsCancelInterview('${iv.id}')">Cancel</button>`:''}</div>`;
+      // join_url is validated server-side (https + provider host allowlist).
+      const join = iv.join_url ? `<div class="q"><a href="${escapeHtml(iv.join_url)}" target="_blank" rel="noopener noreferrer" style="color:var(--sage);font-weight:600;">Join ${escapeHtml(INTEG_NAME[iv.provider]||'meeting')} ↗</a></div>` : '';
+      return `<div class="ats-sq"><div class="a">${escapeHtml(when)} · ${iv.duration_min||45}m${iv.interviewer?` · ${escapeHtml(iv.interviewer)}`:''}${iv.stage?` · <span style="color:rgba(var(--fg-rgb),0.5)">${escapeHtml(iv.stage)}</span>`:''}</div>${iv.location?`<div class="q">${escapeHtml(iv.location)}</div>`:''}${join}${iv.notes?`<div class="q">${escapeHtml(iv.notes)}</div>`:''}${canSchedule?`<button class="ats-btn" style="font-size:11px;padding:4px 9px;margin-top:6px;" onclick="atsCancelInterview('${iv.id}')">Cancel</button>`:''}</div>`;
     }).join('') || '<div class="ats-empty" style="margin-bottom:8px;">None scheduled.</div>';
     const teamOpts = (d._team||[]).map(m => `<option value="${m.profile_id}">${escapeHtml(m.name||m.email||'Member')}</option>`).join('');
     const scheduleForm = canSchedule ? `<div id="atsIvForm" style="display:grid;gap:8px;margin-top:10px;">
@@ -10699,8 +10804,13 @@
           <select id="ivDur" class="ats-sel" style="font-size:12.5px;padding:8px 10px;"><option value="30">30 min</option><option value="45" selected>45 min</option><option value="60">60 min</option><option value="90">90 min</option></select>
           <select id="ivInterviewer" class="ats-sel" style="font-size:12.5px;padding:8px 10px;flex:1;min-width:150px;"><option value="">Interviewer…</option>${teamOpts}</select>
         </div>
+        <select id="ivProvider" class="ats-sel" style="font-size:12.5px;padding:8px 10px;" onchange="atsPickProvider()">
+          <option value="">No video link</option>
+          ${(d._integrations||[]).filter(i=>i.link).map(i=>`<option value="${escapeHtml(i.provider)}">${escapeHtml(INTEG_NAME[i.provider]||i.provider)}</option>`).join('')}
+        </select>
         <input id="ivLocation" class="ats-note-in" placeholder="Location or video link">
         <input id="ivNotes" class="ats-note-in" placeholder="Notes for the interviewer (optional)">
+        ${!(d._integrations||[]).filter(i=>i.link).length?`<div style="font-size:11px;color:rgba(var(--fg-rgb),0.45);">Connect Calendly, Meet, Teams or Zoom in <a href="/integrations" onclick="event.preventDefault();atsCloseDrawer();navigate('/integrations');" style="color:var(--sage);">Integrations</a> to auto-fill your meeting link.</div>`:''}
         <button class="ats-btn primary" onclick="atsScheduleInterview()">Schedule interview</button>
       </div>` : '';
     const meta = [ c.exp_years ? `${c.exp_years} yrs` : '', c.work_setup || '', app.source ? ('Source: '+app.source) : '' ].filter(Boolean);
@@ -10815,10 +10925,20 @@
     const interviewer = (document.getElementById('ivInterviewer')||{}).value || null;
     const loc = (document.getElementById('ivLocation')||{}).value || null;
     const notes = (document.getElementById('ivNotes')||{}).value || null;
+    const provider = (document.getElementById('ivProvider')||{}).value || null;
     const app = __atsDrawerData && __atsDrawerData.application;
-    try{ const API = await gcAwaitAPI(); await API.ats.scheduleInterview(__atsDrawerApp, { stageId: app && app.stage_id, when: iso, duration: dur, interviewerId: interviewer, location: loc, notes }); showToast('Interview scheduled.'); await atsOpenCandidate(__atsDrawerApp); }
+    try{ const API = await gcAwaitAPI(); await API.ats.scheduleInterview(__atsDrawerApp, { stageId: app && app.stage_id, when: iso, duration: dur, interviewerId: interviewer, location: loc, notes, provider }); showToast('Interview scheduled.'); await atsOpenCandidate(__atsDrawerApp); }
     catch(e){ showToast((e&&e.message)||'Could not schedule interview.'); }
   }
+  // Picking a provider drops that saved room straight into the link field.
+  function atsPickProvider(){
+    const p = (document.getElementById('ivProvider')||{}).value;
+    const loc = document.getElementById('ivLocation'); if(!loc) return;
+    const hit = ((__atsDrawerData && __atsDrawerData._integrations)||[]).find(i => i.provider === p);
+    if(hit && hit.link) loc.value = hit.link;
+    else if(!p) loc.value = '';
+  }
+  window.atsPickProvider = atsPickProvider;
   async function atsCancelInterview(id){ if(!confirm('Cancel this interview?')) return; try{ const API=await gcAwaitAPI(); await API.ats.cancelInterview(id); showToast('Interview canceled.'); await atsOpenCandidate(__atsDrawerApp); }catch(e){ showToast((e&&e.message)||'Could not cancel.'); } }
   window.atsAdvance=atsAdvance; window.atsReject=atsReject; window.atsDoReject=atsDoReject; window.atsReactivate=atsReactivate; window.atsAddNote=atsAddNote; window.atsMoveTo=atsMoveTo; window.atsPickVerdict=atsPickVerdict; window.atsPickRate=atsPickRate; window.atsSubmitScorecard=atsSubmitScorecard; window.atsMessage=atsMessage; window.atsOpenCandidate=atsOpenCandidate; window.atsScheduleInterview=atsScheduleInterview; window.atsCancelInterview=atsCancelInterview;
   // wiring
@@ -11446,6 +11566,7 @@
       else if(path === '/pipeline'){ openATS(); }
       else if(path === '/team'){ openTeam(); }
       else if(path === '/reports'){ openReports(); }
+      else if(path === '/integrations'){ openIntegrations(); }
       else if(jm){ openJobDetail(decodeURIComponent(jm[1])); }
       else if(om){ openPostingDetail(decodeURIComponent(om[1])); }
       else if(mm){ openMessagesWith(decodeURIComponent(mm[1])); }
