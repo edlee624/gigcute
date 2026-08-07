@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# App surfaces: no crawl value, and some are behind auth anyway.
+Disallow: /pipeline
+Disallow: /team
+Disallow: /reports
+Disallow: /integrations
+Disallow: /settings
+Disallow: /messages
+Disallow: /tracker
+Disallow: /hiring
+Disallow: /join
+Disallow: /login
+Disallow: /admin
+
+Sitemap: https://www.gigcute.com/sitemap.xml

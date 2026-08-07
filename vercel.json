@@ -9,6 +9,17 @@
       ],
       "destination": "/api/og?code=:code"
     },
+
+    { "source": "/sitemap.xml", "destination": "/api/sitemap?kind=index" },
+    { "source": "/sitemap-hubs.xml", "destination": "/api/sitemap?kind=hubs" },
+    { "source": "/sitemap-companies-:n.xml", "destination": "/api/sitemap?kind=companies&n=:n" },
+
+    { "source": "/companies/:slug", "destination": "/api/seo?kind=company&a=:slug" },
+    { "source": "/jobs/remote/:role", "destination": "/api/seo?kind=remote&a=:role" },
+    { "source": "/jobs/in/:state", "destination": "/api/seo?kind=state&a=:state" },
+    { "source": "/jobs/:role/:state", "destination": "/api/seo?kind=role&a=:role&b=:state" },
+    { "source": "/jobs/:role", "destination": "/api/seo?kind=role&a=:role" },
+
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
