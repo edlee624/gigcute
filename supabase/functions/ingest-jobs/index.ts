@@ -58,7 +58,7 @@ function meetsSalary(r: { salary_min: number | null; salary_max: number | null }
 // Only ingest recently-posted jobs (default 7 days). A job with no/unparseable
 // date is treated as too old (excluded) so the board stays fresh while testing.
 const MAX_AGE_DAYS = Math.max(1, parseInt(Deno.env.get("JOB_MAX_AGE_DAYS") || "7", 10) || 7);
-const RETENTION_DAYS = Math.max(1, parseInt(Deno.env.get("JOB_RETENTION_DAYS") || "14", 10) || 14);
+const RETENTION_DAYS = Math.max(1, parseInt(Deno.env.get("JOB_RETENTION_DAYS") || "13", 10) || 13);
 function isRecent(iso: string | null): boolean {
   if (!iso) return false;
   const t = Date.parse(iso);
@@ -663,17 +663,21 @@ Deno.serve(async (req) => {
   // stays current. Retention now matches the MAX_AGE_DAYS intake cap, so the board
   // holds exactly the last 14 days — a job aging past the window is purged rather
   // than lingering. (Widen JOB_RETENTION_DAYS to keep a longer tail.)
+  // Purge via the bounded purge_old_jobs RPC (migration 0085), looped a few times.
+  // A single unbounded DELETE times out once the over-retention backlog is large
+  // (a 120k-row delete exceeds the worker statement timeout), which silently stalled
+  // retention and let old jobs pile up. Batched deletes each stay fast; ~10×5000 per
+  // run clears any realistic daily delta and catches up a backlog over a few runs.
   let purged = 0;
   let purgeError: string | null = null;
   try {
-    const cutoff = new Date(Date.now() - RETENTION_DAYS * 86400000).toISOString();
-    // count:"exact" reports how many rows went WITHOUT materialising them. The old
-    // `.select("id")` returned every deleted row, which timed out on a large backlog
-    // — and because delete() resolves with {error} instead of throwing, the failure
-    // was swallowed by the catch and reported as a truthful-looking "purged: 0".
-    const { count, error } = await supabase.from("jobs").delete({ count: "exact" }).lt("posted_at", cutoff);
-    if (error) purgeError = error.message;
-    else purged = count ?? 0;
+    for (let i = 0; i < 10; i++) {
+      const { data, error } = await supabase.rpc("purge_old_jobs", { p_days: RETENTION_DAYS, p_limit: 5000 });
+      if (error) { purgeError = error.message; break; }
+      const n = (data as number) ?? 0;
+      purged += n;
+      if (n < 5000) break; // caught up
+    }
   } catch (e) {
     purgeError = String((e as Error)?.message ?? e);
   }
