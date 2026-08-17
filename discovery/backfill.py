@@ -525,6 +525,17 @@ def main():
             if done % 100 == 0:
                 print(f"  {done}/{len(pend)} companies, {jobs} jobs upserted", flush=True)
     print(f"DONE: {done} companies swept, {jobs} jobs upserted", flush=True)
+    # After a full sweep, recompute cron_active from real yield: the light Supabase
+    # cron then skips zero-job boards (this daily run covers them). Only after --all,
+    # since a partial run would wrongly flag un-swept companies as empty.
+    if all_mode:
+        r = q("""update public.job_sources s set cron_active = exists (
+                   select 1 from (select distinct source, split_part(external_id, ':', 2) slug from public.jobs) h
+                   where h.source = s.platform and h.slug = s.slug);""")
+        if r is not None and r.ok:
+            print("recomputed cron_active from this sweep's yield", flush=True)
+        else:
+            print("WARN: cron_active recompute failed (cron will keep scanning all)", flush=True)
 
 if __name__ == "__main__":
     main()

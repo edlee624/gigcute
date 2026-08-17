@@ -622,15 +622,19 @@ Deno.serve(async (req) => {
   const slugsBy: Record<string, Src[]> = {};
   let batchIds: string[] = [];
   try {
+    // cron_active gates which companies the LIGHT cron scans: the daily local
+    // backfill (--all) recomputes it to false for zero-yield boards, so the frequent
+    // cron stops wasting fetches/memory on ~thousands of empty boards. Full coverage
+    // of those still comes from the daily --all. neq(false) so null/true both scan.
     let picked: any[] = [];
     for (const plat of HEAVY) {
-      const rows = (await supabase.from("job_sources").select(SEL).eq("active", true).eq("platform", plat)
+      const rows = (await supabase.from("job_sources").select(SEL).eq("active", true).neq("cron_active", false).eq("platform", plat)
         .order("last_ingested_at", { ascending: true, nullsFirst: true }).limit(HEAVY_PER_RUN)).data ?? [];
       picked = picked.concat(rows);
     }
     const restN = Math.max(0, BATCH - picked.length);
     const heavyList = `(${HEAVY.join(",")})`;
-    const rest = restN > 0 ? ((await supabase.from("job_sources").select(SEL).eq("active", true).not("platform", "in", heavyList)
+    const rest = restN > 0 ? ((await supabase.from("job_sources").select(SEL).eq("active", true).neq("cron_active", false).not("platform", "in", heavyList)
       .order("last_ingested_at", { ascending: true, nullsFirst: true }).limit(restN)).data ?? []) : [];
     picked = picked.concat(rest);
     for (const r of picked) { (slugsBy[r.platform] ??= []).push({ id: r.id, slug: r.slug, company_name: r.company_name, datacenter: r.datacenter, site: r.site }); }
