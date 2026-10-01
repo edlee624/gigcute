@@ -57,28 +57,44 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');
   res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=21600, stale-while-revalidate=86400');
 
+  // A failed query must never become a short sitemap. Previously `|| []` turned
+  // a timeout into "just / and /jobs" (or a 404 chunk) with a 200 status, and
+  // the edge cached that for hours. Now: 503 + no-store, so neither the CDN nor
+  // Google keeps the bad answer and the next fetch retries.
+  const unavailable = () => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Retry-After', '300');
+    return res.status(503).send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"/>');
+  };
+
   try {
     if (kind === 'hubs') {
-      const hubs = (await rpc('seo_sitemap_hubs', { p_min: MIN_HUB_JOBS })) || [];
+      const hubs = await rpc('seo_sitemap_hubs', { p_min: MIN_HUB_JOBS });
+      if (!Array.isArray(hubs)) return unavailable();
+      // Only '/' from the SPA: every other client-rendered route serves the same
+      // shell and now canonicals to '/', so listing them here would contradict
+      // that. The role/state/company hubs below are real server-rendered pages.
       const urls = [
         { path: '/', priority: '1.0' },
-        { path: '/jobs', priority: '0.9' },
         ...hubs.map((h) => ({ path: h.path, priority: '0.7' })),
       ];
       return res.status(200).send(urlset(urls));
     }
 
     if (kind === 'companies') {
-      const rows = (await rpc('seo_sitemap_companies', {
-        p_min: MIN_COMPANY_JOBS, p_limit: CHUNK, p_offset: n * CHUNK })) || [];
+      const rows = await rpc('seo_sitemap_companies', {
+        p_min: MIN_COMPANY_JOBS, p_limit: CHUNK, p_offset: n * CHUNK });
+      if (!Array.isArray(rows)) return unavailable();
+      // An empty array is a genuine out-of-range chunk, not an error.
       if (!rows.length) return res.status(404).send('<?xml version="1.0"?><urlset/>');
       return res.status(200).send(urlset(rows.map((r) => ({
         path: `/companies/${r.slug}`, lastmod: r.updated, priority: '0.6' }))));
     }
 
     // index: how many company chunks do we need?
-    const all = (await rpc('seo_sitemap_companies', {
-      p_min: MIN_COMPANY_JOBS, p_limit: 50000, p_offset: 0 })) || [];
+    const all = await rpc('seo_sitemap_companies', {
+      p_min: MIN_COMPANY_JOBS, p_limit: 50000, p_offset: 0 });
+    if (!Array.isArray(all)) return unavailable();
     const chunks = Math.max(1, Math.ceil(all.length / CHUNK));
     const children = ['/sitemap-hubs.xml']
       .concat(Array.from({ length: chunks }, (_, i) => `/sitemap-companies-${i}.xml`));
@@ -88,6 +104,6 @@ export default async function handler(req, res) {
       + children.map((c) => `<sitemap><loc>${xmlEsc(SITE + c)}</loc><lastmod>${today}</lastmod></sitemap>`).join('\n')
       + `\n</sitemapindex>`);
   } catch (e) {
-    return res.status(500).send('<?xml version="1.0"?><urlset/>');
+    return unavailable();
   }
 }
