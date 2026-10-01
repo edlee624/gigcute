@@ -14,4 +14,9 @@ Disallow: /join
 Disallow: /login
 Disallow: /admin
 
+# Deliberately NOT disallowed: /home, /main, /post, /search, /jobs, /recruit.
+# They serve the same shell as / and consolidate onto it via <link rel=canonical>.
+# Google can only honour a canonical on a page it is allowed to crawl, so
+# blocking them here would defeat that and leave them as "Blocked by robots.txt".
+
 Sitemap: https://www.gigcute.com/sitemap.xml

@@ -6,6 +6,13 @@
 <title>GigCute — more than a resume</title>
 <meta name="description" content="GigCute is more than a resume. Answer prompts that show how you actually think, then share your profile anywhere — and stand out to recruiters.">
 <meta name="theme-color" content="#15171C">
+<!-- Every client-rendered route returns this identical shell, so without a
+     canonical Google sees /jobs, /search, /recruit, /home, /main, /post … as
+     duplicates with no authoritative version ("Duplicate without user-selected
+     canonical"). Consolidate them onto the homepage. The server-rendered SEO
+     hubs (/companies/*, /jobs/<role>…) are separate documents and carry their
+     own per-page canonical, so they are unaffected. -->
+<link rel="canonical" href="https://www.gigcute.com/">
 <link rel="icon" href="/logo.png">
 <link rel="apple-touch-icon" href="/logo.png">
 <!-- Social share cards. Note: this is a single-page app, so per-profile cards
